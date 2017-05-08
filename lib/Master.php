@@ -40,15 +40,22 @@ class Master {
 	/** @var ICrypto */
 	private $crypto;
 
+	/** @var Lookup */
+	private $lookup;
+
 	/**
 	 * Master constructor.
 	 *
 	 * @param GlobalSiteSelector $gss
 	 * @param ICrypto $crypto
 	 */
-	public function __construct(GlobalSiteSelector $gss, ICrypto $crypto) {
+	public function __construct(GlobalSiteSelector $gss,
+								ICrypto $crypto,
+								Lookup $lookup
+	) {
 		$this->gss = $gss;
 		$this->crypto = $crypto;
+		$this->lookup = $lookup;
 	}
 
 
@@ -74,8 +81,7 @@ class Master {
 	 * @return string
 	 */
 	private function queryLookupServer($uid) {
-		// FIXME... Just for testing for now
-		return rtrim('http://localhost/master', '/');
+		return $this->lookup->search($uid);
 	}
 
 	/**
