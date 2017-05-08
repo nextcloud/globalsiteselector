@@ -32,6 +32,7 @@ use OCP\ILogger;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
+use OCP\Security\ICrypto;
 
 /**
  * Class SlaveController
@@ -54,6 +55,9 @@ class SlaveController extends OCSController {
 	/** @var IURLGenerator */
 	private $urlGenerator;
 
+	/** @var ICrypto */
+	private $crypto;
+
 	/**
 	 * SlaveController constructor.
 	 *
@@ -63,19 +67,22 @@ class SlaveController extends OCSController {
 	 * @param ILogger $logger
 	 * @param IUserSession $session
 	 * @param IURLGenerator $urlGenerator
+	 * @param ICrypto $crypto
 	 */
 	public function __construct($appName,
 								IRequest $request,
 								GlobalSiteSelector $gss,
 								ILogger $logger,
 								IUserSession $session,
-								IURLGenerator $urlGenerator
+								IURLGenerator $urlGenerator,
+								ICrypto $crypto
 	) {
 		parent::__construct($appName, $request);
 		$this->gss = $gss;
 		$this->logger = $logger;
 		$this->session = $session;
 		$this->urlGenerator = $urlGenerator;
+		$this->crypto = $crypto;
 	}
 
 	/**
@@ -88,7 +95,6 @@ class SlaveController extends OCSController {
 	 */
 	public function autoLogin($jwt) {
 
-		$key = $this->gss->getJwtKey();
 		$masterUrl = $this->gss->getMasterUrl();
 
 		if($this->gss->getMode() === 'master') {
@@ -101,18 +107,7 @@ class SlaveController extends OCSController {
 
 		try {
 
-			$decoded = (array)JWT::decode($jwt, $key, ['HS256']);
-
-			if (!isset($decoded['uid'])) {
-				throw new \Exception('"uid" not set in JWT');
-			}
-
-			if (!isset($decoded['password'])) {
-				throw new \Exception('"password" not set in JWT');
-			}
-
-			$uid = $decoded['uid'];
-			$password = $decoded['password'];
+			list($uid, $password) = $this->decodeJwt($jwt);
 
 			$result = $this->session->login($uid, $password);
 			if ($result === false) {
@@ -131,6 +126,31 @@ class SlaveController extends OCSController {
 		$home = $this->urlGenerator->getAbsoluteURL('/');
 		return new RedirectResponse($home);
 
+	}
+
+	/**
+	 * decode jwt and return the uid and the password
+	 *
+	 * @param string $jwt
+	 * @return array
+	 * @throws \Exception
+	 */
+	private function decodeJwt($jwt) {
+		$key = $this->gss->getJwtKey();
+		$decoded = (array)JWT::decode($jwt, $key, ['HS256']);
+
+		if (!isset($decoded['uid'])) {
+			throw new \Exception('"uid" not set in JWT');
+		}
+
+		if (!isset($decoded['password'])) {
+			throw new \Exception('"password" not set in JWT');
+		}
+
+		$uid = $decoded['uid'];
+		$password = $this->crypto->decrypt($decoded['password'], $key);
+
+		return [$uid, $password];
 	}
 
 }

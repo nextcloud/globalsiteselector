@@ -23,6 +23,7 @@
 namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
+use OCP\Security\ICrypto;
 
 /**
  * Class Master
@@ -36,13 +37,18 @@ class Master {
 	/** @var GlobalSiteSelector */
 	private $gss;
 
+	/** @var ICrypto */
+	private $crypto;
+
 	/**
 	 * Master constructor.
 	 *
 	 * @param GlobalSiteSelector $gss
+	 * @param ICrypto $crypto
 	 */
-	public function __construct(GlobalSiteSelector $gss) {
+	public function __construct(GlobalSiteSelector $gss, ICrypto $crypto) {
 		$this->gss = $gss;
+		$this->crypto = $crypto;
 	}
 
 
@@ -83,7 +89,7 @@ class Master {
 
 		$token = [
 			'uid' => $uid,
-			'password' => $password,
+			'password' => $this->crypto->encrypt($password, $this->gss->getJwtKey()),
 			'exp' => time() + 300, // expires after 5 minutes
 		];
 
