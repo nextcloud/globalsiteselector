@@ -135,12 +135,12 @@ class SlaveController extends OCSController {
 	 * @return array
 	 * @throws \Exception
 	 */
-	private function decodeJwt($jwt) {
+	protected function decodeJwt($jwt) {
 		$key = $this->gss->getJwtKey();
 		$decoded = (array)JWT::decode($jwt, $key, ['HS256']);
 
 		if (!isset($decoded['uid'])) {
-			throw new \Exception('"uid" not set in JWT');
+			throw new Exception('"uid" not set in JWT');
 		}
 
 		if (!isset($decoded['password'])) {

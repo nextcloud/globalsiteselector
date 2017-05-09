@@ -48,6 +48,7 @@ class Master {
 	 *
 	 * @param GlobalSiteSelector $gss
 	 * @param ICrypto $crypto
+	 * @param Lookup $lookup
 	 */
 	public function __construct(GlobalSiteSelector $gss,
 								ICrypto $crypto,
@@ -80,7 +81,7 @@ class Master {
 	 * @param $uid
 	 * @return string
 	 */
-	private function queryLookupServer($uid) {
+	protected function queryLookupServer($uid) {
 		return $this->lookup->search($uid);
 	}
 
@@ -91,8 +92,21 @@ class Master {
 	 * @param string $password
 	 * @param string $location
 	 */
-	private function redirectUser($uid, $password, $location) {
+	protected function redirectUser($uid, $password, $location) {
+		$jwt = $this->createJwt($uid, $password);
+		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
+		header('Location: ' . $redirectUrl);
+		die();
+	}
 
+	/**
+	 * generate JWT
+	 *
+	 * @param string $uid
+	 * @param string $password
+	 * @return string
+	 */
+	protected function createJwt($uid, $password) {
 		$token = [
 			'uid' => $uid,
 			'password' => $this->crypto->encrypt($password, $this->gss->getJwtKey()),
@@ -101,9 +115,7 @@ class Master {
 
 		$jwt = JWT::encode($token, $this->gss->getJwtKey());
 
-		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
-		header('Location: ' . $redirectUrl);
-		die();
+		return $jwt;
 	}
 
 }

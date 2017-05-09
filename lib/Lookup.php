@@ -104,7 +104,7 @@ class Lookup {
 	 * @return mixed
 	 * @throws \Exception
 	 */
-	private function queryLookupServer($uid) {
+	protected function queryLookupServer($uid) {
 		$client = $this->httpClientService->newClient();
 		$response = $client->get(
 			$this->lookupServerUrl . '/users?search=' . urlencode($uid) . '&exact=1',
