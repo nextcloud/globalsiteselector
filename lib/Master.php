@@ -23,6 +23,7 @@
 namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
+use OCP\IRequest;
 use OCP\Security\ICrypto;
 
 /**
@@ -43,20 +44,26 @@ class Master {
 	/** @var Lookup */
 	private $lookup;
 
+	/** @var IRequest */
+	private $request;
+
 	/**
 	 * Master constructor.
 	 *
 	 * @param GlobalSiteSelector $gss
 	 * @param ICrypto $crypto
 	 * @param Lookup $lookup
+	 * @param IRequest $request
 	 */
 	public function __construct(GlobalSiteSelector $gss,
 								ICrypto $crypto,
-								Lookup $lookup
+								Lookup $lookup,
+								IRequest $request
 	) {
 		$this->gss = $gss;
 		$this->crypto = $crypto;
 		$this->lookup = $lookup;
+		$this->request = $request;
 	}
 
 
@@ -93,8 +100,22 @@ class Master {
 	 * @param string $location
 	 */
 	protected function redirectUser($uid, $password, $location) {
+
+		$isClient = $this->request->isUserAgent(
+			[
+				IRequest::USER_AGENT_CLIENT_IOS,
+				IRequest::USER_AGENT_CLIENT_ANDROID,
+				IRequest::USER_AGENT_CLIENT_DESKTOP
+			]
+		);
+
+		if($isClient) {
+			// TODO login nextcloud clients
+		}
+
 		$jwt = $this->createJwt($uid, $password);
 		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
+
 		header('Location: ' . $redirectUrl);
 		die();
 	}

@@ -27,6 +27,7 @@ use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
+use OCP\IRequest;
 use OCP\Security\ICrypto;
 use Test\TestCase;
 
@@ -41,6 +42,9 @@ class MasterTest extends TestCase {
 	/** @var  Lookup|\PHPUnit_Framework_MockObject_MockObject */
 	private $lookup;
 
+	/** @var  IRequest|\PHPUnit_Framework_MockObject_MockObject */
+	private $request;
+
 	public function setUp() {
 		parent::setUp();
 
@@ -49,6 +53,7 @@ class MasterTest extends TestCase {
 		$this->crypto = $this->createMock(ICrypto::class);
 		$this->lookup = $this->getMockBuilder(Lookup::class)
 			->disableOriginalConstructor()->getMock();
+		$this->request = $this->createMock(IRequest::class);
 	}
 
 	/**
@@ -61,7 +66,8 @@ class MasterTest extends TestCase {
 				[
 					$this->gss,
 					$this->crypto,
-					$this->lookup
+					$this->lookup,
+					$this->request
 				]
 			)->setMethods($mockMethods)->getMock();
 	}
