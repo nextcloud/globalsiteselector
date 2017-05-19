@@ -27,6 +27,7 @@ use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
+use OCP\Http\Client\IClientService;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
 use Test\TestCase;
@@ -45,6 +46,9 @@ class MasterTest extends TestCase {
 	/** @var  IRequest|\PHPUnit_Framework_MockObject_MockObject */
 	private $request;
 
+	/** @var  IClientService | \PHPUnit_Framework_MockObject_MockObject */
+	private $clientService;
+
 	public function setUp() {
 		parent::setUp();
 
@@ -54,6 +58,7 @@ class MasterTest extends TestCase {
 		$this->lookup = $this->getMockBuilder(Lookup::class)
 			->disableOriginalConstructor()->getMock();
 		$this->request = $this->createMock(IRequest::class);
+		$this->clientService = $this->createMock(IClientService::class);
 	}
 
 	/**
@@ -67,7 +72,8 @@ class MasterTest extends TestCase {
 					$this->gss,
 					$this->crypto,
 					$this->lookup,
-					$this->request
+					$this->request,
+					$this->clientService
 				]
 			)->setMethods($mockMethods)->getMock();
 	}
@@ -129,6 +135,28 @@ class MasterTest extends TestCase {
 
 		$this->assertSame($uid, $decoded['uid']);
 		$this->assertSame($encryptedPassword, $decoded['password']);
+	}
+
+	/**
+	 * @dataProvider dataTestBuildBasicAuthUrl
+	 *
+	 * @param string $url
+	 * @param string $uid
+	 * @param string $password
+	 * @param string $expected
+	 */
+	public function testBuildBasicAuthUrl($url, $uid, $password, $expected) {
+		$master = $this->getInstance();
+		$result = $this->invokePrivate($master, 'buildBasicAuthUrl', [$url, $uid, $password]);
+		$this->assertSame($expected, $result);
+	}
+
+	public function dataTestBuildBasicAuthUrl() {
+		return [
+			['http://nextcloud.com', 'user', 'password', 'http://user:password@nextcloud.com'],
+			['https://nextcloud.com', 'user', 'password', 'https://user:password@nextcloud.com'],
+			['nextcloud.com', 'user', 'password', 'https://user:password@nextcloud.com'],
+		];
 	}
 
 }

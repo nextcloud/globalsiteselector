@@ -26,6 +26,7 @@ namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\TokenHandler;
 use OCP\ILogger;
 use OCP\IRequest;
 use OCP\IURLGenerator;
@@ -53,6 +54,9 @@ class SlaveControllerTest extends TestCase {
 	/** @var  ICrypto|\PHPUnit_Framework_MockObject_MockObject */
 	private $crypto;
 
+	/** @var  TokenHandler | \PHPUnit_Framework_MockObject_MockObject */
+	private $tokenHandler;
+
 	public function setUp() {
 		parent::setUp();
 
@@ -63,6 +67,8 @@ class SlaveControllerTest extends TestCase {
 		$this->userSession = $this->createMock(IUserSession::class);
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
 		$this->crypto = $this->createMock(ICrypto::class);
+		$this->tokenHandler = $this->getMockBuilder(TokenHandler::class)
+			->disableOriginalConstructor()->getMock();
 	}
 
 	/**
@@ -79,7 +85,8 @@ class SlaveControllerTest extends TestCase {
 					$this->logger,
 					$this->userSession,
 					$this->urlGenerator,
-					$this->crypto
+					$this->crypto,
+					$this->tokenHandler
 				]
 			)->setMethods($mockMathods)->getMock();
 	}

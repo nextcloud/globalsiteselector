@@ -26,6 +26,9 @@ namespace OCA\GlobalSiteSelector\Controller;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\TokenHandler;
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
 use OCP\ILogger;
@@ -58,6 +61,9 @@ class SlaveController extends OCSController {
 	/** @var ICrypto */
 	private $crypto;
 
+	/** @var TokenHandler */
+	private $tokenHandler;
+
 	/**
 	 * SlaveController constructor.
 	 *
@@ -68,6 +74,7 @@ class SlaveController extends OCSController {
 	 * @param IUserSession $session
 	 * @param IURLGenerator $urlGenerator
 	 * @param ICrypto $crypto
+	 * @param TokenHandler $tokenHandler
 	 */
 	public function __construct($appName,
 								IRequest $request,
@@ -75,7 +82,8 @@ class SlaveController extends OCSController {
 								ILogger $logger,
 								IUserSession $session,
 								IURLGenerator $urlGenerator,
-								ICrypto $crypto
+								ICrypto $crypto,
+								TokenHandler $tokenHandler
 	) {
 		parent::__construct($appName, $request);
 		$this->gss = $gss;
@@ -83,6 +91,7 @@ class SlaveController extends OCSController {
 		$this->session = $session;
 		$this->urlGenerator = $urlGenerator;
 		$this->crypto = $crypto;
+		$this->tokenHandler = $tokenHandler;
 	}
 
 	/**
@@ -125,6 +134,29 @@ class SlaveController extends OCSController {
 		$this->session->createSessionToken($this->request, $uid, $uid, null, 0);
 		$home = $this->urlGenerator->getAbsoluteURL('/');
 		return new RedirectResponse($home);
+
+	}
+
+	/**
+	 * Create app token
+	 *
+	 * @NoAdminRequired
+	 *
+	 * @return DataResponse
+	 */
+	public function createAppToken() {
+
+		if($this->gss->getMode() === 'master') {
+			return new DataResponse([], Http::STATUS_BAD_REQUEST);
+		}
+
+		$user = $this->session->getUser();
+		$uid = $user->getUID();
+
+		$token = $this->tokenHandler->generateAppToken($uid);
+
+		return new DataResponse($token);
+
 
 	}
 

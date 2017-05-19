@@ -22,7 +22,7 @@
 
 return [
 	'ocs' => [
-		['name' => 'Slave#createAppToken', 'url' => '/v1/createapptoken', 'verb' => 'POST'],
+		['name' => 'Slave#createAppToken', 'url' => '/v1/createapptoken', 'verb' => 'GET'],
 	],
 	'routes' => [
 		[

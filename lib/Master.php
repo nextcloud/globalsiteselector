@@ -23,6 +23,7 @@
 namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
+use OCP\Http\Client\IClientService;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
 
@@ -47,6 +48,9 @@ class Master {
 	/** @var IRequest */
 	private $request;
 
+	/** @var IClientService */
+	private $clientService;
+
 	/**
 	 * Master constructor.
 	 *
@@ -54,16 +58,19 @@ class Master {
 	 * @param ICrypto $crypto
 	 * @param Lookup $lookup
 	 * @param IRequest $request
+	 * @param IClientService $clientService
 	 */
 	public function __construct(GlobalSiteSelector $gss,
 								ICrypto $crypto,
 								Lookup $lookup,
-								IRequest $request
+								IRequest $request,
+								IClientService $clientService
 	) {
 		$this->gss = $gss;
 		$this->crypto = $crypto;
 		$this->lookup = $lookup;
 		$this->request = $request;
+		$this->clientService = $clientService;
 	}
 
 
@@ -98,6 +105,7 @@ class Master {
 	 * @param string $uid
 	 * @param string $password
 	 * @param string $location
+	 * @throws \Exception
 	 */
 	protected function redirectUser($uid, $password, $location) {
 
@@ -110,11 +118,12 @@ class Master {
 		);
 
 		if($isClient) {
-			// TODO login nextcloud clients
+			$appToken = $this->getAppToken($location, $uid, $password);
+			$redirectUrl = 'nc://login/server:' . $location . '&user:' . $uid . '&password:' . $appToken;
+		} else {
+			$jwt = $this->createJwt($uid, $password);
+			$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
 		}
-
-		$jwt = $this->createJwt($uid, $password);
-		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
 
 		header('Location: ' . $redirectUrl);
 		die();
@@ -137,6 +146,70 @@ class Master {
 		$jwt = JWT::encode($token, $this->gss->getJwtKey());
 
 		return $jwt;
+	}
+
+	/**
+	 * get app token from the server the user is located
+	 *
+	 * @param string $location
+	 * @param $uid
+	 * @param $password
+	 * @return string
+	 * @throws \Exception
+	 */
+	protected function getAppToken($location, $uid, $password) {
+		$client = $this->clientService->newClient();
+
+		$baseUrl = $this->buildBasicAuthUrl($location, $uid, $password);
+		$response = $client->get(
+			$baseUrl . '/ocs/v2.php/apps/globalsiteselector/v1/createapptoken?format=json',
+			[
+				'headers' => [
+					'OCS-APIRequest' => 'true'
+				]
+			]
+		);
+
+		$body = $response->getBody();
+
+		$data = json_decode($body, true);
+		$jsonErrorCode = json_last_error();
+		if ($jsonErrorCode !== JSON_ERROR_NONE) {
+			$info = 'getAppToken - Decoding the JSON failed ' .
+				$jsonErrorCode . ' ' .
+				json_last_error_msg();
+			throw new \Exception($info);
+		}
+		if (!isset($data['ocs']['data']['token'])) {
+			$info = 'getAppToken - data doesn\'t contain token: ' . json_encode($data);
+			throw new \Exception($info);
+		}
+
+		return $data['ocs']['data']['token'];
+	}
+
+	/**
+	 * add basic auth information to the URL
+	 *
+	 * @param string $url
+	 * @param string $uid
+	 * @param string $password
+	 * @return string
+	 */
+	protected function buildBasicAuthUrl($url, $uid, $password) {
+		if (strpos($url, 'http://') === 0) {
+			$protocol = 'http://';
+		} else if (strpos($url, 'https://') === 0) {
+			$protocol = 'https://';
+		} else {
+			// no protocol given, switch to https as default
+			$url = 'https://' . $url;
+			$protocol = 'https://';
+		}
+
+		$basicAuth = $protocol . $uid . ':' . $password . '@';
+
+		return str_replace($protocol, $basicAuth, $url);
 	}
 
 }
