@@ -23,6 +23,7 @@
 namespace OCA\GlobalSiteSelector;
 
 
+use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\ILogger;
@@ -45,20 +46,26 @@ class Lookup {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var  ICloudIdManager */
+	private $cloudIdManager;
+
 	/**
 	 * Lookup constructor.
 	 *
 	 * @param IClientService $clientService
 	 * @param IConfig $config
 	 * @param ILogger $logger
+	 * @param ICloudIdManager $cloudIdManager
 	 */
 	public function __construct(IClientService $clientService,
 								IConfig $config,
-								ILogger $logger
+								ILogger $logger,
+								ICloudIdManager $cloudIdManager
 	) {
 		$this->httpClientService = $clientService;
 		$this->lookupServerUrl = $config->getSystemValue('lookup_server', '');
 		$this->logger = $logger;
+		$this->cloudIdManager = $cloudIdManager;
 	}
 
 	/**
@@ -84,8 +91,8 @@ class Lookup {
 		try {
 			$body = $this->queryLookupServer($uid);
 
-			if (isset($body['location'])) {
-				$result = rtrim($body['location'], '/');
+			if (isset($body['federationId'])) {
+				$result = $this->getUserLocation($body['federationId']);
 			}
 
 		} catch (\Exception $e) {
@@ -117,6 +124,24 @@ class Lookup {
 		$body = json_decode($response->getBody(), true);
 
 		return $body;
+	}
+
+	/**
+	 * split user and remote from federated cloud id
+	 *
+	 * @param string $address federated share address
+	 * @return array [user, remoteURL]
+	 * @throws HintException
+	 */
+	protected function getUserLocation($address) {
+		try {
+			$cloudId = $this->cloudIdManager->resolveCloudId($address);
+			$location = $cloudId->getRemote();
+			return rtrim($location, '/');
+		} catch (\InvalidArgumentException $e) {
+			$hint = $this->l->t('Invalid Federated Cloud ID');
+			throw new HintException('Invalid Federated Cloud ID', $hint, 0, $e);
+		}
 	}
 
 }

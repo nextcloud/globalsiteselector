@@ -24,6 +24,8 @@ namespace OCA\GlobalSiteSelector\Tests\Unit;
 
 
 use OCA\GlobalSiteSelector\Lookup;
+use OCP\Federation\ICloudId;
+use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\ILogger;
@@ -40,12 +42,16 @@ class LookupTest extends TestCase {
 	/** @var  ILogger|\PHPUnit_Framework_MockObject_MockObject */
 	private $logger;
 
+	/** @var  ICloudIdManager | \PHPUnit_Framework_MockObject_MockObject */
+	private $cloudIdManager;
+
 	public function setUp() {
 		parent::setUp();
 
 		$this->httpClientService = $this->createMock(IClientService::class);
 		$this->config = $this->createMock(IConfig::class);
 		$this->logger = $this->createMock(ILogger::class);
+		$this->cloudIdManager = $this->createMock(ICloudIdManager::class);
 	}
 
 	/**
@@ -60,37 +66,63 @@ class LookupTest extends TestCase {
 				[
 					$this->httpClientService,
 					$this->config,
-					$this->logger
+					$this->logger,
+					$this->cloudIdManager
 				]
 			)->setMethods($mockMethods)->getMock();
 	}
 
 	/**
-	 * @param string $location
+	 * @param string $lookupServerUrl
 	 * @param string $lookupServerResult
+	 * @param string $userLocation
 	 * @param string $expected
 	 *
 	 * @dataProvider dataTestSearch
 	 */
-	public function testSearch($location, $lookupServerResult, $expected) {
+	public function testSearch($lookupServerUrl, $lookupServerResult, $userLocation, $expected) {
 		$this->config->expects($this->any())->method('getSystemValue')
-			->with('lookup_server', '')->willReturn($location);
+			->with('lookup_server', '')->willReturn($lookupServerUrl);
 
-		$lookup = $this->getInstance(['queryLookupServer']);
+		$lookup = $this->getInstance(['queryLookupServer', 'getUserLocation']);
 		$lookup->expects($this->any())->method('queryLookupServer')
 			->with('uid')->willReturn($lookupServerResult);
+		if (isset($lookupServerResult['federationId'])) {
+			$lookup->expects($this->any())->method('getUserLocation')->with($lookupServerResult['federationId'])
+				->willReturn($userLocation);
+		}
 
-		$this->assertSame($expected, $lookup->search('uid'));
+		$result = $lookup->search('uid');
+
+		$this->assertSame($expected, $result);
 
 	}
 
 	public function dataTestSearch() {
 		return [
-			['', [], ''],
-			['', ['location' => 'https://nextcloud.com'], ''],
-			['https://lookup.nextcloud.com', ['location' => 'https://nextcloud.com'], 'https://nextcloud.com'],
-			['https://lookup.nextcloud.com', [], ''],
+			['', [], 'location', ''],
+			['', ['location' => 'https://nextcloud.com'], 'location', ''],
+			['https://lookup.nextcloud.com', ['federationId' => 'user@https://nextcloud.com'], 'https://nextcloud.com', 'https://nextcloud.com'],
+			['https://lookup.nextcloud.com', [], 'location', ''],
 		];
+	}
+
+	public function testGetUserLocation() {
+		$lookup = $this->getInstance();
+		$cloudId = $this->createMock(ICloudId::class);
+		$federationId = 'user@nextcloud.com';
+		$location = 'nextcloud.com';
+
+		$cloudId->expects($this->once())->method('getRemote')
+			->willReturn($location . '/');
+
+		$this->cloudIdManager->expects($this->once())->method('resolveCloudId')
+			->with($federationId)
+		->willReturn($cloudId);
+
+		$result = $this->invokePrivate($lookup, 'getUserLocation', ['user@nextcloud.com']);
+
+		$this->assertSame($location, $result);
 	}
 
 }
