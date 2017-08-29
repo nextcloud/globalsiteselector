@@ -33,7 +33,7 @@ Config parameters to operate the server in slave mode:
 // operation mode
 'gss.mode' => 'slave',
 
-// url of the master, so we can redirect the user back in-case of an error
+// url of the master, so we can redirect the user back in case of an error
 'gss.master.url' => 'http://localhost/nextcloud2',
 ````
 
