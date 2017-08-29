@@ -6,15 +6,15 @@ It can run in two modes. In "master" mode the server will query the lookup-serve
 
 ## Configuration
 
-To use the Global Side Connector you need to add some config parameters to the config.php
+To use the Global Site Connector you need to add some config parameters to the config.php
 
 ### Master
 
 Config.php parameters to operate the server in master mode:
 
 ````
-// can be chosen freely, you just have to make sure that the master and
-// all slaves have the same key.  Also make sure to chose a strong shared secret.
+// can be chosen freely, you just have to make sure the master and
+// all slaves have the same key.  Also make sure to choose a strong shared secret.
 'gss.jwt.key' => 'random-key',
 
 // operation mode
@@ -23,17 +23,17 @@ Config.php parameters to operate the server in master mode:
 
 ### Slave
 
-Config parameter to operate the server in slave mode:
+Config parameters to operate the server in slave mode:
 
 ````
-// can be chosen freely, you just have to make sure that the master and
-// all slaves have the same key. Also make sure to chose a strong shared secret.
+// can be chosen freely, you just have to make sure the master and
+// all slaves have the same key. Also make sure to choose a strong shared secret.
 'gss.jwt.key' => 'random-key',
 
 // operation mode
 'gss.mode' => 'slave',
 
-// url of the master, so that we can redirect the user back in case of an error
+// url of the master, so we can redirect the user back in case of an error
 'gss.master.url' => 'http://localhost/nextcloud2',
 ````
 
