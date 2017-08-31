@@ -85,7 +85,7 @@ class Master {
 
 		$location = $this->queryLookupServer($uid);
 		if (!empty($location)) {
-			$this->redirectUser($uid, $password, $location);
+			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location);
 		}
 	}
 

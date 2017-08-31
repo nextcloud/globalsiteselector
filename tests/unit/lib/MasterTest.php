@@ -92,8 +92,11 @@ class MasterTest extends TestCase {
 		if (empty($location)) {
 			$master->expects($this->never())->method('redirectUser');
 		} else {
+			$this->request->expects($this->once())
+				->method('getServerProtocol')
+				->willReturn('https');
 			$master->expects($this->once())->method('redirectUser')
-				->with($params['uid'], $params['password'], $location);
+				->with($params['uid'], $params['password'], 'https://' . $location);
 		}
 
 		$master->handleLoginRequest($params);
@@ -101,7 +104,7 @@ class MasterTest extends TestCase {
 
 	public function dataTestHandleLoginRequest() {
 		return [
-			[['uid' => 'user', 'password' => 'password'], 'https://nextcloud.com'],
+			[['uid' => 'user', 'password' => 'password'], 'nextcloud.com'],
 			[['uid' => 'user', 'password' => 'password'], ''],
 		];
 	}

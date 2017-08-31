@@ -4,6 +4,8 @@ The Global Site Selector allows you to run multiple small Nextcloud instances an
 
 It can run in two modes. In "master" mode the server will query the lookup-server for the users location and redirect the user to the right Nextcloud server. In "slave" mode the server will be able to receive and handle the redirects of the master.
 
+This app will always use the same protocol (HTTP or HTTPS) to do the redirect to the slave as what is used to connect to the master node. That means if the master is accessed via HTTPS the login redirect will also happen via HTTPS.
+
 ## Configuration
 
 To use the Global Site Connector you need to add some config parameters to the config.php
