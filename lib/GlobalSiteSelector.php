@@ -67,10 +67,19 @@ class GlobalSiteSelector {
 	/**
 	 * get the URL of the global site selector master
 	 *
-	 * @return mixed
+	 * @return string
 	 */
 	public function getMasterUrl() {
 		return $this->config->getSystemValue('gss.master.url', '');
+	}
+
+	/**
+	 * get lookup server URL
+	 *
+	 * @return string
+	 */
+	public function getLookupServerUrl() {
+		return $this->config->getSystemValue('lookup_server', '');
 	}
 
 }

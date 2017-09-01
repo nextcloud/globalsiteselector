@@ -13,4 +13,7 @@
 		<nextcloud min-version="12" max-version="13" />
 	</dependencies>
 	<namespace>GlobalSiteSelector</namespace>
+	<background-jobs>
+		<job>OCA\GlobalSiteSelector\BackgroundJobs\UpdateLookupServer</job>
+	</background-jobs>
 </info>
