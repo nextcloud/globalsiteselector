@@ -29,6 +29,7 @@ use OCA\GlobalSiteSelector\Slave;
 use OCP\AppFramework\App;
 use OCP\AppFramework\IAppContainer;
 use OCP\Util;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 class Application extends App {
 
@@ -64,11 +65,18 @@ class Application extends App {
 	 * @param IAppContainer $c
 	 */
 	private function registerSlaveHooks(IAppContainer $c) {
+		/** @var Slave $slave */
 		$slave = $c->query(Slave::class);
 
 		Util::connectHook('OC_User', 'post_createUser',	$slave, 'createUser');
 		Util::connectHook('OC_User', 'pre_deleteUser',	$slave, 'preDeleteUser');
 		Util::connectHook('OC_User', 'post_deleteUser',	$slave, 'deleteUser');
-	}
 
+		$dispatcher = \OC::$server->getEventDispatcher();
+		$dispatcher->addListener('OC\AccountManager::userUpdated', function(GenericEvent $event) use ($slave) {
+			/** @var \OCP\IUser $user */
+			$user = $event->getSubject();
+			$slave->updateUser($user);
+		});
+	}
 }

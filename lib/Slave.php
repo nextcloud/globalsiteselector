@@ -100,6 +100,23 @@ class Slave {
 	}
 
 	/**
+	 * update existing user if personal data change
+	 *
+	 * @param IUser $user
+	 */
+	public function updateUser(IUser $user) {
+		if ($this->checkConfiguration() === false)  {
+			return;
+		}
+
+		$userData = [];
+		if ($user !== null) {
+			$userData[$user->getCloudId()] = $this->getAccountData($user);
+			$this->addUsers($userData);
+		}
+	}
+
+	/**
 	 * the server indicated that the admin want to remove a user, remember the
 	 * federated cloud id so that we can remove the user from the lookup server
 	 * once they were deleted
@@ -171,11 +188,10 @@ class Slave {
 		foreach ($rawData as $key => $value) {
 			if ($key === 'displayname') {
 				$data['name'] = $value['value'];
-			} else {
+			} elseif (isset($value['value'])) {
 				$data[$key] = $value['value'];
 			}
 		}
-		unset($data['avatar']);
 		return $data;
 	}
 
