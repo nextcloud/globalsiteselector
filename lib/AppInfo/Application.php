@@ -25,6 +25,7 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Master;
+use OCA\GlobalSiteSelector\Slave;
 use OCP\AppFramework\App;
 use OCP\AppFramework\IAppContainer;
 use OCP\Util;
@@ -41,6 +42,8 @@ class Application extends App {
 
 		if ($mode === 'master') {
 			$this->registerMasterHooks($container);
+		} else {
+			$this->registerSlaveHooks($container);
 		}
 	}
 
@@ -51,8 +54,21 @@ class Application extends App {
 	 * @param IAppContainer $c
 	 */
 	private function registerMasterHooks(IAppContainer $c) {
-		$master= $c->query(Master::class);
+		$master = $c->query(Master::class);
 		Util::connectHook('OC_User', 'pre_login', $master, 'handleLoginRequest');
+	}
+
+	/**
+	 * register hooks for the portal if it operates as a slave
+	 *
+	 * @param IAppContainer $c
+	 */
+	private function registerSlaveHooks(IAppContainer $c) {
+		$slave = $c->query(Slave::class);
+
+		Util::connectHook('OC_User', 'post_createUser',	$slave, 'createUser');
+		Util::connectHook('OC_User', 'pre_deleteUser',	$slave, 'preDeleteUser');
+		Util::connectHook('OC_User', 'post_deleteUser',	$slave, 'deleteUser');
 	}
 
 }

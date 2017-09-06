@@ -69,4 +69,13 @@ class GlobalSiteSelectorTest extends TestCase {
 		$this->assertSame('result', $result);
 	}
 
+	public function testGetLookupServerUrl() {
+		$this->config->expects($this->once())->method('getSystemValue')
+			->with('lookup_server', '')->willReturn('result');
+
+		$result = $this->gss->getLookupServerUrl();
+
+		$this->assertSame('result', $result);
+	}
+
 }
