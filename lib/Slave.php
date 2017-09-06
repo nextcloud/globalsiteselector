@@ -100,7 +100,7 @@ class Slave {
 	}
 
 	/**
-	 * the server indicated that the admin want to remove the server, remember the
+	 * the server indicated that the admin want to remove a user, remember the
 	 * federated cloud id so that we can remove the user from the lookup server
 	 * once they were deleted
 	 *
