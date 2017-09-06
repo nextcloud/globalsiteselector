@@ -75,11 +75,11 @@ class UpdateLookupServer extends Job {
 	 * @return bool
 	 */
 	protected function shouldRun() {
-		$lastRun = $this->lastRun;
+		$lastRun = (int)$this->lastRun;
 		$currentTime = time();
 
 		// update every 24 hours and only if the app runs in slave mode
-		if ($this->operationMode !== 'slave' || $lastRun > $currentTime - 86400) {
+		if ($this->slave->getOperationMode() !== 'slave' || $lastRun > $currentTime - 86400) {
 			return false;
 		}
 

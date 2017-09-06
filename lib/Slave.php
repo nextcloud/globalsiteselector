@@ -233,4 +233,12 @@ class Slave {
 		}
 
 	}
+
+	/**
+	 * Operation mode - slave or master
+	 * @return string
+	 */
+	public function getOperationMode() {
+		return $this->operationMode;
+	}
 }
