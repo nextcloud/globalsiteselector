@@ -24,6 +24,7 @@ namespace OCA\GlobalSiteSelector;
 
 
 use OC\Accounts\AccountManager;
+use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\ILogger;
 use OCP\IUser;
@@ -42,6 +43,9 @@ class Slave {
 
 	/** @var ILogger */
 	private $logger;
+
+	/** @var ICloudIdManager */
+	private $cloudIdManager;
 
 	/** @var string */
 	private $lookupServer;
@@ -67,17 +71,20 @@ class Slave {
 	 * @param IClientService $clientService
 	 * @param GlobalSiteSelector $gss
 	 * @param ILogger $logger
+	 * @param ICloudIdManager $cloudIdManager
 	 */
 	public function __construct(AccountManager $accountManager,
 								IUserManager $userManager,
 								IClientService $clientService,
 								GlobalSiteSelector $gss,
-								ILogger $logger
+								ILogger $logger,
+								ICloudIdManager $cloudIdManager
 	) {
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->clientService = $clientService;
 		$this->logger = $logger;
+		$this->cloudIdManager = $cloudIdManager;
 		$this->lookupServer = $gss->getLookupServerUrl();
 		$this->operationMode = $gss->getMode();
 		$this->authKey = $gss->getJwtKey();
@@ -192,6 +199,10 @@ class Slave {
 				$data[$key] = $value['value'];
 			}
 		}
+
+		$uid = $this->cloudIdManager->getCloudId($user->getCloudId())->getUser();
+		$data['userid'] = $uid;
+
 		return $data;
 	}
 
