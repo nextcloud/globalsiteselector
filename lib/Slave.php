@@ -200,8 +200,7 @@ class Slave {
 			}
 		}
 
-		$uid = $this->cloudIdManager->getCloudId($user->getCloudId())->getUser();
-		$data['userid'] = $uid;
+		$data['userid'] = $user->getUID();
 
 		return $data;
 	}
