@@ -223,7 +223,7 @@ class Slave {
 				]
 			);
 		} catch (\Exception $e) {
-			$this->logger->warning('Could not send user to lookup server');
+			$this->logger->logException($e, ['message' => 'Could not send user to lookup server', 'level' => \OCP\Util::WARN]);
 		}
 	}
 
@@ -245,7 +245,7 @@ class Slave {
 				]
 			);
 		} catch (\Exception $e) {
-			$this->logger->warning('Could not remove user from the lookup server');
+			$this->logger->logException($e, ['message' => 'Could not remove user from the lookup server', 'level' => \OCP\Util::WARN]);
 		}
 	}
 
