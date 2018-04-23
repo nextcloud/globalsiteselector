@@ -81,12 +81,13 @@ class Master {
 	 */
 	public function handleLoginRequest($param) {
 		$uid = $param['uid'];
-		$password = $param['password'];
+		$password = isset($param['password']) ? $param['password'] : '';
 
 		$location = $this->queryLookupServer($uid);
 		if (!empty($location)) {
 			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location);
 		}
+		exit();
 	}
 
 	/**
@@ -105,9 +106,10 @@ class Master {
 	 * @param string $uid
 	 * @param string $password
 	 * @param string $location
+	 * @param array $options can contain additional parameters, e.g. from SAML
 	 * @throws \Exception
 	 */
-	protected function redirectUser($uid, $password, $location) {
+	protected function redirectUser($uid, $password, $location, array $options = []) {
 
 		$isClient = $this->request->isUserAgent(
 			[
@@ -121,7 +123,7 @@ class Master {
 			$appToken = $this->getAppToken($location, $uid, $password);
 			$redirectUrl = 'nc://login/server:' . $location . '&user:' . $uid . '&password:' . $appToken;
 		} else {
-			$jwt = $this->createJwt($uid, $password);
+			$jwt = $this->createJwt($uid, $password, $options);
 			$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
 		}
 

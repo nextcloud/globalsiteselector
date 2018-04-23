@@ -116,9 +116,15 @@ class SlaveController extends OCSController {
 
 		try {
 
-			list($uid, $password) = $this->decodeJwt($jwt);
+			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
-			$result = $this->session->login($uid, $password);
+			if(is_array($options) && isset($options['saml'])) {
+				$result = $this->autoprovisionIfPossible($uid, $options['saml']);
+				$backend = $this->getGSUserBackend();
+				$this->session->login($uid, '');
+			} else {
+				$result = $this->session->login($uid, $password);
+			}
 			if ($result === false) {
 				throw new \Exception('wrong username or password given for: ' . $uid);
 			}
@@ -183,6 +189,22 @@ class SlaveController extends OCSController {
 		$password = $this->crypto->decrypt($decoded['password'], $key);
 
 		return [$uid, $password];
+	}
+
+
+	protected function autoprovisionIfPossible($uid, $options) {
+		\OC::$server->getUserManager()->search($uid);
+		if (\OC::$server->getUserManager()->userExists($uid)) {
+			return true;
+		}
+
+		$result = \OC::$server->getUserManager()->createUser($uid, '90w4uwoifj98w4');
+
+		return $result === false ? false : true;
+	}
+
+	protected function getGSUserBackend() {
+		\OC::$server->getMemCacheFactory()->isAvailable();
 	}
 
 }
