@@ -25,6 +25,7 @@ namespace OCA\GlobalSiteSelector;
 use Firebase\JWT\JWT;
 use OCP\Http\Client\IClientService;
 use OCP\IRequest;
+use OCP\IUserBackend;
 use OCP\Security\ICrypto;
 
 /**
@@ -80,12 +81,25 @@ class Master {
 	 * @param array $param
 	 */
 	public function handleLoginRequest($param) {
+
+		$options = [];
+
+		/** @var SAMLUserBackend $backend */
+		$backend = isset($param['backend']) ? $param['backend'] : '';
+		if (class_exists('\OCA\User_SAML\UserBackend') &&
+			$backend instanceof \OCA\User_SAML\UserBackend
+		) {
+			$options['backend'] = 'saml';
+			$options['userData'] = $backend->getUserData();
+		}
+
+
 		$uid = $param['uid'];
 		$password = isset($param['password']) ? $param['password'] : '';
 
 		$location = $this->queryLookupServer($uid);
 		if (!empty($location)) {
-			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location);
+			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location, $options);
 		}
 		exit();
 	}
