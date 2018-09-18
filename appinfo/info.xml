@@ -1,18 +1,24 @@
 <?xml version="1.0"?>
-<info>
+<info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>globalsiteselector</id>
 	<name>Global Site Selector</name>
+	<summary>Nextcloud Portal to redirect users to the right instance</summary>
 	<description>The Global Site Selector allows you to run multiple small Nextcloud instances and redirect users to the right server</description>
-	<licence>AGPL</licence>
-	<author>Bjoern Schiessle</author>
 	<version>0.10.0</version>
+	<licence>agpl</licence>
+	<author>Bjoern Schiessle</author>
+	<namespace>GlobalSiteSelector</namespace>
 	<types>
 		<authentication/>
 	</types>
+	<category>tools</category>
+	<website>https://nextcloud.com/globalscale/</website>
+	<bugs>https://github.com/nextcloud/globalsiteselector/issues</bugs>
+	<repository>https://github.com/nextcloud/globalsiteselector</repository>
 	<dependencies>
 		<nextcloud min-version="12" max-version="15" />
 	</dependencies>
-	<namespace>GlobalSiteSelector</namespace>
 	<background-jobs>
 		<job>OCA\GlobalSiteSelector\BackgroundJobs\UpdateLookupServer</job>
 	</background-jobs>
