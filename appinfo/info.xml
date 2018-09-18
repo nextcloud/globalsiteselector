@@ -5,12 +5,12 @@
 	<description>The Global Site Selector allows you to run multiple small Nextcloud instances and redirect users to the right server</description>
 	<licence>AGPL</licence>
 	<author>Bjoern Schiessle</author>
-	<version>0.9.0</version>
+	<version>0.10.0</version>
 	<types>
 		<authentication/>
 	</types>
 	<dependencies>
-		<nextcloud min-version="12" max-version="13" />
+		<nextcloud min-version="12" max-version="15" />
 	</dependencies>
 	<namespace>GlobalSiteSelector</namespace>
 	<background-jobs>
