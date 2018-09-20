@@ -150,12 +150,14 @@ class Master {
 	 *
 	 * @param string $uid
 	 * @param string $password
+	 * @param array $options
 	 * @return string
 	 */
-	protected function createJwt($uid, $password) {
+	protected function createJwt($uid, $password, $options) {
 		$token = [
 			'uid' => $uid,
 			'password' => $this->crypto->encrypt($password, $this->gss->getJwtKey()),
+			'options' => json_encode($options),
 			'exp' => time() + 300, // expires after 5 minutes
 		];
 
