@@ -118,7 +118,7 @@ class SlaveController extends OCSController {
 
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
-			if(is_array($options) && isset($options['saml'])) {
+			if(is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
 				$result = $this->autoprovisionIfPossible($uid, $options['saml']);
 				$backend = $this->getGSUserBackend();
 				$this->session->login($uid, '');
@@ -187,8 +187,9 @@ class SlaveController extends OCSController {
 
 		$uid = $decoded['uid'];
 		$password = $this->crypto->decrypt($decoded['password'], $key);
+		$options = $decoded['options'];
 
-		return [$uid, $password];
+		return [$uid, $password, json_decode($options, true)];
 	}
 
 
