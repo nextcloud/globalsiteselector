@@ -27,13 +27,17 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\TokenHandler;
+use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
 use OCP\ILogger;
 use OCP\IRequest;
+use OCP\ISession;
 use OCP\IURLGenerator;
+use OCP\IUser;
+use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
 
@@ -53,7 +57,7 @@ class SlaveController extends OCSController {
 	private $logger;
 
 	/** @var IUserSession */
-	private $session;
+	private $userSession;
 
 	/** @var IURLGenerator */
 	private $urlGenerator;
@@ -64,6 +68,15 @@ class SlaveController extends OCSController {
 	/** @var TokenHandler */
 	private $tokenHandler;
 
+	/** @var IUserManager */
+	private $userManager;
+
+	/** @var UserBackend */
+	private $userBackend;
+
+	/** @var ISession */
+	private $session;
+
 	/**
 	 * SlaveController constructor.
 	 *
@@ -71,27 +84,36 @@ class SlaveController extends OCSController {
 	 * @param IRequest $request
 	 * @param GlobalSiteSelector $gss
 	 * @param ILogger $logger
-	 * @param IUserSession $session
+	 * @param IUserSession $userSession
+	 * @param ISession $session
 	 * @param IURLGenerator $urlGenerator
 	 * @param ICrypto $crypto
 	 * @param TokenHandler $tokenHandler
+	 * @param IUserManager $userManager
+	 * @param UserBackend $userBackend
 	 */
 	public function __construct($appName,
 								IRequest $request,
 								GlobalSiteSelector $gss,
 								ILogger $logger,
-								IUserSession $session,
+								IUserSession $userSession,
+								ISession $session,
 								IURLGenerator $urlGenerator,
 								ICrypto $crypto,
-								TokenHandler $tokenHandler
+								TokenHandler $tokenHandler,
+								IUserManager $userManager,
+								UserBackend $userBackend
 	) {
 		parent::__construct($appName, $request);
 		$this->gss = $gss;
 		$this->logger = $logger;
-		$this->session = $session;
+		$this->userSession = $userSession;
 		$this->urlGenerator = $urlGenerator;
 		$this->crypto = $crypto;
 		$this->tokenHandler = $tokenHandler;
+		$this->userManager = $userManager;
+		$this->userBackend = $userBackend;
+		$this->session = $session;
 	}
 
 	/**
@@ -119,11 +141,20 @@ class SlaveController extends OCSController {
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
 			if(is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
-				$result = $this->autoprovisionIfPossible($uid, $options['saml']);
-				$backend = $this->getGSUserBackend();
-				$this->session->login($uid, '');
+				$result = $this->autoprovisionIfNeeded($uid, $options);
+				try {
+					$user = $this->userManager->get($uid);
+					if(!($user instanceof IUser)) {
+						throw new \InvalidArgumentException('User is not valid');
+					}
+					$user->updateLastLoginTimestamp();
+				} catch (\Exception $e) {
+					$this->logger->logException($e, ['app' => $this->appName]);
+					throw $e;
+				}
+				$this->session->set('globalScale.uid', $uid);
 			} else {
-				$result = $this->session->login($uid, $password);
+				$result = $this->userSession->login($uid, $password);
 			}
 			if ($result === false) {
 				throw new \Exception('wrong username or password given for: ' . $uid);
@@ -137,7 +168,7 @@ class SlaveController extends OCSController {
 			return new RedirectResponse($masterUrl);
 		}
 
-		$this->session->createSessionToken($this->request, $uid, $uid, null, 0);
+		$this->userSession->createSessionToken($this->request, $uid, $uid, null, 0);
 		$home = $this->urlGenerator->getAbsoluteURL('/');
 		return new RedirectResponse($home);
 
@@ -156,7 +187,7 @@ class SlaveController extends OCSController {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 
-		$user = $this->session->getUser();
+		$user = $this->userSession->getUser();
 		$uid = $user->getUID();
 
 		$token = $this->tokenHandler->generateAppToken($uid);
@@ -193,19 +224,34 @@ class SlaveController extends OCSController {
 	}
 
 
-	protected function autoprovisionIfPossible($uid, $options) {
-		\OC::$server->getUserManager()->search($uid);
-		if (\OC::$server->getUserManager()->userExists($uid)) {
+	/**
+	 * create new user if the user doesn't exist yet on the client node
+	 *
+	 * @param string $uid
+	 * @param array $options
+	 * @return bool
+	 */
+	protected function autoprovisionIfNeeded($uid, $options) {
+
+		// make sure that a valid UID is given
+		if (empty($uid)) {
+			$this->logger->error('Uid "{uid}" is not valid.', ['app' => $this->appName, 'uid' => $uid]);
+			throw new \InvalidArgumentException('No valid uid given. Given uid: ' . $uid);
+		}
+
+		$userExists = $this->userManager->userExists($uid);
+		if($userExists === true) {
+			$this->userBackend->updateAttributes($uid, $options);
 			return true;
 		}
 
-		$result = \OC::$server->getUserManager()->createUser($uid, '90w4uwoifj98w4');
+		if(!$userExists) {
+			$this->userBackend->createUserIfNotExists($uid);
+			$this->userBackend->updateAttributes($uid, $options);
+			return true;
+		}
 
-		return $result === false ? false : true;
-	}
-
-	protected function getGSUserBackend() {
-		\OC::$server->getMemCacheFactory()->isAvailable();
+		return false;
 	}
 
 }

@@ -26,6 +26,7 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Master;
 use OCA\GlobalSiteSelector\Slave;
+use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\App;
 use OCP\AppFramework\IAppContainer;
 use OCP\Util;
@@ -45,6 +46,8 @@ class Application extends App {
 			$this->registerMasterHooks($container);
 		} else {
 			$this->registerSlaveHooks($container);
+			$this->registerUserBackendForSlave($container);
+
 		}
 	}
 
@@ -78,5 +81,21 @@ class Application extends App {
 			$user = $event->getSubject();
 			$slave->updateUser($user);
 		});
+	}
+
+	/**
+	 * Register the Global Scale User Backend if we run in slave mode
+	 *
+	 * @param IAppContainer $container
+	 */
+	private function registerUserBackendForSlave(IAppContainer $container) {
+		$userBackend = new UserBackend(
+			$container->getServer()->getDatabaseConnection(),
+			$container->getServer()->getSession(),
+			$container->getServer()->getGroupManager(),
+			$container->getServer()->getUserManager()
+		);
+		$userBackend->registerBackends(\OC::$server->getUserManager()->getBackends());
+		\OC_User::useBackend($userBackend);
 	}
 }
