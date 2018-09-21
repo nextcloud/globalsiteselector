@@ -24,6 +24,7 @@ namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
 use OCP\Http\Client\IClientService;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserBackend;
 use OCP\Security\ICrypto;
@@ -52,6 +53,9 @@ class Master {
 	/** @var IClientService */
 	private $clientService;
 
+	/** @var IConfig */
+	private $config;
+
 	/**
 	 * Master constructor.
 	 *
@@ -60,18 +64,21 @@ class Master {
 	 * @param Lookup $lookup
 	 * @param IRequest $request
 	 * @param IClientService $clientService
+	 * @param IConfig $config
 	 */
 	public function __construct(GlobalSiteSelector $gss,
 								ICrypto $crypto,
 								Lookup $lookup,
 								IRequest $request,
-								IClientService $clientService
+								IClientService $clientService,
+								IConfig $config
 	) {
 		$this->gss = $gss;
 		$this->crypto = $crypto;
 		$this->lookup = $lookup;
 		$this->request = $request;
 		$this->clientService = $clientService;
+		$this->config = $config;
 	}
 
 
@@ -91,11 +98,18 @@ class Master {
 		) {
 			$options['backend'] = 'saml';
 			$options['userData'] = $backend->getUserData();
+			$uid = $options['userData']['uid'];
+			$password = '';
+		} else {
+			$uid = $param['uid'];
+			$password = isset($param['password']) ? $param['password'] : '';
 		}
 
-
-		$uid = $param['uid'];
-		$password = isset($param['password']) ? $param['password'] : '';
+		// let the admin of the master node login, everyone else will redirected to a client
+		$masterAdmin = $this->config->getSystemValue('gss.master.admin');
+		if (!empty($masterAdmin) && $masterAdmin === $uid) {
+			return;
+		}
 
 		$location = $this->queryLookupServer($uid);
 		if (!empty($location)) {
