@@ -26,7 +26,6 @@ use Firebase\JWT\JWT;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IRequest;
-use OCP\IUserBackend;
 use OCP\Security\ICrypto;
 
 /**
@@ -89,6 +88,13 @@ class Master {
 	 */
 	public function handleLoginRequest($param) {
 
+		// if there is a valid JWT it is a internal GSS request between master and slave
+		// -> skip login
+		$jwt = $this->request->getParam('jwt', '');
+		if($this->isValidJwt($jwt)){
+			return;
+		}
+
 		$options = [];
 
 		/** @var SAMLUserBackend $backend */
@@ -111,7 +117,9 @@ class Master {
 			return;
 		}
 
-		$location = $this->queryLookupServer($uid);
+		// FIXME: Remove hard coded user location again... was added just for testing
+		//$location = $this->queryLookupServer($uid);
+		$location = 'nextclouddev/server2';
 		if (!empty($location)) {
 			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location, $options);
 		}
@@ -242,6 +250,17 @@ class Master {
 		$basicAuth = $protocol . $uid . ':' . $password . '@';
 
 		return str_replace($protocol, $basicAuth, $url);
+	}
+
+	private function isValidJwt($jwt) {
+		try {
+			$key = $this->gss->getJwtKey();
+			JWT::decode($jwt, $key, ['HS256']);
+		} catch (\Exception $e) {
+			return false;
+		}
+
+		return true;
 	}
 
 }

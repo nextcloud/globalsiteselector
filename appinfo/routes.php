@@ -30,5 +30,10 @@ return [
 			'url' => '/autologin',
 			'verb' => 'GET'
 		],
+		[
+			'name' => 'Master#autoLogout',
+			'url' => '/autologout',
+			'verb' => 'GET'
+		],
 	],
 ];

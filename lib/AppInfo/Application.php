@@ -81,6 +81,10 @@ class Application extends App {
 			$user = $event->getSubject();
 			$slave->updateUser($user);
 		});
+
+		\OC::$server->getUserSession()->listen('\OC\User', 'postLogout', function () use ($slave) {
+			$slave->handleLogoutRequest();
+		});
 	}
 
 	/**
