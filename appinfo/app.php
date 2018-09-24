@@ -22,3 +22,21 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 $app = new \OCA\GlobalSiteSelector\AppInfo\Application();
+
+if(OC::$CLI) {
+	return;
+}
+
+$config = \OC::$server->getConfig();
+$gssMode = $config->getSystemValue('gss.mode', '');
+if ($gssMode === 'master') {
+	return;
+}
+
+$userSession = \OC::$server->getUserSession();
+$masterUrl = $config->getSystemValue('gss.master.url', '');
+if (!$userSession->isLoggedIn() && !empty($masterUrl) &&
+	\OC::$server->getRequest()->getPathInfo() === '/login') {
+	header('Location: '. $masterUrl);
+	exit();
+}
