@@ -96,6 +96,7 @@ class Master {
 		}
 
 		$options = [];
+		$location = '';
 
 		/** @var SAMLUserBackend $backend */
 		$backend = isset($param['backend']) ? $param['backend'] : '';
@@ -104,8 +105,11 @@ class Master {
 		) {
 			$options['backend'] = 'saml';
 			$options['userData'] = $backend->getUserData();
-			$uid = $options['userData']['uid'];
+			$uid = $options['userData']['formatted']['uid'];
 			$password = '';
+			$location = $this->getLocationFromSAML($options['userData']['raw']);
+			// we only send the formatted user data to the slave
+			$options['userData'] = $options['userData']['formatted'];
 		} else {
 			$uid = $param['uid'];
 			$password = isset($param['password']) ? $param['password'] : '';
@@ -117,11 +121,29 @@ class Master {
 			return;
 		}
 
-		$location = $this->queryLookupServer($uid);
+		if (empty($location)) {
+			$location = $this->queryLookupServer($uid);
+		}
 		if (!empty($location)) {
 			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location, $options);
 		}
 		exit();
+	}
+
+	/**
+	 * read user location from SAML parameters
+	 *
+	 * @param $options
+	 * @return string
+	 */
+	protected function getLocationFromSAML($options) {
+		$location = '';
+		$parameter = $this->config->getSystemValue('gss.saml.slave.mapping', '');
+		if (!empty($parameter) && isset($options[$parameter][0])) {
+			$location = $options[$parameter][0];
+		}
+
+		return $location;
 	}
 
 	/**

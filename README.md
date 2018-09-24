@@ -25,6 +25,9 @@ Config.php parameters to operate the server in master mode:
 // define a master admin, this user will not be redirected to a slave but is
 // allowed to login at the master to perform administration tasks
 'gss.master.admin' => 'adminUid',
+
+// define a parameter given by the IdP to decide where a user is located
+'gss.saml.slave.mapping' => 'idpParameterSlave',
 ````
 
 ### Slave
