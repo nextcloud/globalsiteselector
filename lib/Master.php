@@ -117,9 +117,7 @@ class Master {
 			return;
 		}
 
-		// FIXME: Remove hard coded user location again... was added just for testing
-		//$location = $this->queryLookupServer($uid);
-		$location = 'nextclouddev/server2';
+		$location = $this->queryLookupServer($uid);
 		if (!empty($location)) {
 			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location, $options);
 		}

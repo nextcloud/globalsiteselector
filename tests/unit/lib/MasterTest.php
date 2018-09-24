@@ -28,6 +28,7 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
 use OCP\Http\Client\IClientService;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
 use Test\TestCase;
@@ -49,6 +50,9 @@ class MasterTest extends TestCase {
 	/** @var  IClientService | \PHPUnit_Framework_MockObject_MockObject */
 	private $clientService;
 
+	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
+	private $config;
+
 	public function setUp() {
 		parent::setUp();
 
@@ -59,6 +63,7 @@ class MasterTest extends TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->request = $this->createMock(IRequest::class);
 		$this->clientService = $this->createMock(IClientService::class);
+		$this->config = $this->createMock(IConfig::class);
 	}
 
 	/**
@@ -73,7 +78,8 @@ class MasterTest extends TestCase {
 					$this->crypto,
 					$this->lookup,
 					$this->request,
-					$this->clientService
+					$this->clientService,
+					$this->config
 				]
 			)->setMethods($mockMethods)->getMock();
 	}

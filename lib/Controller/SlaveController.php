@@ -218,7 +218,7 @@ class SlaveController extends OCSController {
 
 		$uid = $decoded['uid'];
 		$password = $this->crypto->decrypt($decoded['password'], $key);
-		$options = $decoded['options'];
+		$options = isset($decoded['options']) ? $decoded['options'] : json_encode([]);
 
 		return [$uid, $password, json_decode($options, true)];
 	}
