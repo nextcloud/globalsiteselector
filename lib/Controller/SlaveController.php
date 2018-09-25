@@ -229,7 +229,6 @@ class SlaveController extends OCSController {
 	 *
 	 * @param string $uid
 	 * @param array $options
-	 * @return bool
 	 */
 	protected function autoprovisionIfNeeded($uid, $options) {
 
@@ -239,19 +238,9 @@ class SlaveController extends OCSController {
 			throw new \InvalidArgumentException('No valid uid given. Given uid: ' . $uid);
 		}
 
-		$userExists = $this->userManager->userExists($uid);
-		if($userExists === true) {
-			$this->userBackend->updateAttributes($uid, $options);
-			return true;
-		}
+		$this->userBackend->createUserIfNotExists($uid);
+		$this->userBackend->updateAttributes($uid, $options);
 
-		if(!$userExists) {
-			$this->userBackend->createUserIfNotExists($uid);
-			$this->userBackend->updateAttributes($uid, $options);
-			return true;
-		}
-
-		return false;
 	}
 
 }
