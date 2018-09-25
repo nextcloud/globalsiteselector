@@ -22,9 +22,9 @@ Config.php parameters to operate the server in master mode:
 // operation mode
 'gss.mode' => 'master',
 
-// define a master admin, this user will not be redirected to a slave but is
-// allowed to login at the master to perform administration tasks
-'gss.master.admin' => 'adminUid',
+// define a master admins, this users will not be redirected to a slave but are
+// allowed to login at the master node to perform administration tasks
+'gss.master.admin' => ['admin1Uid', 'admin2Uid'],
 
 // define a parameter given by the IdP to decide where a user is located
 'gss.saml.slave.mapping' => 'idpParameterSlave',

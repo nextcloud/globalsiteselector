@@ -118,8 +118,8 @@ class Master {
 		}
 
 		// let the admin of the master node login, everyone else will redirected to a client
-		$masterAdmin = $this->config->getSystemValue('gss.master.admin');
-		if (!empty($masterAdmin) && $masterAdmin === $uid) {
+		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);
+		if (is_array($masterAdmins) && in_array($uid, $masterAdmins, true)) {
 			return;
 		}
 
