@@ -23,6 +23,7 @@
 namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
+use OC\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -85,6 +86,7 @@ class Master {
 	 * find users location and redirect them to the right server
 	 *
 	 * @param array $param
+	 * @throws HintException
 	 */
 	public function handleLoginRequest($param) {
 
@@ -125,9 +127,10 @@ class Master {
 			$location = $this->queryLookupServer($uid);
 		}
 		if (!empty($location)) {
-			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location, $options);
+			$this->redirectUser($uid, $password, $this->normalizeLocation($location), $options);
+		} else {
+			throw new HintException('Could not find location for user, ' . $uid);
 		}
-		exit();
 	}
 
 	/**
@@ -144,6 +147,20 @@ class Master {
 		}
 
 		return $location;
+	}
+
+	/**
+	 * format URL
+	 *
+	 * @param string $url
+	 * @return string
+	 */
+	protected function normalizeLocation($url) {
+		if (substr($url, 0, 7) === 'http://' || substr($url, 0, 8) === 'https://') {
+			return $url;
+		}
+
+		return $this->request->getServerProtocol() . '://' . $url;
 	}
 
 	/**

@@ -84,35 +84,35 @@ class MasterTest extends TestCase {
 			)->setMethods($mockMethods)->getMock();
 	}
 
-	/**
-	 * @param $params
-	 * @param $location
-	 *
-	 * @dataProvider dataTestHandleLoginRequest
-	 */
-	public function testHandleLoginRequest($params, $location) {
+	public function testHandleLoginRequest() {
+		$params = ['uid' => 'user', 'password' => 'password'];
+		$location = 'nextcloud.com';
 		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
 		$master->expects($this->once())->method('queryLookupServer')
 			->willReturn($location);
 
-		if (empty($location)) {
-			$master->expects($this->never())->method('redirectUser');
-		} else {
-			$this->request->expects($this->once())
-				->method('getServerProtocol')
-				->willReturn('https');
-			$master->expects($this->once())->method('redirectUser')
-				->with($params['uid'], $params['password'], 'https://' . $location);
-		}
+		$this->request->expects($this->once())
+			->method('getServerProtocol')
+			->willReturn('https');
+		$master->expects($this->once())->method('redirectUser')
+			->with($params['uid'], $params['password'], 'https://' . $location);
 
 		$master->handleLoginRequest($params);
 	}
 
-	public function dataTestHandleLoginRequest() {
-		return [
-			[['uid' => 'user', 'password' => 'password'], 'nextcloud.com'],
-			[['uid' => 'user', 'password' => 'password'], ''],
-		];
+
+	/**
+	 * @expectedException \OC\HintException
+	 */
+	public function testHandleLoginRequestException() {
+		$params = ['uid' => 'user', 'password' => 'password'];
+		$location = '';
+		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
+		$master->expects($this->once())->method('queryLookupServer')
+			->willReturn($location);
+
+		$master->expects($this->never())->method('redirectUser');
+		$master->handleLoginRequest($params);
 	}
 
 	public function testQueryLookupServer() {
@@ -130,6 +130,7 @@ class MasterTest extends TestCase {
 		$uid = 'user1';
 		$plainPassword = 'password';
 		$encryptedPassword = 'password-encrypted';
+		$options = ['foo' => 'bar'];
 		$jwtKey = 'jwtkey';
 
 		$master = $this->getInstance();
@@ -138,12 +139,13 @@ class MasterTest extends TestCase {
 		$this->crypto->expects($this->once())->method('encrypt')->with($plainPassword, $jwtKey)
 			->willReturn($encryptedPassword);
 
-		$token = $this->invokePrivate($master, 'createJwt', [$uid, $plainPassword]);
+		$token = $this->invokePrivate($master, 'createJwt', [$uid, $plainPassword, $options]);
 
 		$decoded = (array)JWT::decode($token, $jwtKey, ['HS256']);
 
 		$this->assertSame($uid, $decoded['uid']);
 		$this->assertSame($encryptedPassword, $decoded['password']);
+		$this->assertSame(json_encode($options), $decoded['options']);
 	}
 
 	/**
@@ -165,6 +167,28 @@ class MasterTest extends TestCase {
 			['http://nextcloud.com', 'user', 'password', 'http://user:password@nextcloud.com'],
 			['https://nextcloud.com', 'user', 'password', 'https://user:password@nextcloud.com'],
 			['nextcloud.com', 'user', 'password', 'https://user:password@nextcloud.com'],
+		];
+	}
+
+	/**
+	 * @dataProvider dataTestNormalizeLocation
+	 *
+	 * @param $url
+	 * @param $expected
+	 */
+	public function testNormalizeLocation($url, $expected) {
+		$master = $this->getInstance();
+		$this->request->expects($this->any())->method('getServerProtocol')->willReturn('https');
+		$result = $this->invokePrivate($master, 'normalizeLocation', [$url]);
+		$this->assertSame($expected, $result);
+	}
+
+	public function dataTestNormalizeLocation() {
+		return [
+			['localhost/nextcloud', 'https://localhost/nextcloud'],
+			['https://localhost/nextcloud', 'https://localhost/nextcloud'],
+			['http://localhost/nextcloud', 'http://localhost/nextcloud'],
+
 		];
 	}
 
