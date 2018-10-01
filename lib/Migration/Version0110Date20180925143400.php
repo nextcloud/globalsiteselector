@@ -41,8 +41,13 @@ class Version0110Date20180925143400 extends SimpleMigrationStep {
 
 		if (!$schema->hasTable('global_scale_users')) {
 			$table = $schema->createTable('global_scale_users');
-			$table->addColumn('uid', Type::STRING, [
+			$table->addColumn('id', Type::BIGINT, [
 				'autoincrement' => true,
+				'notnull' => true,
+				'length' => 64,
+			]);
+			$table->addColumn('uid', Type::STRING, [
+				'autoincrement' => false,
 				'notnull' => true,
 				'length' => 64,
 			]);
@@ -52,6 +57,7 @@ class Version0110Date20180925143400 extends SimpleMigrationStep {
 				'default' => '',
 			]);
 
+			$table->setPrimaryKey(['id']);
 			$table->addIndex(['uid'], 'gss_uid');
 		}
 
