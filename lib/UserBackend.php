@@ -22,6 +22,7 @@
 namespace OCA\GlobalSiteSelector;
 
 use OC\User\Backend;
+use OCP\Files\NotPermittedException;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\ISession;
