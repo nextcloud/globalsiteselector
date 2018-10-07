@@ -141,7 +141,7 @@ class SlaveController extends OCSController {
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
 			if(is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
-				$result = $this->autoprovisionIfNeeded($uid, $options);
+				$this->autoprovisionIfNeeded($uid, $options);
 				try {
 					$user = $this->userManager->get($uid);
 					if(!($user instanceof IUser)) {
@@ -153,6 +153,7 @@ class SlaveController extends OCSController {
 					throw $e;
 				}
 				$this->session->set('globalScale.uid', $uid);
+				$result = true;
 			} else {
 				$result = $this->userSession->login($uid, $password);
 			}
