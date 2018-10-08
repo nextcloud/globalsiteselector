@@ -27,9 +27,12 @@ use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\TokenHandler;
+use OCA\GlobalSiteSelector\UserBackend;
 use OCP\ILogger;
 use OCP\IRequest;
+use OCP\ISession;
 use OCP\IURLGenerator;
+use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
 use Test\TestCase;
@@ -57,6 +60,15 @@ class SlaveControllerTest extends TestCase {
 	/** @var  TokenHandler | \PHPUnit_Framework_MockObject_MockObject */
 	private $tokenHandler;
 
+	/** @var IUserManager | \PHPUnit_Framework_MockObject_MockObject */
+	private $userManager;
+
+	/** @var UserBackend | \PHPUnit_Framework_MockObject_MockObject */
+	private $userBackend;
+
+	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
+	private $session;
+
 	public function setUp() {
 		parent::setUp();
 
@@ -69,6 +81,10 @@ class SlaveControllerTest extends TestCase {
 		$this->crypto = $this->createMock(ICrypto::class);
 		$this->tokenHandler = $this->getMockBuilder(TokenHandler::class)
 			->disableOriginalConstructor()->getMock();
+		$this->userManager = $this->createMock(IUserManager::class);
+		$this->userBackend = $this->getMockBuilder(UserBackend::class)
+			->disableOriginalConstructor()->getMock();
+		$this->session = $this->createMock(ISession::class);
 	}
 
 	/**
@@ -84,9 +100,12 @@ class SlaveControllerTest extends TestCase {
 					$this->gss,
 					$this->logger,
 					$this->userSession,
+					$this->session,
 					$this->urlGenerator,
 					$this->crypto,
-					$this->tokenHandler
+					$this->tokenHandler,
+					$this->userManager,
+					$this->userBackend
 				]
 			)->setMethods($mockMathods)->getMock();
 	}
@@ -101,6 +120,7 @@ class SlaveControllerTest extends TestCase {
 		$token = [
 			'uid' => 'user',
 			'password' => $encryptedPassword,
+			'options' => json_encode(['option1' => 'foo']),
 			'exp' => time() + 300, // expires after 5 minutes
 		];
 
@@ -110,10 +130,11 @@ class SlaveControllerTest extends TestCase {
 		$this->crypto->expects($this->once())->method('decrypt')->with($encryptedPassword, $jwtKey)
 			->willReturn($plainPassword);
 
-		list($uid, $password) = $this->invokePrivate($controller, 'decodeJwt', [$jwt]);
+		list($uid, $password, $options) = $this->invokePrivate($controller, 'decodeJwt', [$jwt]);
 
 		$this->assertSame('user', $uid);
 		$this->assertSame($plainPassword, $password);
+		$this->assertSame($options, ['option1' => 'foo']);
 	}
 
 }

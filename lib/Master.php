@@ -23,7 +23,9 @@
 namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
+use OC\HintException;
 use OCP\Http\Client\IClientService;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
 
@@ -51,6 +53,9 @@ class Master {
 	/** @var IClientService */
 	private $clientService;
 
+	/** @var IConfig */
+	private $config;
+
 	/**
 	 * Master constructor.
 	 *
@@ -59,18 +64,21 @@ class Master {
 	 * @param Lookup $lookup
 	 * @param IRequest $request
 	 * @param IClientService $clientService
+	 * @param IConfig $config
 	 */
 	public function __construct(GlobalSiteSelector $gss,
 								ICrypto $crypto,
 								Lookup $lookup,
 								IRequest $request,
-								IClientService $clientService
+								IClientService $clientService,
+								IConfig $config
 	) {
 		$this->gss = $gss;
 		$this->crypto = $crypto;
 		$this->lookup = $lookup;
 		$this->request = $request;
 		$this->clientService = $clientService;
+		$this->config = $config;
 	}
 
 
@@ -78,15 +86,81 @@ class Master {
 	 * find users location and redirect them to the right server
 	 *
 	 * @param array $param
+	 * @throws HintException
 	 */
 	public function handleLoginRequest($param) {
-		$uid = $param['uid'];
-		$password = $param['password'];
 
-		$location = $this->queryLookupServer($uid);
-		if (!empty($location)) {
-			$this->redirectUser($uid, $password, $this->request->getServerProtocol() . '://' . $location);
+		// if there is a valid JWT it is a internal GSS request between master and slave
+		// -> skip login
+		$jwt = $this->request->getParam('jwt', '');
+		if($this->isValidJwt($jwt)){
+			return;
 		}
+
+		$options = [];
+		$location = '';
+
+		/** @var SAMLUserBackend $backend */
+		$backend = isset($param['backend']) ? $param['backend'] : '';
+		if (class_exists('\OCA\User_SAML\UserBackend') &&
+			$backend instanceof \OCA\User_SAML\UserBackend
+		) {
+			$options['backend'] = 'saml';
+			$options['userData'] = $backend->getUserData();
+			$uid = $options['userData']['formatted']['uid'];
+			$password = '';
+			$location = $this->getLocationFromSAML($options['userData']['raw']);
+			// we only send the formatted user data to the slave
+			$options['userData'] = $options['userData']['formatted'];
+		} else {
+			$uid = $param['uid'];
+			$password = isset($param['password']) ? $param['password'] : '';
+		}
+
+		// let the admin of the master node login, everyone else will redirected to a client
+		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);
+		if (is_array($masterAdmins) && in_array($uid, $masterAdmins, true)) {
+			return;
+		}
+
+		if (empty($location)) {
+			$location = $this->queryLookupServer($uid);
+		}
+		if (!empty($location)) {
+			$this->redirectUser($uid, $password, $this->normalizeLocation($location), $options);
+		} else {
+			throw new HintException('Could not find location for user, ' . $uid);
+		}
+	}
+
+	/**
+	 * read user location from SAML parameters
+	 *
+	 * @param $options
+	 * @return string
+	 */
+	protected function getLocationFromSAML($options) {
+		$location = '';
+		$parameter = $this->config->getSystemValue('gss.saml.slave.mapping', '');
+		if (!empty($parameter) && isset($options[$parameter][0])) {
+			$location = $options[$parameter][0];
+		}
+
+		return $location;
+	}
+
+	/**
+	 * format URL
+	 *
+	 * @param string $url
+	 * @return string
+	 */
+	protected function normalizeLocation($url) {
+		if (substr($url, 0, 7) === 'http://' || substr($url, 0, 8) === 'https://') {
+			return $url;
+		}
+
+		return $this->request->getServerProtocol() . '://' . $url;
 	}
 
 	/**
@@ -105,9 +179,10 @@ class Master {
 	 * @param string $uid
 	 * @param string $password
 	 * @param string $location
+	 * @param array $options can contain additional parameters, e.g. from SAML
 	 * @throws \Exception
 	 */
-	protected function redirectUser($uid, $password, $location) {
+	protected function redirectUser($uid, $password, $location, array $options = []) {
 
 		$isClient = $this->request->isUserAgent(
 			[
@@ -121,7 +196,7 @@ class Master {
 			$appToken = $this->getAppToken($location, $uid, $password);
 			$redirectUrl = 'nc://login/server:' . $location . '&user:' . $uid . '&password:' . $appToken;
 		} else {
-			$jwt = $this->createJwt($uid, $password);
+			$jwt = $this->createJwt($uid, $password, $options);
 			$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
 		}
 
@@ -134,12 +209,14 @@ class Master {
 	 *
 	 * @param string $uid
 	 * @param string $password
+	 * @param array $options
 	 * @return string
 	 */
-	protected function createJwt($uid, $password) {
+	protected function createJwt($uid, $password, $options) {
 		$token = [
 			'uid' => $uid,
 			'password' => $this->crypto->encrypt($password, $this->gss->getJwtKey()),
+			'options' => json_encode($options),
 			'exp' => time() + 300, // expires after 5 minutes
 		];
 
@@ -210,6 +287,17 @@ class Master {
 		$basicAuth = $protocol . $uid . ':' . $password . '@';
 
 		return str_replace($protocol, $basicAuth, $url);
+	}
+
+	private function isValidJwt($jwt) {
+		try {
+			$key = $this->gss->getJwtKey();
+			JWT::decode($jwt, $key, ['HS256']);
+		} catch (\Exception $e) {
+			return false;
+		}
+
+		return true;
 	}
 
 }

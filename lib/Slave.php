@@ -26,9 +26,11 @@ namespace OCA\GlobalSiteSelector;
 use OC\Accounts\AccountManager;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
+use OCP\IConfig;
 use OCP\ILogger;
 use OCP\IUser;
 use OCP\IUserManager;
+use Firebase\JWT\JWT;
 
 class Slave {
 
@@ -63,6 +65,12 @@ class Slave {
 	 */
 	private static $toRemove = [];
 
+	/** @var GlobalSiteSelector */
+	private $gss;
+
+	/** @var IConfig */
+	private $config;
+
 	/**
 	 * Slave constructor.
 	 *
@@ -72,13 +80,15 @@ class Slave {
 	 * @param GlobalSiteSelector $gss
 	 * @param ILogger $logger
 	 * @param ICloudIdManager $cloudIdManager
+	 * @param IConfig $config
 	 */
 	public function __construct(AccountManager $accountManager,
 								IUserManager $userManager,
 								IClientService $clientService,
 								GlobalSiteSelector $gss,
 								ILogger $logger,
-								ICloudIdManager $cloudIdManager
+								ICloudIdManager $cloudIdManager,
+								IConfig $config
 	) {
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
@@ -90,6 +100,8 @@ class Slave {
 		$this->authKey = $gss->getJwtKey();
 		$this->lookupServer = rtrim($this->lookupServer, '/');
 		$this->lookupServer .= '/gs/users';
+		$this->gss = $gss;
+		$this->config = $config;
 	}
 
 	public function createUser(array $params) {
@@ -254,7 +266,7 @@ class Slave {
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error('globle side selector app not configured correctly', ['app' => 'globalsiteselector']);
+			$this->logger->error('global side selector app not configured correctly', ['app' => 'globalsiteselector']);
 			return false;
 		}
 
@@ -267,4 +279,28 @@ class Slave {
 	public function getOperationMode() {
 		return $this->operationMode;
 	}
+
+	/**
+	 * send user back to master
+	 */
+	public function handleLogoutRequest() {
+
+		$token = ['logout' => 'true',
+			'exp' => time() + 300, // expires after 5 minute
+		];
+
+		$jwt = JWT::encode($token, $this->gss->getJwtKey());
+		$location = $this->config->getSystemValue('gss.master.url', '');
+
+		if ($location === '') {
+			$this->logger->error('Can not redirect to master for logout, "gss.master.url" not set in config.php');
+			return;
+		}
+
+		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologout?jwt=' . $jwt;
+
+		header('Location: ' . $redirectUrl);
+		die();
+
+}
 }
