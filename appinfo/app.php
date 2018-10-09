@@ -32,11 +32,3 @@ $gssMode = $config->getSystemValue('gss.mode', '');
 if ($gssMode === 'master') {
 	return;
 }
-
-$userSession = \OC::$server->getUserSession();
-$masterUrl = $config->getSystemValue('gss.master.url', '');
-if (!$userSession->isLoggedIn() && !empty($masterUrl) &&
-	\OC::$server->getRequest()->getPathInfo() === '/login') {
-	header('Location: '. $masterUrl);
-	exit();
-}
