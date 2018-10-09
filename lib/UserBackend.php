@@ -29,6 +29,7 @@ use OCP\ISession;
 use OCP\IUserBackend;
 use OCP\IUserManager;
 use OCP\UserInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 
 class UserBackend implements IUserBackend, UserInterface {
