@@ -34,7 +34,6 @@ appstore: clean
 	--exclude=/l10n/l10n.pl \
 	--exclude=/CONTRIBUTING.md \
 	--exclude=/issue_template.md \
-	--exclude=/README.md \
 	--exclude=.gitattributes \
 	--exclude=.gitignore \
 	--exclude=.scrutinizer.yml \
