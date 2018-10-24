@@ -27,8 +27,10 @@ use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
+use OCP\AppFramework\IAppContainer;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
+use OCP\ILogger;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
 use Test\TestCase;
@@ -53,6 +55,12 @@ class MasterTest extends TestCase {
 	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
 	private $config;
 
+	/** @var \PHPUnit_Framework_MockObject_MockObject|ILogger */
+	private $logger;
+
+	/** @var \PHPUnit_Framework_MockObject_MockObject|IAppContainer */
+	private $container;
+
 	public function setUp() {
 		parent::setUp();
 
@@ -64,6 +72,8 @@ class MasterTest extends TestCase {
 		$this->request = $this->createMock(IRequest::class);
 		$this->clientService = $this->createMock(IClientService::class);
 		$this->config = $this->createMock(IConfig::class);
+		$this->logger = $this->createMock(ILogger::class);
+		$this->container = $this->createMock(IAppContainer::class);
 	}
 
 	/**
@@ -79,7 +89,9 @@ class MasterTest extends TestCase {
 					$this->lookup,
 					$this->request,
 					$this->clientService,
-					$this->config
+					$this->config,
+					$this->logger,
+					$this->container
 				]
 			)->setMethods($mockMethods)->getMock();
 	}
