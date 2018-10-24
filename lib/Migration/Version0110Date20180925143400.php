@@ -58,7 +58,7 @@ class Version0110Date20180925143400 extends SimpleMigrationStep {
 			]);
 
 			$table->setPrimaryKey(['id']);
-			$table->addIndex(['uid'], 'gss_uid');
+			$table->addIndex(['uid'], 'gss_uid_index');
 		}
 
 		return $schema;
