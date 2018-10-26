@@ -194,8 +194,16 @@ class SlaveController extends OCSController {
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
 			if ($this->userManager->userExists($uid)) {
-				$token = $this->tokenHandler->generateAppToken($uid);
-				return new DataResponse($token);
+				// if we have a password, we verify it
+				if (!empty($password)) {
+					$result = $this->userSession->login($uid, $password);
+				} else {
+					$result = true;
+				}
+				if ($result) {
+					$token = $this->tokenHandler->generateAppToken($uid);
+					return new DataResponse($token);
+				}
 			}
 		}  catch (ExpiredException $e) {
 			$this->logger->info('Create app password: JWT token expired', ['app' => 'globalsiteselector']);
