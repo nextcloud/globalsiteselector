@@ -246,13 +246,17 @@ class Master {
 	 */
 	protected function getAppToken($location, $uid, $password) {
 		$client = $this->clientService->newClient();
+		$jwt = $this->createJwt($uid, $password, []);
 
-		$baseUrl = $this->buildBasicAuthUrl($location, $uid, $password);
 		$response = $client->get(
-			$baseUrl . '/ocs/v2.php/apps/globalsiteselector/v1/createapptoken?format=json',
+			$location . '/ocs/v2.php/apps/globalsiteselector/v1/createapptoken',
 			[
 				'headers' => [
 					'OCS-APIRequest' => 'true'
+				],
+				'query' => [
+					'format' => 'json',
+					'jwt' => $jwt
 				]
 			]
 		);
