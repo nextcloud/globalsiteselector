@@ -26,8 +26,13 @@ Config.php parameters to operate the server in master mode:
 // allowed to login at the master node to perform administration tasks
 'gss.master.admin' => ['admin1Uid', 'admin2Uid'],
 
-// define a parameter given by the IdP to decide where a user is located
-'gss.saml.slave.mapping' => 'idpParameterSlave',
+// define a class which will be used to decide on which server a user should be
+// provisioned in case the lookup server doesn't know the user yet.
+// Note: That this will create a user account on a global scale note for every user
+//       so make sure that the Global Site Selector has verified if it is a valid user before.
+//       The user disovery module might require additional config paramters you can find in
+//       the documentation of the module
+'gss.user.discovery.module' => '\OCA\GlobalSiteSelector\UserDiscoveryModules\UserDiscoverySAML',
 ````
 
 ### Slave
@@ -46,3 +51,45 @@ Config parameters to operate the server in slave mode:
 'gss.master.url' => 'http://localhost/nextcloud2',
 ````
 
+### User Discovery Modules
+
+When users login for the first time and is not yet known by the lookup server,
+different methods are possible to decide on which server the user should be located.
+
+The GlobalSiteSelector allows you to use one of the existing methods or implementing
+your own, based on the `IUserDiscoveryModule` interface.
+
+To define which of the modules should be used you can set the `gss.user.discovery.module`
+parameter as described above.
+
+Following modules exists at the moment, some of the are highly customized for a
+specific use case:
+
+#### UserDiscoverySAML
+
+This modules reads the location directly from a parameter of the IDP which contain
+the exact URL to the server. The name of the parameter can be defined this way:
+
+````
+'gss.discovery.saml.slave.mapping' => 'idp-parameter'
+````
+
+#### ManualUserMapping
+
+This allows you to maintain a custom json file which maps a specific key word
+to a nextcloud server. The json file looks like this:
+
+````
+{
+  "keyword1" : "https://server1.nextcloud.com",
+  "keyword2" : "https://server2.nextcloud.com"
+}
+
+````
+
+The additional parameters you need to specify in the config.php are the following:
+
+````
+'gss.discovery.manual.mapping.file' => '/path/to/file'
+'gss.discovery.manual.mapping.parameter' => 'idp-parameter'
+````

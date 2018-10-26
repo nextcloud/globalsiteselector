@@ -24,8 +24,11 @@ namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
 use OC\HintException;
+use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
+use OCP\AppFramework\IAppContainer;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
+use OCP\ILogger;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
 
@@ -56,6 +59,12 @@ class Master {
 	/** @var IConfig */
 	private $config;
 
+	/** @var ILogger */
+	private $logger;
+
+	/** @var IAppContainer */
+	private $container;
+
 	/**
 	 * Master constructor.
 	 *
@@ -65,13 +74,17 @@ class Master {
 	 * @param IRequest $request
 	 * @param IClientService $clientService
 	 * @param IConfig $config
+	 * @param ILogger $logger
+	 * @param IAppContainer $container
 	 */
 	public function __construct(GlobalSiteSelector $gss,
 								ICrypto $crypto,
 								Lookup $lookup,
 								IRequest $request,
 								IClientService $clientService,
-								IConfig $config
+								IConfig $config,
+								ILogger $logger,
+								IAppContainer $container
 	) {
 		$this->gss = $gss;
 		$this->crypto = $crypto;
@@ -79,6 +92,8 @@ class Master {
 		$this->request = $request;
 		$this->clientService = $clientService;
 		$this->config = $config;
+		$this->logger = $logger;
+		$this->container = $container;
 	}
 
 
@@ -98,7 +113,9 @@ class Master {
 		}
 
 		$options = [];
-		$location = '';
+		$discoveryData = [];
+
+		$userDiscoveryModule = $this->config->getSystemValue('gss.user.discovery.module', '');
 
 		/** @var SAMLUserBackend $backend */
 		$backend = isset($param['backend']) ? $param['backend'] : '';
@@ -109,7 +126,7 @@ class Master {
 			$options['userData'] = $backend->getUserData();
 			$uid = $options['userData']['formatted']['uid'];
 			$password = '';
-			$location = $this->getLocationFromSAML($options['userData']['raw']);
+			$discoveryData['saml'] = $options['userData']['raw'];
 			// we only send the formatted user data to the slave
 			$options['userData'] = $options['userData']['formatted'];
 		} else {
@@ -123,30 +140,23 @@ class Master {
 			return;
 		}
 
-		if (empty($location)) {
-			$location = $this->queryLookupServer($uid);
+		// first ask the lookup server if we already know the user
+		$location = $this->queryLookupServer($uid);
+		// if not we fall-back to a initial user deployment method, if configured
+		if (empty($location) && !empty($userDiscoveryModule)) {
+			try {
+				/** @var IUserDiscoveryModule $module */
+				$module = $this->container->query($userDiscoveryModule);
+				$location = $module->getLocation($discoveryData);
+			} catch (\Exception $e) {
+				$this->logger->warning('could not load user discovery module: ' . $userDiscoveryModule . ': ' . $e->getMessage(), ['app' => 'GlobalSiteSelector']);
+			}
 		}
 		if (!empty($location)) {
 			$this->redirectUser($uid, $password, $this->normalizeLocation($location), $options);
 		} else {
 			throw new HintException('Could not find location for user, ' . $uid);
 		}
-	}
-
-	/**
-	 * read user location from SAML parameters
-	 *
-	 * @param $options
-	 * @return string
-	 */
-	protected function getLocationFromSAML($options) {
-		$location = '';
-		$parameter = $this->config->getSystemValue('gss.saml.slave.mapping', '');
-		if (!empty($parameter) && isset($options[$parameter][0])) {
-			$location = $options[$parameter][0];
-		}
-
-		return $location;
 	}
 
 	/**
