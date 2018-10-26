@@ -202,7 +202,12 @@ class Master {
 			]
 		);
 
-		if($isClient) {
+		$requestUri = $this->request->getRequestUri();
+		$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
+		// direct webdav access with old client or general purpose webdav clients
+		if ($isClient && $isDirectWebDavAccess) {
+			$redirectUrl = $location . '/remote.php/webdav/';
+		} else if($isClient && !$isDirectWebDavAccess) {
 			$appToken = $this->getAppToken($location, $uid, $password);
 			$redirectUrl = 'nc://login/server:' . $location . '&user:' . $uid . '&password:' . $appToken;
 		} else {
