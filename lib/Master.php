@@ -112,7 +112,9 @@ class Master {
 			return;
 		}
 
-		$options = [];
+		$target = $this->request->getPathInfo() === false ? '/' : $this->request->getPathInfo();
+
+		$options = ['target' => $target];
 		$discoveryData = [];
 
 		$userDiscoveryModule = $this->config->getSystemValue('gss.user.discovery.module', '');
