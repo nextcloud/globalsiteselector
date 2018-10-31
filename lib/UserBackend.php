@@ -28,11 +28,12 @@ use OCP\IGroupManager;
 use OCP\ISession;
 use OCP\IUserBackend;
 use OCP\IUserManager;
+use OCP\User\Backend\ICountUsersBackend;
 use OCP\UserInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
 
-class UserBackend implements IUserBackend, UserInterface {
+class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 	/** @var string  name of the database table to store the users logged in from the master node */
 	private $dbName = 'global_scale_users';
@@ -94,6 +95,7 @@ class UserBackend implements IUserBackend, UserInterface {
 	public function implementsActions($actions) {
 		$availableActions = Backend::CHECK_PASSWORD;
 		$availableActions |= Backend::GET_DISPLAYNAME;
+		$availableActions |= Backend::COUNT_USERS;
 		return (bool)($availableActions & $actions);
 	}
 
@@ -180,6 +182,22 @@ class UserBackend implements IUserBackend, UserInterface {
 		}
 
 		return $uids;
+	}
+
+
+	/**
+	 * counts the users in the database
+	 *
+	 * @return int|bool
+	 */
+	public function countUsers() {
+
+		$query = $this->db->getQueryBuilder();
+		$query->select($query->func()->count('uid'))
+			->from($this->dbName);
+		$result = $query->execute();
+
+		return $result->fetchColumn();
 	}
 
 	/**
