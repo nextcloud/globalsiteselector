@@ -203,7 +203,9 @@ class Master {
 		);
 
 		$requestUri = $this->request->getRequestUri();
+		// check for both possible direct webdav end-points
 		$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
+		$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
 		// direct webdav access with old client or general purpose webdav clients
 		if ($isClient && $isDirectWebDavAccess) {
 			$redirectUrl = $location . '/remote.php/webdav/';
