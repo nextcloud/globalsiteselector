@@ -179,7 +179,6 @@ class SlaveController extends OCSController {
 	 * Create app token
 	 *
 	 * @PublicPage
-	 * @NoCSRFRequired
 	 * @NoAdminRequired
 	 *
 	 * @return DataResponse
