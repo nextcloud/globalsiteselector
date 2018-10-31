@@ -112,7 +112,7 @@ class Master {
 			return;
 		}
 
-		$target = $this->request->getPathInfo() === false ? '/' : $this->request->getPathInfo();
+		$target = $this->request->getPathInfo() === false ? '/' : '/index.php' . $this->request->getPathInfo();
 
 		$options = ['target' => $target];
 		$discoveryData = [];
