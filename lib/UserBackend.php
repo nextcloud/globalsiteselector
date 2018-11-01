@@ -329,8 +329,8 @@ class UserBackend implements IUserBackend, UserInterface {
 		// master and forwarded to the client the uid is stored in the session.
 		// In this case we can trust the global site selector that the password was
 		// checked.
-		$uid = $this->session->get('globalScale.uid');
-		if ($uid === $uid) {
+		$currentUid = $this->session->get('globalScale.uid');
+		if ($currentUid === $uid) {
 			return $uid;
 		}
 

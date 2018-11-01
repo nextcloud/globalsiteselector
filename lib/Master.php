@@ -202,7 +202,14 @@ class Master {
 			]
 		);
 
-		if($isClient) {
+		$requestUri = $this->request->getRequestUri();
+		// check for both possible direct webdav end-points
+		$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
+		$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
+		// direct webdav access with old client or general purpose webdav clients
+		if ($isClient && $isDirectWebDavAccess) {
+			$redirectUrl = $location . '/remote.php/webdav/';
+		} else if($isClient && !$isDirectWebDavAccess) {
 			$appToken = $this->getAppToken($location, $uid, $password);
 			$redirectUrl = 'nc://login/server:' . $location . '&user:' . $uid . '&password:' . $appToken;
 		} else {
@@ -246,13 +253,17 @@ class Master {
 	 */
 	protected function getAppToken($location, $uid, $password) {
 		$client = $this->clientService->newClient();
+		$jwt = $this->createJwt($uid, $password, []);
 
-		$baseUrl = $this->buildBasicAuthUrl($location, $uid, $password);
 		$response = $client->get(
-			$baseUrl . '/ocs/v2.php/apps/globalsiteselector/v1/createapptoken?format=json',
+			$location . '/ocs/v2.php/apps/globalsiteselector/v1/createapptoken',
 			[
 				'headers' => [
 					'OCS-APIRequest' => 'true'
+				],
+				'query' => [
+					'format' => 'json',
+					'jwt' => $jwt
 				]
 			]
 		);

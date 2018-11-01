@@ -178,23 +178,39 @@ class SlaveController extends OCSController {
 	/**
 	 * Create app token
 	 *
+	 * @PublicPage
 	 * @NoAdminRequired
 	 *
 	 * @return DataResponse
 	 */
-	public function createAppToken() {
+	public function createAppToken($jwt) {
 
-		if($this->gss->getMode() === 'master') {
+		if($this->gss->getMode() === 'master' || empty($jwt)) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 
-		$user = $this->userSession->getUser();
-		$uid = $user->getUID();
+		try {
+			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
-		$token = $this->tokenHandler->generateAppToken($uid);
+			if ($this->userManager->userExists($uid)) {
+				// if we have a password, we verify it
+				if (!empty($password)) {
+					$result = $this->userSession->login($uid, $password);
+				} else {
+					$result = true;
+				}
+				if ($result) {
+					$token = $this->tokenHandler->generateAppToken($uid);
+					return new DataResponse($token);
+				}
+			}
+		}  catch (ExpiredException $e) {
+			$this->logger->info('Create app password: JWT token expired', ['app' => 'globalsiteselector']);
+		} catch (\Exception $e) {
+			$this->logger->logException('Create app password: ' . $e, ['app' => 'globalsiteselector']);
+		}
 
-		return new DataResponse($token);
-
+		return new DataResponse([], Http::STATUS_BAD_REQUEST);
 
 	}
 
