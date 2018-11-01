@@ -140,6 +140,8 @@ class SlaveController extends OCSController {
 
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
+			$target = $options['target'];
+
 			if(is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
 				$this->autoprovisionIfNeeded($uid, $options);
 				try {
@@ -170,7 +172,7 @@ class SlaveController extends OCSController {
 		}
 
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, 0);
-		$home = $this->urlGenerator->getAbsoluteURL('/');
+		$home = $this->urlGenerator->getAbsoluteURL($target);
 		return new RedirectResponse($home);
 
 	}
