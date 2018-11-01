@@ -80,7 +80,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @since 0.11.0
 	 */
 	public function getBackendName() {
-		return 'globalsiteselector';
+		return 'user_globalsiteselector';
 	}
 
 	/**
