@@ -93,6 +93,13 @@ class Application extends App {
 	 * @param IAppContainer $container
 	 */
 	private function registerUserBackendForSlave(IAppContainer $container) {
+		// make sure that we register the backend only once
+		$backends = \OC::$server->getUserManager()->getBackends();
+		foreach ($backends as $backend) {
+			if ($backend instanceof UserBackend) {
+				return;
+			}
+		}
 		$userBackend = new UserBackend(
 			$container->getServer()->getDatabaseConnection(),
 			$container->getServer()->getSession(),
