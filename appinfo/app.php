@@ -26,9 +26,24 @@ $app = new \OCA\GlobalSiteSelector\AppInfo\Application();
 if(OC::$CLI) {
 	return;
 }
-
 $config = \OC::$server->getConfig();
 $gssMode = $config->getSystemValue('gss.mode', '');
 if ($gssMode === 'master') {
 	return;
+}
+
+$userSession = \OC::$server->getUserSession();
+$masterUrl = $config->getSystemValue('gss.master.url', '');
+$request = \OC::$server->getRequest();
+if (!$userSession->isLoggedIn() && !empty($masterUrl) &&
+	$request->getPathInfo() === '/login') {
+
+	// an admin wants to login directly at the Nextcloud node
+	$params = $request->getParams();
+	if (isset($params['direct'])) {
+		return;
+	}
+
+	header('Location: '. $masterUrl);
+	exit();
 }

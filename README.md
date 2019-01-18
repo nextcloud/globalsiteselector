@@ -51,6 +51,10 @@ Config parameters to operate the server in slave mode:
 'gss.master.url' => 'http://localhost/nextcloud2',
 ````
 
+The Slave will always redirect not logged in user to the master to perform the login.
+If you want to login directly at a slave, e.g. to perform some administration tasks
+you can call the login page with the parameter `?direct=1`, e.g. `https://node1.myorg.com?direct=1`
+
 ### User Discovery Modules
 
 When users login for the first time and is not yet known by the lookup server,
