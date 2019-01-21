@@ -25,13 +25,17 @@ use OCP\IConfig;
 /**
  * Class ManualUserMapping
  *
- * allows you to manage a local file which maps a arbitrary SAML parameter to
+ * allows you to manage a local JSON encoded file which maps a arbitrary SAML parameter to
  * a initial location of the user.
  *
  * Therefore you have to define to values in the config.php
  *
- * 'gss.discovery.manual.mapping.file' => '/path/to/file'
+ * 'gss.discovery.manual.mapping.file' => '/path/to/json-file'
  * 'gss.discovery.manual.mapping.parameter' => 'idp-parameter'
+ *
+ * And then there is another optional parameter if you want to use regular expressions:
+ *
+ * 'gss.discovery.manual.mapping.regex' => true
  *
  * @package OCA\GlobalSiteSelector\UserDiscoveryModules
  */
@@ -41,6 +45,8 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	private $idpParameter;
 	/** @var string */
 	private $file;
+	/** @var bool */
+	private $useRegularExpressions;
 
 	/**
 	 * ManualUserMapping constructor.
@@ -50,13 +56,14 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	public function __construct(IConfig $config) {
 		$this->idpParameter = $config->getSystemValue('gss.discovery.manual.mapping.parameter', '');
 		$this->file = $config->getSystemValue('gss.discovery.manual.mapping.file', '');
+		$this->useRegularExpressions = $config->getSystemValue('gss.discovery.manual.mapping.regex', false);
 	}
 
 
 	/**
 	 * get the initial user location
 	 *
-	 * @param array $data arbitrary data, whatever the module needs
+	 * @param array $data idp parameters
 	 * @return string
 	 */
 	public function getLocation($data) {
@@ -65,8 +72,19 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$dictionary = $this->getDictionary();
 		$key = $this->getKey($data);
 
-		if (!empty($key) && is_array($dictionary)) {
+		// regular lookup
+		if (!empty($key) && is_array($dictionary) && !$this->useRegularExpressions) {
 			$location = isset($dictionary[$key]) ? $dictionary[$key] : '';
+		}
+
+		// dictionary contains regular expressions
+		if (!empty($key) && is_array($dictionary) && $this->useRegularExpressions) {
+			foreach ($dictionary as $regex => $nextcloudNode) {
+				if (preg_match($regex, $key) === 1) {
+					$location = $nextcloudNode;
+					break;
+				}
+			}
 		}
 
 		return $location;

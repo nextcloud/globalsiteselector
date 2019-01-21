@@ -93,3 +93,12 @@ The additional parameters you need to specify in the config.php are the followin
 'gss.discovery.manual.mapping.file' => '/path/to/file'
 'gss.discovery.manual.mapping.parameter' => 'idp-parameter'
 ````
+
+Optionally the keys in the JSON file can contain regular expressions which will
+be matched against the parameter of the IDP, in this case the following config.php
+parameter has to be set:
+
+````
+'gss.discovery.manual.mapping.regex' => true
+
+````
