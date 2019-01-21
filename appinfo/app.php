@@ -44,6 +44,10 @@ if (!$userSession->isLoggedIn() && !empty($masterUrl) &&
 		return;
 	}
 
+	if(isset($params['redirect_url'])) {
+		$masterUrl .= $params['redirect_url'];
+	}
+
 	header('Location: '. $masterUrl);
 	exit();
 }
