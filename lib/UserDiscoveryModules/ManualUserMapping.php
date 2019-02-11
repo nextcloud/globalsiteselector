@@ -76,6 +76,8 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$dictionary = $this->getDictionary();
 		$key = $this->getKey($data);
 
+		$this->logger->debug('Lookup key is: "' . $key . '"');
+
 		// regular lookup
 		if (!empty($key) && is_array($dictionary) && !$this->useRegularExpressions) {
 			$location = isset($dictionary[$key]) ? $dictionary[$key] : '';
@@ -90,6 +92,8 @@ class ManualUserMapping implements IUserDiscoveryModule {
 				}
 			}
 		}
+
+		$this->logger->debug('Location is: "' . $location . '"');
 
 		return $location;
 	}
