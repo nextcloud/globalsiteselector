@@ -21,6 +21,7 @@
 
 namespace OCA\GlobalSiteSelector\UserDiscoveryModules;
 use OCP\IConfig;
+use OCP\ILogger;
 
 /**
  * Class ManualUserMapping
@@ -47,16 +48,19 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	private $file;
 	/** @var bool */
 	private $useRegularExpressions;
+	/** @var ILogger */
+	private $logger;
 
 	/**
 	 * ManualUserMapping constructor.
 	 *
 	 * @param IConfig $config
 	 */
-	public function __construct(IConfig $config) {
+	public function __construct(IConfig $config, ILogger $logger) {
 		$this->idpParameter = $config->getSystemValue('gss.discovery.manual.mapping.parameter', '');
 		$this->file = $config->getSystemValue('gss.discovery.manual.mapping.file', '');
 		$this->useRegularExpressions = $config->getSystemValue('gss.discovery.manual.mapping.regex', false);
+		$this->logger = $logger;
 	}
 
 
@@ -101,6 +105,10 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		if ($isValidFile) {
 			$mapString = file_get_contents($this->file);
 			$dictionary = json_decode($mapString, true);
+
+			if ($dictionary === NULL || !is_array($dictionary)) {
+				$this->logger->critical('Your json file at "' . $this->file . '" is not valid!');
+			}
 		}
 
 		return is_array($dictionary) ? $dictionary : [];
