@@ -151,7 +151,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 * @return string
 	 */
 	private function normalizeKey($key) {
-		$normalized = '';
+		$normalized = $key;
 		$pos = strrpos($key, '@');
 		if ($pos !== false) {
 			$normalized = substr($key, $pos+1);
