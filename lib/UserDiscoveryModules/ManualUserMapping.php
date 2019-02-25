@@ -61,6 +61,11 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$this->file = $config->getSystemValue('gss.discovery.manual.mapping.file', '');
 		$this->useRegularExpressions = $config->getSystemValue('gss.discovery.manual.mapping.regex', false);
 		$this->logger = $logger;
+
+		$this->logger->debug('Init ManualUserMapping');
+		$this->logger->debug('IdP Parameter: ' . $this->idpParameter);
+		$this->logger->debug('file: ' . $this->file);
+		$this->logger->debug('use regular expression: ' . ($this->useRegularExpressions ? 'true' : 'false'));
 	}
 
 
@@ -86,10 +91,13 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		// dictionary contains regular expressions
 		if (!empty($key) && is_array($dictionary) && $this->useRegularExpressions) {
 			foreach ($dictionary as $regex => $nextcloudNode) {
+				$this->logger->debug('Testing regex: "' . $regex . '"');
 				if (preg_match($regex, $key) === 1) {
+					$this->logger->debug('Regex matched');
 					$location = $nextcloudNode;
 					break;
 				}
+				$this->logger->debug('Regex did not match');
 			}
 		}
 
@@ -128,6 +136,9 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$key = '';
 		if (!empty($this->idpParameter) && isset($data['saml'][$this->idpParameter][0])) {
 			$key = $data['saml'][$this->idpParameter][0];
+			$this->logger->debug('Found idpPrameter ' . $this->idpParameter . ' with value "' . $key . '"');
+		} else {
+			$this->logger->debug('Could not find idpParamter: ' . $this->idpParameter);
 		}
 
 		return $this->normalizeKey($key);
@@ -145,6 +156,8 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		if ($pos !== false) {
 			$normalized = substr($key, $pos+1);
 		}
+
+		$this->logger->debug('Normalized key: ' . $normalized);
 		return $normalized;
 	}
 }
