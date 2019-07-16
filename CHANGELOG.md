@@ -1,6 +1,18 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.2.0
+
+### Added
+- NC16 and NC17 compatibility
+- Added Regex matching for GSS nodes
+- Added debug log statements
+
+### Fixed
+- Redirect users to GSS if they are not logged in
+- Fixed non email username mappiong
+- Fixed login flow with branded android clients
+
 ## 1.1.0
 
 ### Fixed
