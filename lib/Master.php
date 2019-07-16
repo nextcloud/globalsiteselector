@@ -200,7 +200,8 @@ class Master {
 			[
 				IRequest::USER_AGENT_CLIENT_IOS,
 				IRequest::USER_AGENT_CLIENT_ANDROID,
-				IRequest::USER_AGENT_CLIENT_DESKTOP
+				IRequest::USER_AGENT_CLIENT_DESKTOP,
+				'/^.*\(Android\)$/'
 			]
 		);
 
