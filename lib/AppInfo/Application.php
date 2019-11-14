@@ -25,6 +25,7 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Master;
+use OCA\GlobalSiteSelector\PublicCapabilities;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\App;
@@ -47,8 +48,9 @@ class Application extends App {
 		} else {
 			$this->registerSlaveHooks($container);
 			$this->registerUserBackendForSlave($container);
-
 		}
+
+		$container->registerCapability(PublicCapabilities::class);
 	}
 
 	/**
