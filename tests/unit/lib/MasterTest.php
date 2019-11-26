@@ -103,8 +103,7 @@ class MasterTest extends TestCase {
 		$master->expects($this->once())->method('queryLookupServer')
 			->willReturn($location);
 
-		$this->request->expects($this->once())
-			->method('getServerProtocol')
+		$this->request->method('getServerProtocol')
 			->willReturn('https');
 		$master->expects($this->once())->method('redirectUser')
 			->with($params['uid'], $params['password'], 'https://' . $location);

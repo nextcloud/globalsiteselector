@@ -104,6 +104,7 @@ class Master {
 	 * @throws HintException
 	 */
 	public function handleLoginRequest($param) {
+		$this->logger->debug( 'start handle login request');
 
 		// if there is a valid JWT it is a internal GSS request between master and slave
 		// -> skip login
@@ -113,17 +114,21 @@ class Master {
 		}
 
 		$target = $this->request->getPathInfo() === false ? '/' : '/index.php' . $this->request->getPathInfo();
+		$this->logger->debug( 'handleLoginRequest: target is: ' . $target);
 
 		$options = ['target' => $target];
 		$discoveryData = [];
 
 		$userDiscoveryModule = $this->config->getSystemValue('gss.user.discovery.module', '');
+		$this->logger->debug( 'handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
 		/** @var SAMLUserBackend $backend */
 		$backend = isset($param['backend']) ? $param['backend'] : '';
 		if (class_exists('\OCA\User_SAML\UserBackend') &&
 			$backend instanceof \OCA\User_SAML\UserBackend
 		) {
+			$this->logger->debug( 'handleLoginRequest: backend is SAML');
+
 			$options['backend'] = 'saml';
 			$options['userData'] = $backend->getUserData();
 			$uid = $options['userData']['formatted']['uid'];
@@ -132,31 +137,44 @@ class Master {
 			// we only send the formatted user data to the slave
 			$options['userData'] = $options['userData']['formatted'];
 		} else {
+			$this->logger->debug('handleLoginRequest: backend is not SAML');
+
 			$uid = $param['uid'];
 			$password = isset($param['password']) ? $param['password'] : '';
 		}
 
+		$this->logger->debug('handleLoginRequest: uid is: ' . $uid);
+
 		// let the admin of the master node login, everyone else will redirected to a client
 		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);
 		if (is_array($masterAdmins) && in_array($uid, $masterAdmins, true)) {
+			$this->logger->debug( 'handleLoginRequest: this user is a local admin so ignore');
 			return;
 		}
 
 		// first ask the lookup server if we already know the user
 		$location = $this->queryLookupServer($uid);
+		$this->logger->debug( 'handleLoginRequest: location according to lookup server: ' . $location);
+
 		// if not we fall-back to a initial user deployment method, if configured
 		if (empty($location) && !empty($userDiscoveryModule)) {
 			try {
+				$this->logger->debug('handleLoginRequest: obtaining location from discovery module');
+
 				/** @var IUserDiscoveryModule $module */
 				$module = $this->container->query($userDiscoveryModule);
 				$location = $module->getLocation($discoveryData);
+
+				$this->logger->debug('handleLoginRequest: location according to discovery module: ' . $location);
 			} catch (\Exception $e) {
 				$this->logger->warning('could not load user discovery module: ' . $userDiscoveryModule . ': ' . $e->getMessage(), ['app' => 'GlobalSiteSelector']);
 			}
 		}
 		if (!empty($location)) {
+			$this->logger->debug( 'handleLoginRequest: redirecting user: ' . $uid . ' to ' . $this->normalizeLocation($location));
 			$this->redirectUser($uid, $password, $this->normalizeLocation($location), $options);
 		} else {
+			$this->logger->log(ILogger::DEBUG, 'handleLoginRequest: Could not find location for user: ' . $uid);
 			throw new HintException('Could not find location for user, ' . $uid);
 		}
 	}
@@ -211,16 +229,20 @@ class Master {
 		$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
 		// direct webdav access with old client or general purpose webdav clients
 		if ($isClient && $isDirectWebDavAccess) {
+			$this->logger->debug('redirectUser: client direct webdav request');
 			$redirectUrl = $location . '/remote.php/webdav/';
 		} else if($isClient && !$isDirectWebDavAccess) {
+			$this->logger->debug('redirectUser: client request generating apptoken');
 			$appToken = $this->getAppToken($location, $uid, $password);
-			$redirectUrl = 'nc://login/server:' . $location . '&user:' . $uid . '&password:' . $appToken;
+			$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
 		} else {
+			$this->logger->debug('redirectUser: direct login so forward to target node');
 			$jwt = $this->createJwt($uid, $password, $options);
 			$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
 		}
 
-		header('Location: ' . $redirectUrl);
+		$this->logger->debug('redirectUser: redirecting to: ' . $location);
+		header('Location: ' . $redirectUrl, true, 302);
 		die();
 	}
 

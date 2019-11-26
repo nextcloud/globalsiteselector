@@ -93,6 +93,8 @@ class Lookup {
 
 			if (isset($body['federationId'])) {
 				$result = $this->getUserLocation($body['federationId']);
+			} else {
+				$this->logger->debug('search: federationId not set for ' . $uid);
 			}
 
 		} catch (\Exception $e) {
@@ -100,6 +102,7 @@ class Lookup {
 			// that nothing was found
 		}
 
+		$this->logger->debug('serach: location for ' . $uid . ' is ' . $result);
 		return $result;
 
 	}
@@ -112,6 +115,7 @@ class Lookup {
 	 * @throws \Exception
 	 */
 	protected function queryLookupServer($uid) {
+		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid);
 		$client = $this->httpClientService->newClient();
 		$response = $client->get(
 			$this->lookupServerUrl . '/users?search=' . urlencode($uid) . '&exact=1',

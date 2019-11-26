@@ -51,6 +51,8 @@ class Application extends App {
 		}
 
 		$container->registerCapability(PublicCapabilities::class);
+
+		//TODO: Add proper CSP exception for NC://
 	}
 
 	/**
