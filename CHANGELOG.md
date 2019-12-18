@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.2.1
+
+### Added
+- Extra debug info
+- Added capabilities so the client knows to use the old flow
+- NC18 compatible
+
+### Changed
+- Use longer generated apptokens
+
 ## 1.2.0
 
 ### Added
