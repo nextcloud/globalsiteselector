@@ -55,11 +55,7 @@ class TokenHandler {
 	 */
 	public function generateAppToken($uid) {
 		// generate random token
-		$groups = [];
-		for ($i = 0; $i < 4; $i++) {
-			$groups[] = $this->random->generate(5, implode('', range('A', 'Z')));
-		}
-		$token = implode('-', $groups);
+		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
 		$deviceToken = $this->tokenProvider->generateToken($token, $uid, $uid, null, 'Client login', IToken::PERMANENT_TOKEN);
 		$tokenData = $deviceToken->jsonSerialize();
 
