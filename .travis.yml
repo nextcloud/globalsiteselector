@@ -1,6 +1,5 @@
 language: php
 php:
-  - 7.1
   - 7.2
   - 7.3
 
@@ -47,11 +46,11 @@ script:
 
 matrix:
   include:
-    - php: 7.1
+    - php: 7.2
       env: DB=mysql
-    - php: 7.1
+    - php: 7.2
       env: DB=pgsql
-    - php: 7.1
+    - php: 7.2
       env: DB=mysql;CODECHECK=2
   allow_failures:
     - env: DB=mysql;CODECHECK=2
