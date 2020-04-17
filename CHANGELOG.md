@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.3.0
+### Added
+- NC19 compatible
+
 ## 1.2.1
 
 ### Added
