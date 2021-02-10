@@ -110,6 +110,9 @@ class Slave {
 		}
 
 		$uid = $params['uid'];
+
+		$this->logger->debug('Adding new user: ' . $uid);
+
 		$user = $this->userManager->get($uid);
 		$userData = [];
 		if ($user !== null) {
@@ -127,6 +130,8 @@ class Slave {
 		if ($this->checkConfiguration() === false)  {
 			return;
 		}
+
+		$this->logger->debug('Updating user: ' . $user->getUID());
 
 		$userData = [];
 		if ($user !== null) {
@@ -161,6 +166,9 @@ class Slave {
 		}
 
 		$uid = $params['uid'];
+
+		$this->logger->debug('Removing user: ' . $uid);
+
 		if (isset(self::$toRemove[$uid])) {
 			$this->removeUsers([self::$toRemove[$uid]]);
 			unset(self::$toRemove[$uid]);
@@ -225,6 +233,8 @@ class Slave {
 	protected function addUsers(array $users) {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
+		$this->logger->debug('Batch updating users: ' . json_encode($users));
+
 		$httpClient = $this->clientService->newClient();
 		try {
 			$httpClient->post($this->lookupServer,
@@ -246,6 +256,8 @@ class Slave {
 	 */
 	protected function removeUsers(array $users) {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
+
+		$this->logger->debug('Batch deleting users: ' . json_encode($users));
 
 		$httpClient = $this->clientService->newClient();
 		try {
