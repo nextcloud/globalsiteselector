@@ -118,8 +118,12 @@ class Lookup {
 		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid);
 		$client = $this->httpClientService->newClient();
 		$response = $client->get(
-			$this->lookupServerUrl . '/users?search=' . urlencode($uid) . '&exact=1',
+			$this->lookupServerUrl . '/users',
 			[
+				'query' => [
+					'search' => $uid,
+					'exact' => '1',
+				],
 				'timeout' => 10,
 				'connect_timeout' => 3,
 			]
