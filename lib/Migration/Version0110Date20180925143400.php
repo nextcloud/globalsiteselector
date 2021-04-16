@@ -21,8 +21,8 @@
 
 namespace OCA\GlobalSiteSelector\Migration;
 
-use Doctrine\DBAL\Types\Type;
 use OCP\DB\ISchemaWrapper;
+use OCP\DB\Types;
 use OCP\Migration\SimpleMigrationStep;
 use OCP\Migration\IOutput;
 
@@ -41,17 +41,17 @@ class Version0110Date20180925143400 extends SimpleMigrationStep {
 
 		if (!$schema->hasTable('global_scale_users')) {
 			$table = $schema->createTable('global_scale_users');
-			$table->addColumn('id', Type::BIGINT, [
+			$table->addColumn('id', Types::BIGINT, [
 				'autoincrement' => true,
 				'notnull' => true,
 				'length' => 64,
 			]);
-			$table->addColumn('uid', Type::STRING, [
+			$table->addColumn('uid', Types::STRING, [
 				'autoincrement' => false,
 				'notnull' => true,
 				'length' => 64,
 			]);
-			$table->addColumn('displayname', Type::STRING, [
+			$table->addColumn('displayname', Types::STRING, [
 				'notnull' => false,
 				'length' => 255,
 				'default' => '',
