@@ -22,7 +22,7 @@
 
 namespace OCA\GlobalSiteSelector;
 
-
+use Exception;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCP\Accounts\IAccountManager;
 use OCP\Http\Client\IClientService;
@@ -68,12 +68,13 @@ class Slave {
 	/** @var IConfig */
 	private $config;
 
-	public function __construct(IAccountManager $accountManager,
-								IUserManager $userManager,
-								IClientService $clientService,
-								GlobalSiteSelector $gss,
-								LoggerInterface $logger,
-								IConfig $config
+	public function __construct(
+		IAccountManager $accountManager,
+		IUserManager $userManager,
+		IClientService $clientService,
+		GlobalSiteSelector $gss,
+		LoggerInterface $logger,
+		IConfig $config
 	) {
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
@@ -88,8 +89,8 @@ class Slave {
 		$this->config = $config;
 	}
 
-	public function createUser(array $params) {
-		if ($this->checkConfiguration() === false)  {
+	public function createUser(array $params): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
@@ -115,8 +116,8 @@ class Slave {
 	 *
 	 * @param IUser $user
 	 */
-	public function updateUser(IUser $user) {
-		if ($this->checkConfiguration() === false)  {
+	public function updateUser(IUser $user): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
@@ -139,7 +140,7 @@ class Slave {
 	 *
 	 * @param array $params
 	 */
-	public function preDeleteUser(array $params) {
+	public function preDeleteUser(array $params): void {
 		$uid = $params['uid'];
 		$user = $this->userManager->get($uid);
 		if ($user !== null) {
@@ -152,8 +153,8 @@ class Slave {
 	 *
 	 * @param array $params
 	 */
-	public function deleteUser(array $params) {
-		if ($this->checkConfiguration() === false)  {
+	public function deleteUser(array $params): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
@@ -176,8 +177,8 @@ class Slave {
 	 * update the lookup server with all known users on this instance. This
 	 * is triggered by a cronjob
 	 */
-	public function batchUpdate() {
-		if ($this->checkConfiguration() === false)  {
+	public function batchUpdate(): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
@@ -206,7 +207,7 @@ class Slave {
 	 * @param IUser $user
 	 * @return array
 	 */
-	protected function getAccountData(IUser $user) {
+	protected function getAccountData(IUser $user): array {
 		$rawData = $this->accountManager->getAccount($user);
 		$data = [];
 		foreach ($rawData as $key => $value) {
@@ -227,7 +228,7 @@ class Slave {
 	 *
 	 * @param array $users
 	 */
-	protected function addUsers(array $users) {
+	protected function addUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
 		$this->logger->debug('Batch updating users: {users}',
@@ -246,7 +247,7 @@ class Slave {
 					'connect_timeout' => 3,
 				]
 			);
-		} catch (\Exception $e) {
+		} catch (Exception $e) {
 			$this->logger->warning('Could not send user to lookup server',
 				[
 					'app' => Application::APP_ID,
@@ -261,7 +262,7 @@ class Slave {
 	 *
 	 * @param array $users
 	 */
-	protected function removeUsers(array $users) {
+	protected function removeUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
 		$this->logger->debug('Batch deleting users: {users}',
@@ -280,7 +281,7 @@ class Slave {
 					'connect_timeout' => 3,
 				]
 			);
-		} catch (\Exception $e) {
+		} catch (Exception $e) {
 			$this->logger->warning('Could not remove user from the lookup server',
 				[
 					'app' => Application::APP_ID,
@@ -290,7 +291,7 @@ class Slave {
 		}
 	}
 
-	protected function checkConfiguration() {
+	protected function checkConfiguration(): bool {
 		if (empty($this->lookupServer)
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
@@ -302,13 +303,14 @@ class Slave {
 			);
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Operation mode - slave or master
 	 * @return string
 	 */
-	public function getOperationMode() {
+	public function getOperationMode(): string {
 		return $this->operationMode;
 	}
 
@@ -316,7 +318,6 @@ class Slave {
 	 * send user back to master
 	 */
 	public function handleLogoutRequest() {
-
 		$token = ['logout' => 'true',
 			'exp' => time() + 300, // expires after 5 minute
 		];
