@@ -23,13 +23,14 @@
 namespace OCA\GlobalSiteSelector;
 
 
+use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCP\Accounts\IAccountManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
-use OCP\ILogger;
 use OCP\IUser;
 use OCP\IUserManager;
 use Firebase\JWT\JWT;
+use Psr\Log\LoggerInterface;
 
 class Slave {
 
@@ -42,7 +43,7 @@ class Slave {
 	/** @var IClientService */
 	private $clientService;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var string */
@@ -71,7 +72,7 @@ class Slave {
 								IUserManager $userManager,
 								IClientService $clientService,
 								GlobalSiteSelector $gss,
-								ILogger $logger,
+								LoggerInterface $logger,
 								IConfig $config
 	) {
 		$this->accountManager = $accountManager;
@@ -94,7 +95,12 @@ class Slave {
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Adding new user: ' . $uid);
+		$this->logger->debug('Adding new user: {uid}',
+			[
+				'app' => Application::APP_ID,
+				'uid' => $uid,
+			]
+		);
 
 		$user = $this->userManager->get($uid);
 		$userData = [];
@@ -114,13 +120,16 @@ class Slave {
 			return;
 		}
 
-		$this->logger->debug('Updating user: ' . $user->getUID());
+		$this->logger->debug('Updating user: {uid}',
+			[
+				'app' => Application::APP_ID,
+				'uid' => $user->getUID(),
+			]
+		);
 
 		$userData = [];
-		if ($user !== null) {
-			$userData[$user->getCloudId()] = $this->getAccountData($user);
-			$this->addUsers($userData);
-		}
+		$userData[$user->getCloudId()] = $this->getAccountData($user);
+		$this->addUsers($userData);
 	}
 
 	/**
@@ -150,7 +159,12 @@ class Slave {
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Removing user: ' . $uid);
+		$this->logger->debug('Removing user: {uid}',
+			[
+				'app' => Application::APP_ID,
+				'uid' => $uid,
+			]
+		);
 
 		if (isset(self::$toRemove[$uid])) {
 			$this->removeUsers([self::$toRemove[$uid]]);
@@ -216,7 +230,12 @@ class Slave {
 	protected function addUsers(array $users) {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch updating users: ' . json_encode($users));
+		$this->logger->debug('Batch updating users: {users}',
+			[
+				'app' => Application::APP_ID,
+				'users' => $users,
+			]
+		);
 
 		$httpClient = $this->clientService->newClient();
 		try {
@@ -228,7 +247,12 @@ class Slave {
 				]
 			);
 		} catch (\Exception $e) {
-			$this->logger->logException($e, ['message' => 'Could not send user to lookup server', 'app' => 'globalsiteselector', 'level' => \OCP\Util::WARN]);
+			$this->logger->warning('Could not send user to lookup server',
+				[
+					'app' => Application::APP_ID,
+					'exception' => $e,
+				]
+			);
 		}
 	}
 
@@ -240,7 +264,12 @@ class Slave {
 	protected function removeUsers(array $users) {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch deleting users: ' . json_encode($users));
+		$this->logger->debug('Batch deleting users: {users}',
+			[
+				'app' => Application::APP_ID,
+				'users' => $users,
+			]
+		);
 
 		$httpClient = $this->clientService->newClient();
 		try {
@@ -252,7 +281,12 @@ class Slave {
 				]
 			);
 		} catch (\Exception $e) {
-			$this->logger->logException($e, ['message' => 'Could not remove user from the lookup server', 'app' => 'globalsiteselector', 'level' => \OCP\Util::WARN]);
+			$this->logger->warning('Could not remove user from the lookup server',
+				[
+					'app' => Application::APP_ID,
+					'exception' => $e,
+				]
+			);
 		}
 	}
 
@@ -261,10 +295,13 @@ class Slave {
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error('global side selector app not configured correctly', ['app' => 'globalsiteselector']);
+			$this->logger->error('global site selector app not configured correctly',
+				[
+					'app' => Application::APP_ID,
+				]
+			);
 			return false;
 		}
-
 	}
 
 	/**
@@ -288,7 +325,11 @@ class Slave {
 		$location = $this->config->getSystemValue('gss.master.url', '');
 
 		if ($location === '') {
-			$this->logger->error('Can not redirect to master for logout, "gss.master.url" not set in config.php');
+			$this->logger->error('Can not redirect to master for logout, "gss.master.url" not set in config.php',
+				[
+					'app' => Application::APP_ID,
+				]
+			);
 			return;
 		}
 
@@ -296,6 +337,5 @@ class Slave {
 
 		header('Location: ' . $redirectUrl);
 		die();
-
-}
+	}
 }
