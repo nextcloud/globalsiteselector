@@ -23,7 +23,7 @@
 namespace OCA\GlobalSiteSelector;
 
 
-use OC\Accounts\AccountManager;
+use OCP\Accounts\IAccountManager;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
@@ -34,7 +34,7 @@ use Firebase\JWT\JWT;
 
 class Slave {
 
-	/** @var AccountManager */
+	/** @var IAccountManager */
 	private $accountManager;
 
 	/** @var IUserManager */
@@ -71,18 +71,7 @@ class Slave {
 	/** @var IConfig */
 	private $config;
 
-	/**
-	 * Slave constructor.
-	 *
-	 * @param AccountManager $accountManager
-	 * @param IUserManager $userManager
-	 * @param IClientService $clientService
-	 * @param GlobalSiteSelector $gss
-	 * @param ILogger $logger
-	 * @param ICloudIdManager $cloudIdManager
-	 * @param IConfig $config
-	 */
-	public function __construct(AccountManager $accountManager,
+	public function __construct(IAccountManager $accountManager,
 								IUserManager $userManager,
 								IClientService $clientService,
 								GlobalSiteSelector $gss,
@@ -210,7 +199,7 @@ class Slave {
 	 * @return array
 	 */
 	protected function getAccountData(IUser $user) {
-		$rawData = $this->accountManager->getUser($user);
+		$rawData = $this->accountManager->getAccount($user);
 		$data = [];
 		foreach ($rawData as $key => $value) {
 			if ($key === 'displayname') {
