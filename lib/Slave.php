@@ -24,7 +24,6 @@ namespace OCA\GlobalSiteSelector;
 
 
 use OCP\Accounts\IAccountManager;
-use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\ILogger;
@@ -45,9 +44,6 @@ class Slave {
 
 	/** @var ILogger */
 	private $logger;
-
-	/** @var ICloudIdManager */
-	private $cloudIdManager;
 
 	/** @var string */
 	private $lookupServer;
@@ -76,14 +72,12 @@ class Slave {
 								IClientService $clientService,
 								GlobalSiteSelector $gss,
 								ILogger $logger,
-								ICloudIdManager $cloudIdManager,
 								IConfig $config
 	) {
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->clientService = $clientService;
 		$this->logger = $logger;
-		$this->cloudIdManager = $cloudIdManager;
 		$this->lookupServer = $gss->getLookupServerUrl();
 		$this->operationMode = $gss->getMode();
 		$this->authKey = $gss->getJwtKey();
