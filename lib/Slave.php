@@ -208,13 +208,13 @@ class Slave {
 	 * @return array
 	 */
 	protected function getAccountData(IUser $user): array {
-		$rawData = $this->accountManager->getAccount($user);
+		$properties = $this->accountManager->getAccount($user)->getProperties();
 		$data = [];
-		foreach ($rawData as $key => $value) {
-			if ($key === 'displayname') {
-				$data['name'] = $value['value'];
+		foreach ($properties as $property) {
+			if ($property->getName() === IAccountManager::PROPERTY_DISPLAYNAME) {
+				$data['name'] = $property->getValue();
 			} elseif (isset($value['value'])) {
-				$data[$key] = $value['value'];
+				$data[$property->getName()] = $property->getValue();
 			}
 		}
 
