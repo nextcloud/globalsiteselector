@@ -35,8 +35,10 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 
 class Application extends App {
 
+	public const APP_ID = 'globalsiteselector';
+
 	public function __construct(array $urlParams = array()) {
-		parent::__construct('globalsiteselector', $urlParams);
+		parent::__construct(self::APP_ID, $urlParams);
 
 		$container = $this->getContainer();
 

@@ -22,19 +22,19 @@
 
 namespace OCA\GlobalSiteSelector;
 
-
-use OC\Accounts\AccountManager;
-use OCP\Federation\ICloudIdManager;
+use Exception;
+use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCP\Accounts\IAccountManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
-use OCP\ILogger;
 use OCP\IUser;
 use OCP\IUserManager;
 use Firebase\JWT\JWT;
+use Psr\Log\LoggerInterface;
 
 class Slave {
 
-	/** @var AccountManager */
+	/** @var IAccountManager */
 	private $accountManager;
 
 	/** @var IUserManager */
@@ -43,11 +43,8 @@ class Slave {
 	/** @var IClientService */
 	private $clientService;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
-
-	/** @var ICloudIdManager */
-	private $cloudIdManager;
 
 	/** @var string */
 	private $lookupServer;
@@ -71,30 +68,18 @@ class Slave {
 	/** @var IConfig */
 	private $config;
 
-	/**
-	 * Slave constructor.
-	 *
-	 * @param AccountManager $accountManager
-	 * @param IUserManager $userManager
-	 * @param IClientService $clientService
-	 * @param GlobalSiteSelector $gss
-	 * @param ILogger $logger
-	 * @param ICloudIdManager $cloudIdManager
-	 * @param IConfig $config
-	 */
-	public function __construct(AccountManager $accountManager,
-								IUserManager $userManager,
-								IClientService $clientService,
-								GlobalSiteSelector $gss,
-								ILogger $logger,
-								ICloudIdManager $cloudIdManager,
-								IConfig $config
+	public function __construct(
+		IAccountManager $accountManager,
+		IUserManager $userManager,
+		IClientService $clientService,
+		GlobalSiteSelector $gss,
+		LoggerInterface $logger,
+		IConfig $config
 	) {
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->clientService = $clientService;
 		$this->logger = $logger;
-		$this->cloudIdManager = $cloudIdManager;
 		$this->lookupServer = $gss->getLookupServerUrl();
 		$this->operationMode = $gss->getMode();
 		$this->authKey = $gss->getJwtKey();
@@ -104,14 +89,19 @@ class Slave {
 		$this->config = $config;
 	}
 
-	public function createUser(array $params) {
-		if ($this->checkConfiguration() === false)  {
+	public function createUser(array $params): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Adding new user: ' . $uid);
+		$this->logger->debug('Adding new user: {uid}',
+			[
+				'app' => Application::APP_ID,
+				'uid' => $uid,
+			]
+		);
 
 		$user = $this->userManager->get($uid);
 		$userData = [];
@@ -126,18 +116,21 @@ class Slave {
 	 *
 	 * @param IUser $user
 	 */
-	public function updateUser(IUser $user) {
-		if ($this->checkConfiguration() === false)  {
+	public function updateUser(IUser $user): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
-		$this->logger->debug('Updating user: ' . $user->getUID());
+		$this->logger->debug('Updating user: {uid}',
+			[
+				'app' => Application::APP_ID,
+				'uid' => $user->getUID(),
+			]
+		);
 
 		$userData = [];
-		if ($user !== null) {
-			$userData[$user->getCloudId()] = $this->getAccountData($user);
-			$this->addUsers($userData);
-		}
+		$userData[$user->getCloudId()] = $this->getAccountData($user);
+		$this->addUsers($userData);
 	}
 
 	/**
@@ -147,7 +140,7 @@ class Slave {
 	 *
 	 * @param array $params
 	 */
-	public function preDeleteUser(array $params) {
+	public function preDeleteUser(array $params): void {
 		$uid = $params['uid'];
 		$user = $this->userManager->get($uid);
 		if ($user !== null) {
@@ -160,14 +153,19 @@ class Slave {
 	 *
 	 * @param array $params
 	 */
-	public function deleteUser(array $params) {
-		if ($this->checkConfiguration() === false)  {
+	public function deleteUser(array $params): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Removing user: ' . $uid);
+		$this->logger->debug('Removing user: {uid}',
+			[
+				'app' => Application::APP_ID,
+				'uid' => $uid,
+			]
+		);
 
 		if (isset(self::$toRemove[$uid])) {
 			$this->removeUsers([self::$toRemove[$uid]]);
@@ -179,8 +177,8 @@ class Slave {
 	 * update the lookup server with all known users on this instance. This
 	 * is triggered by a cronjob
 	 */
-	public function batchUpdate() {
-		if ($this->checkConfiguration() === false)  {
+	public function batchUpdate(): void {
+		if ($this->checkConfiguration() === false) {
 			return;
 		}
 
@@ -209,8 +207,8 @@ class Slave {
 	 * @param IUser $user
 	 * @return array
 	 */
-	protected function getAccountData(IUser $user) {
-		$rawData = $this->accountManager->getUser($user);
+	protected function getAccountData(IUser $user): array {
+		$rawData = $this->accountManager->getAccount($user);
 		$data = [];
 		foreach ($rawData as $key => $value) {
 			if ($key === 'displayname') {
@@ -230,10 +228,15 @@ class Slave {
 	 *
 	 * @param array $users
 	 */
-	protected function addUsers(array $users) {
+	protected function addUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch updating users: ' . json_encode($users));
+		$this->logger->debug('Batch updating users: {users}',
+			[
+				'app' => Application::APP_ID,
+				'users' => $users,
+			]
+		);
 
 		$httpClient = $this->clientService->newClient();
 		try {
@@ -244,8 +247,13 @@ class Slave {
 					'connect_timeout' => 3,
 				]
 			);
-		} catch (\Exception $e) {
-			$this->logger->logException($e, ['message' => 'Could not send user to lookup server', 'app' => 'globalsiteselector', 'level' => \OCP\Util::WARN]);
+		} catch (Exception $e) {
+			$this->logger->warning('Could not send user to lookup server',
+				[
+					'app' => Application::APP_ID,
+					'exception' => $e,
+				]
+			);
 		}
 	}
 
@@ -254,10 +262,15 @@ class Slave {
 	 *
 	 * @param array $users
 	 */
-	protected function removeUsers(array $users) {
+	protected function removeUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch deleting users: ' . json_encode($users));
+		$this->logger->debug('Batch deleting users: {users}',
+			[
+				'app' => Application::APP_ID,
+				'users' => $users,
+			]
+		);
 
 		$httpClient = $this->clientService->newClient();
 		try {
@@ -268,27 +281,36 @@ class Slave {
 					'connect_timeout' => 3,
 				]
 			);
-		} catch (\Exception $e) {
-			$this->logger->logException($e, ['message' => 'Could not remove user from the lookup server', 'app' => 'globalsiteselector', 'level' => \OCP\Util::WARN]);
+		} catch (Exception $e) {
+			$this->logger->warning('Could not remove user from the lookup server',
+				[
+					'app' => Application::APP_ID,
+					'exception' => $e,
+				]
+			);
 		}
 	}
 
-	protected function checkConfiguration() {
+	protected function checkConfiguration(): bool {
 		if (empty($this->lookupServer)
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error('global side selector app not configured correctly', ['app' => 'globalsiteselector']);
+			$this->logger->error('global site selector app not configured correctly',
+				[
+					'app' => Application::APP_ID,
+				]
+			);
 			return false;
 		}
-
+		return true;
 	}
 
 	/**
 	 * Operation mode - slave or master
 	 * @return string
 	 */
-	public function getOperationMode() {
+	public function getOperationMode(): string {
 		return $this->operationMode;
 	}
 
@@ -296,7 +318,6 @@ class Slave {
 	 * send user back to master
 	 */
 	public function handleLogoutRequest() {
-
 		$token = ['logout' => 'true',
 			'exp' => time() + 300, // expires after 5 minute
 		];
@@ -305,7 +326,11 @@ class Slave {
 		$location = $this->config->getSystemValue('gss.master.url', '');
 
 		if ($location === '') {
-			$this->logger->error('Can not redirect to master for logout, "gss.master.url" not set in config.php');
+			$this->logger->error('Can not redirect to master for logout, "gss.master.url" not set in config.php',
+				[
+					'app' => Application::APP_ID,
+				]
+			);
 			return;
 		}
 
@@ -313,6 +338,5 @@ class Slave {
 
 		header('Location: ' . $redirectUrl);
 		die();
-
-}
+	}
 }
