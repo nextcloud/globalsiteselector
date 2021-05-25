@@ -43,6 +43,9 @@ class Slave {
 	/** @var IClientService */
 	private $clientService;
 
+	/** @var Lookup */
+	private $lookup;
+
 	/** @var LoggerInterface */
 	private $logger;
 
@@ -72,6 +75,7 @@ class Slave {
 		IAccountManager $accountManager,
 		IUserManager $userManager,
 		IClientService $clientService,
+		Lookup $lookup,
 		GlobalSiteSelector $gss,
 		LoggerInterface $logger,
 		IConfig $config
@@ -79,6 +83,7 @@ class Slave {
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->clientService = $clientService;
+		$this->lookup = $lookup;
 		$this->logger = $logger;
 		$this->lookupServer = $gss->getLookupServerUrl();
 		$this->operationMode = $gss->getMode();
@@ -240,12 +245,9 @@ class Slave {
 
 		$httpClient = $this->clientService->newClient();
 		try {
-			$httpClient->post($this->lookupServer,
-				[
-					'body' => json_encode($dataBatch),
-					'timeout' => 10,
-					'connect_timeout' => 3,
-				]
+			$httpClient->post(
+				$this->lookupServer,
+				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
 			$this->logger->warning('Could not send user to lookup server',
@@ -274,12 +276,9 @@ class Slave {
 
 		$httpClient = $this->clientService->newClient();
 		try {
-			$httpClient->delete($this->lookupServer,
-				[
-					'body' => json_encode($dataBatch),
-					'timeout' => 10,
-					'connect_timeout' => 3,
-				]
+			$httpClient->delete(
+				$this->lookupServer,
+				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
 			$this->logger->warning('Could not remove user from the lookup server',
