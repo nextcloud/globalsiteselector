@@ -119,14 +119,14 @@ class Lookup {
 		$client = $this->httpClientService->newClient();
 		$response = $client->get(
 			$this->lookupServerUrl . '/users',
-			[
-				'query' => [
-					'search' => $uid,
-					'exact' => '1',
-				],
-				'timeout' => 10,
-				'connect_timeout' => 3,
-			]
+			$this->configureClient(
+				[
+					'query' => [
+						'search' => $uid,
+						'exact'  => '1',
+					]
+				]
+			)
 		);
 
 		$body = json_decode($response->getBody(), true);
@@ -150,6 +150,23 @@ class Lookup {
 			$hint = $this->l->t('Invalid Federated Cloud ID');
 			throw new HintException('Invalid Federated Cloud ID', $hint, 0, $e);
 		}
+	}
+
+
+	/**
+	 * @param array $options
+	 *
+	 * @return array
+	 */
+	public function configureClient(array $options): array {
+		return array_merge(
+			$options,
+			[
+				'timeout'         => 10,
+				'connect_timeout' => 3,
+				'nextcloud'       => ['allow_local_address' => true]
+			]
+		);
 	}
 
 }
