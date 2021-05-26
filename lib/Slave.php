@@ -43,6 +43,9 @@ class Slave {
 	/** @var IClientService */
 	private $clientService;
 
+	/** @var Lookup */
+	private $lookup;
+
 	/** @var ILogger */
 	private $logger;
 
@@ -88,11 +91,13 @@ class Slave {
 								GlobalSiteSelector $gss,
 								ILogger $logger,
 								ICloudIdManager $cloudIdManager,
+		Lookup $lookup,
 								IConfig $config
 	) {
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->clientService = $clientService;
+		$this->lookup = $lookup;
 		$this->logger = $logger;
 		$this->cloudIdManager = $cloudIdManager;
 		$this->lookupServer = $gss->getLookupServerUrl();
@@ -227,12 +232,9 @@ class Slave {
 
 		$httpClient = $this->clientService->newClient();
 		try {
-			$httpClient->post($this->lookupServer,
-				[
-					'body' => json_encode($dataBatch),
-					'timeout' => 10,
-					'connect_timeout' => 3,
-				]
+			$httpClient->post(
+				$this->lookupServer,
+				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (\Exception $e) {
 			$this->logger->logException($e, ['message' => 'Could not send user to lookup server', 'app' => 'globalsiteselector', 'level' => \OCP\Util::WARN]);
@@ -249,12 +251,9 @@ class Slave {
 
 		$httpClient = $this->clientService->newClient();
 		try {
-			$httpClient->delete($this->lookupServer,
-				[
-					'body' => json_encode($dataBatch),
-					'timeout' => 10,
-					'connect_timeout' => 3,
-				]
+			$httpClient->delete(
+				$this->lookupServer,
+				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (\Exception $e) {
 			$this->logger->logException($e, ['message' => 'Could not remove user from the lookup server', 'app' => 'globalsiteselector', 'level' => \OCP\Util::WARN]);

@@ -283,15 +283,17 @@ class Master {
 
 		$response = $client->get(
 			$location . '/ocs/v2.php/apps/globalsiteselector/v1/createapptoken',
-			[
-				'headers' => [
-					'OCS-APIRequest' => 'true'
-				],
-				'query' => [
-					'format' => 'json',
-					'jwt' => $jwt
+			$this->lookup->configureClient(
+				[
+					'headers' => [
+						'OCS-APIRequest' => 'true'
+					],
+					'query'   => [
+						'format' => 'json',
+						'jwt'    => $jwt
+					]
 				]
-			]
+			)
 		);
 
 		$body = $response->getBody();
