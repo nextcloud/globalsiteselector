@@ -69,7 +69,7 @@ class SlaveControllerTest extends TestCase {
 	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
 	private $session;
 
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		$this->request = $this->createMock(IRequest::class);

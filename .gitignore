@@ -49,6 +49,9 @@ nbproject
 /tests/autotest*
 /tests/data/lorem-copy.txt
 /tests/data/testimage-copy.png
+/tests/unit/.phpunit.result.cache
 /config/config-autotest-backup.php
 /config/autoconfig.php
 clover.xml
+
+/.php_cs.cache

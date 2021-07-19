@@ -24,6 +24,7 @@ namespace OCA\GlobalSiteSelector\Tests\Unit;
 
 
 use Firebase\JWT\JWT;
+use OC\HintException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
@@ -61,7 +62,7 @@ class MasterTest extends TestCase {
 	/** @var \PHPUnit_Framework_MockObject_MockObject|IAppContainer */
 	private $container;
 
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		$this->gss = $this->getMockBuilder(GlobalSiteSelector::class)
@@ -111,10 +112,6 @@ class MasterTest extends TestCase {
 		$master->handleLoginRequest($params);
 	}
 
-
-	/**
-	 * @expectedException \OC\HintException
-	 */
 	public function testHandleLoginRequestException() {
 		$params = ['uid' => 'user', 'password' => 'password'];
 		$location = '';
@@ -122,6 +119,7 @@ class MasterTest extends TestCase {
 		$master->expects($this->once())->method('queryLookupServer')
 			->willReturn($location);
 
+		$this->expectException(HintException::class);
 		$master->expects($this->never())->method('redirectUser');
 		$master->handleLoginRequest($params);
 	}

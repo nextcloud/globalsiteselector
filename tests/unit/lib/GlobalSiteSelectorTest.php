@@ -35,7 +35,7 @@ class GlobalSiteSelectorTest extends TestCase {
 	/** @var  GlobalSiteSelector */
 	private $gss;
 
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		$this->config = $this->createMock(IConfig::class);
