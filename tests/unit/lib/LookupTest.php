@@ -45,7 +45,7 @@ class LookupTest extends TestCase {
 	/** @var  ICloudIdManager | \PHPUnit_Framework_MockObject_MockObject */
 	private $cloudIdManager;
 
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		$this->httpClientService = $this->createMock(IClientService::class);
