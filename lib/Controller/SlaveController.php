@@ -29,6 +29,7 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
@@ -173,8 +174,11 @@ class SlaveController extends OCSController {
 
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, 0);
 		$home = $this->urlGenerator->getAbsoluteURL($target);
-		return new RedirectResponse($home);
-
+		$response = new RedirectResponse($home);
+		$csp = new ContentSecurityPolicy();
+		$csp->addAllowedFormActionDomain($masterUrl);
+		$response->setContentSecurityPolicy($csp);
+		return $response;
 	}
 
 	/**
