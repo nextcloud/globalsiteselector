@@ -200,7 +200,7 @@ class Master {
 	 * @return string
 	 */
 	protected function queryLookupServer($uid) {
-		return $this->lookup->search($uid);
+		return $this->lookup->search($uid, true);
 	}
 
 	/**

@@ -73,9 +73,11 @@ class Lookup {
 	 * email addresses and federated cloud ids and internal UIDs.
 	 *
 	 * @param string $uid
+	 * @param bool $frontal
+	 *
 	 * @return string the url of the server where the user is located
 	 */
-	public function search($uid) {
+	public function search(string $uid, bool $frontal = false): string {
 
 		$result = '';
 
@@ -89,7 +91,7 @@ class Lookup {
 		}
 
 		try {
-			$body = $this->queryLookupServer($uid);
+			$body = $this->queryLookupServer($uid, $frontal);
 
 			if (isset($body['federationId'])) {
 				$result = $this->getUserLocation($body['federationId']);
@@ -114,7 +116,7 @@ class Lookup {
 	 * @return mixed
 	 * @throws \Exception
 	 */
-	protected function queryLookupServer($uid) {
+	protected function queryLookupServer(string $uid, bool $frontal = false) {
 		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid);
 		$client = $this->httpClientService->newClient();
 		$response = $client->get(
@@ -124,6 +126,7 @@ class Lookup {
 					'query' => [
 						'search' => $uid,
 						'exact'  => '1',
+						'frontal' => ($frontal) ? '1' : '0'
 					]
 				]
 			)
