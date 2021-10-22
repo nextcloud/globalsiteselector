@@ -24,12 +24,15 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 
 
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Listener\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Master;
 use OCA\GlobalSiteSelector\PublicCapabilities;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\App;
 use OCP\AppFramework\IAppContainer;
+use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 use OCP\Util;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -66,6 +69,10 @@ class Application extends App {
 	private function registerMasterHooks(IAppContainer $c) {
 		$master = $c->query(Master::class);
 		Util::connectHook('OC_User', 'pre_login', $master, 'handleLoginRequest');
+
+		/** @var IEventDispatcher $eventDispatcher */
+		$eventDispatcher = $c->getServer()->query(IEventDispatcher::class);
+		$eventDispatcher->addListener(AddContentSecurityPolicyEvent::class, AddContentSecurityPolicyListener::class);
 	}
 
 	/**

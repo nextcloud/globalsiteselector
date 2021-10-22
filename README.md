@@ -33,6 +33,9 @@ Config.php parameters to operate the server in master mode:
 //       The user disovery module might require additional config paramters you can find in
 //       the documentation of the module
 'gss.user.discovery.module' => '\OCA\GlobalSiteSelector\UserDiscoveryModules\UserDiscoverySAML',
+
+// define a allow list for automatic login to other instance to let browsers handle the redirect properly
+'gss.master.csp-allow' => ['*.myorg.com', 'node3.otherorg.com'],
 ````
 
 ### Slave
