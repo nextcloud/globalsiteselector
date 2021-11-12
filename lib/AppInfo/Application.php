@@ -31,6 +31,7 @@ use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\App;
 use OCP\AppFramework\IAppContainer;
+use OCP\AppFramework\QueryException;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 use OCP\Util;
@@ -70,9 +71,19 @@ class Application extends App {
 		$master = $c->query(Master::class);
 		Util::connectHook('OC_User', 'pre_login', $master, 'handleLoginRequest');
 
-		/** @var IEventDispatcher $eventDispatcher */
-		$eventDispatcher = $c->getServer()->query(IEventDispatcher::class);
-		$eventDispatcher->addListener(AddContentSecurityPolicyEvent::class, AddContentSecurityPolicyListener::class);
+		try {
+			/** @var IEventDispatcher $eventDispatcher */
+			$eventDispatcher = $c->getServer()->query(IEventDispatcher::class);
+			$eventDispatcher->addListener(
+				AddContentSecurityPolicyEvent::class,
+				function (AddContentSecurityPolicyEvent $event) {
+					/** @var AddContentSecurityPolicyListener $listener */
+					$listener = \OC::$server->get(AddContentSecurityPolicyListener::class);
+					$listener->handle($event);
+				}
+			);
+		} catch (QueryException $e) {
+		}
 	}
 
 	/**
