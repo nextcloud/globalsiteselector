@@ -25,6 +25,7 @@ namespace OCA\GlobalSiteSelector\Controller;
 
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
+use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
@@ -171,7 +172,7 @@ class SlaveController extends OCSController {
 			return new RedirectResponse($masterUrl);
 		}
 
-		$this->userSession->createSessionToken($this->request, $uid, $uid, null, 0);
+		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
 		$home = $this->urlGenerator->getAbsoluteURL($target);
 		return new RedirectResponse($home);
 
