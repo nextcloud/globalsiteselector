@@ -59,6 +59,7 @@ class AddContentSecurityPolicyListener implements IEventListener {
 			foreach ($cspAllowList as $entry) {
 				$policy->addAllowedFormActionDomain($entry);
 			}
+			$policy->addAllowedFormActionDomain('nc://*');
 			$event->addPolicy($policy);
 		}
 	}
