@@ -1,6 +1,23 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.1.0
+
+### Fixed
+
+- #37 get account data as array @blizzz
+- #56 Allow form action to handle nc:// protocol @juliushaertl
+- #51 Fix session token creation "remember" parameter @eneiluj
+
+### Other
+
+- #40 configure Client to allow_local_remote_server based on 'gss.allow_local_address' @ArtificialOwl
+- #49 Implement csp allow list for master node @juliushaertl
+- #46 Github CI @juliushaertl
+- #36 Deprecations and cleanup @blizzz
+- #42 Update version on master @nickvergessen
+- #52 Use addServiceListener for registration with the IEventDispatcher @juliushaertl
+
 ## 1.3.0
 ### Added
 - NC19 compatible
