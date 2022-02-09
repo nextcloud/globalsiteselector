@@ -45,7 +45,7 @@ if (!$userSession->isLoggedIn() && !empty($masterUrl) &&
 	}
 
 	if(isset($params['redirect_url'])) {
-		$masterUrl .= $params['redirect_url'];
+		$masterUrl .= '?redirect_url=' . $params['redirect_url'];
 	}
 
 	header('Location: '. $masterUrl);
