@@ -21,4 +21,8 @@
 	<background-jobs>
 		<job>OCA\GlobalSiteSelector\BackgroundJobs\UpdateLookupServer</job>
 	</background-jobs>
+
+	<commands>
+		<command>OCA\GlobalSiteSelector\Command\UsersUpdate</command>
+	</commands>
 </info>
