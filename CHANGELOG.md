@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+### 25.0.0
+
+- compat nc25
+
+
 ## 2.1.0
 
 ### Fixed
