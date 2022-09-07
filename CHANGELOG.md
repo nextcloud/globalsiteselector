@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.1.2
+
+- update user on login
+- fix an issue on logout with saml
+
 ## 2.1.1
 
 - config flag to ignore user's account properties
