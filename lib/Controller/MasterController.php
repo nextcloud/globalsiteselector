@@ -29,6 +29,7 @@ use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
 use OCP\ILogger;
 use OCP\IRequest;
+use OCP\ISession;
 use OCP\IURLGenerator;
 
 /**
@@ -49,6 +50,9 @@ class MasterController extends OCSController {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var ISession */
+	private $session;
+
 	/**
 	 * SlaveController constructor.
 	 *
@@ -62,12 +66,14 @@ class MasterController extends OCSController {
 								IRequest $request,
 								IURLGenerator $urlGenerator,
 								ILogger $logger,
-								GlobalSiteSelector $globalSiteSelector
+								GlobalSiteSelector $globalSiteSelector,
+								ISession $session
 	) {
 		parent::__construct($appName, $request);
 		$this->urlGenerator = $urlGenerator;
 		$this->logger = $logger;
 		$this->gss = $globalSiteSelector;
+		$this->session = $session;
 	}
 
 	/**
@@ -84,7 +90,7 @@ class MasterController extends OCSController {
 
 			if ($this->isValidJwt($jwt)) {
 				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
-				if (!empty($logoutUrl)) {
+				if (!empty($logoutUrl) && $this->session->get('user_saml.Idp') !== null) {
 					$token = ['logout' => 'logout',
 						'exp' => time() + 300, // expires after 5 minutes
 					];
