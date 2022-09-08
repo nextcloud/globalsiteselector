@@ -27,6 +27,7 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\Http;
@@ -51,7 +52,7 @@ use OCP\Security\ICrypto;
  */
 class SlaveController extends OCSController {
 
-	/** @var GlobalSiteSelector  */
+	/** @var GlobalSiteSelector */
 	private $gss;
 
 	/** @var ILogger */
@@ -78,6 +79,8 @@ class SlaveController extends OCSController {
 	/** @var ISession */
 	private $session;
 
+	private SlaveService $slaveService;
+
 	/**
 	 * SlaveController constructor.
 	 *
@@ -92,18 +95,21 @@ class SlaveController extends OCSController {
 	 * @param TokenHandler $tokenHandler
 	 * @param IUserManager $userManager
 	 * @param UserBackend $userBackend
+	 * @param SlaveService $slaveService
 	 */
-	public function __construct($appName,
-								IRequest $request,
-								GlobalSiteSelector $gss,
-								ILogger $logger,
-								IUserSession $userSession,
-								ISession $session,
-								IURLGenerator $urlGenerator,
-								ICrypto $crypto,
-								TokenHandler $tokenHandler,
-								IUserManager $userManager,
-								UserBackend $userBackend
+	public function __construct(
+		$appName,
+		IRequest $request,
+		GlobalSiteSelector $gss,
+		ILogger $logger,
+		IUserSession $userSession,
+		ISession $session,
+		IURLGenerator $urlGenerator,
+		ICrypto $crypto,
+		TokenHandler $tokenHandler,
+		IUserManager $userManager,
+		UserBackend $userBackend,
+		SlaveService $slaveService
 	) {
 		parent::__construct($appName, $request);
 		$this->gss = $gss;
@@ -115,6 +121,7 @@ class SlaveController extends OCSController {
 		$this->userManager = $userManager;
 		$this->userBackend = $userBackend;
 		$this->session = $session;
+		$this->slaveService = $slaveService;
 	}
 
 	/**
@@ -123,31 +130,26 @@ class SlaveController extends OCSController {
 	 * @UseSession
 	 *
 	 * @param string $jwt
+	 *
 	 * @return RedirectResponse
 	 */
 	public function autoLogin($jwt) {
-
 		$masterUrl = $this->gss->getMasterUrl();
-
-		if($this->gss->getMode() === 'master') {
+		if ($this->gss->getMode() === 'master') {
 			return new RedirectResponse($masterUrl);
 		}
-
 		if ($jwt === '') {
 			return new RedirectResponse($masterUrl);
 		}
 
 		try {
-
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
-
 			$target = $options['target'];
-
-			if(is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
+			if (is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
 				$this->autoprovisionIfNeeded($uid, $options);
 				try {
 					$user = $this->userManager->get($uid);
-					if(!($user instanceof IUser)) {
+					if (!($user instanceof IUser)) {
 						throw new \InvalidArgumentException('User is not valid');
 					}
 					$user->updateLastLoginTimestamp();
@@ -166,16 +168,19 @@ class SlaveController extends OCSController {
 
 		} catch (ExpiredException $e) {
 			$this->logger->info('token expired', ['app' => 'globalsiteselector']);
+
 			return new RedirectResponse($masterUrl);
 		} catch (\Exception $e) {
 			$this->logger->logException($e, ['app' => 'globalsiteselector']);
+
 			return new RedirectResponse($masterUrl);
 		}
 
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
 		$home = $this->urlGenerator->getAbsoluteURL($target);
-		return new RedirectResponse($home);
+		$this->slaveService->updateUserById($uid);
 
+		return new RedirectResponse($home);
 	}
 
 	/**
@@ -188,14 +193,14 @@ class SlaveController extends OCSController {
 	 */
 	public function createAppToken($jwt) {
 
-		if($this->gss->getMode() === 'master' || empty($jwt)) {
+		if ($this->gss->getMode() === 'master' || empty($jwt)) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
 
 		try {
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
 
-			if(is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
+			if (is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
 				$this->autoprovisionIfNeeded($uid, $options);
 			}
 
@@ -208,13 +213,14 @@ class SlaveController extends OCSController {
 				}
 				if ($result) {
 					$token = $this->tokenHandler->generateAppToken($uid);
+
 					return new DataResponse($token);
 				}
 			}
-		}  catch (ExpiredException $e) {
+		} catch (ExpiredException $e) {
 			$this->logger->info('Create app password: JWT token expired', ['app' => 'globalsiteselector']);
 		} catch (\Exception $e) {
-			$this->logger->logException('Create app password: ' . $e, ['app' => 'globalsiteselector']);
+			$this->logger->logException($e, ['app' => 'globalsiteselector']);
 		}
 
 		return new DataResponse([], Http::STATUS_BAD_REQUEST);
@@ -225,6 +231,7 @@ class SlaveController extends OCSController {
 	 * decode jwt and return the uid and the password
 	 *
 	 * @param string $jwt
+	 *
 	 * @return array
 	 * @throws \Exception
 	 */
@@ -233,7 +240,7 @@ class SlaveController extends OCSController {
 		$decoded = (array)JWT::decode($jwt, $key, ['HS256']);
 
 		if (!isset($decoded['uid'])) {
-			throw new Exception('"uid" not set in JWT');
+			throw new \Exception('"uid" not set in JWT');
 		}
 
 		if (!isset($decoded['password'])) {
@@ -264,7 +271,6 @@ class SlaveController extends OCSController {
 
 		$this->userBackend->createUserIfNotExists($uid);
 		$this->userBackend->updateAttributes($uid, $options);
-
 	}
 
 }
