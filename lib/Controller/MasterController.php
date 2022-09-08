@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\Controller;
 
-
 use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCP\AppFramework\Http\RedirectResponse;
@@ -40,7 +39,6 @@ use OCP\IURLGenerator;
  * @package OCA\GlobalSiteSelector\Controller
  */
 class MasterController extends OCSController {
-
 	/** @var GlobalSiteSelector  */
 	private $gss;
 
@@ -85,9 +83,7 @@ class MasterController extends OCSController {
 	 * @return RedirectResponse
 	 */
 	public function autoLogout($jwt) {
-
 		try {
-
 			if ($this->isValidJwt($jwt)) {
 				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
 				if (!empty($logoutUrl) && $this->session->get('user_saml.Idp') !== null) {
@@ -100,7 +96,6 @@ class MasterController extends OCSController {
 					return new RedirectResponse($logoutUrl . '?jwt=' . $jwt);
 				}
 			}
-
 		} catch (\Exception $e) {
 			$this->logger->error('remote logout request failed: ' . $e->getMessage());
 		}
@@ -122,6 +117,4 @@ class MasterController extends OCSController {
 
 		return true;
 	}
-
-
 }

@@ -23,7 +23,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $app = new \OCA\GlobalSiteSelector\AppInfo\Application();
 
-if(OC::$CLI) {
+if (OC::$CLI) {
 	return;
 }
 $config = \OC::$server->getConfig();
@@ -37,14 +37,13 @@ $masterUrl = $config->getSystemValue('gss.master.url', '');
 $request = \OC::$server->getRequest();
 if (!$userSession->isLoggedIn() && !empty($masterUrl) &&
 	$request->getPathInfo() === '/login') {
-
 	// an admin wants to login directly at the Nextcloud node
 	$params = $request->getParams();
 	if (isset($params['direct'])) {
 		return;
 	}
 
-	if(isset($params['redirect_url'])) {
+	if (isset($params['redirect_url'])) {
 		$masterUrl .= '?redirect_url=' . $params['redirect_url'];
 	}
 

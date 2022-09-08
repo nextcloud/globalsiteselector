@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\AppInfo;
 
-
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Listener\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Master;
@@ -38,7 +37,6 @@ use OCP\Util;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
 class Application extends App {
-
 	public const APP_ID = 'globalsiteselector';
 
 	public function __construct(array $urlParams = array()) {
@@ -88,12 +86,12 @@ class Application extends App {
 		/** @var Slave $slave */
 		$slave = $c->query(Slave::class);
 
-		Util::connectHook('OC_User', 'post_createUser',	$slave, 'createUser');
-		Util::connectHook('OC_User', 'pre_deleteUser',	$slave, 'preDeleteUser');
-		Util::connectHook('OC_User', 'post_deleteUser',	$slave, 'deleteUser');
+		Util::connectHook('OC_User', 'post_createUser', $slave, 'createUser');
+		Util::connectHook('OC_User', 'pre_deleteUser', $slave, 'preDeleteUser');
+		Util::connectHook('OC_User', 'post_deleteUser', $slave, 'deleteUser');
 
 		$dispatcher = \OC::$server->getEventDispatcher();
-		$dispatcher->addListener('OC\AccountManager::userUpdated', function(GenericEvent $event) use ($slave) {
+		$dispatcher->addListener('OC\AccountManager::userUpdated', function (GenericEvent $event) use ($slave) {
 			/** @var \OCP\IUser $user */
 			$user = $event->getSubject();
 			$slave->updateUser($user);

@@ -20,6 +20,7 @@
  */
 
 namespace OCA\GlobalSiteSelector\UserDiscoveryModules;
+
 use OCP\IConfig;
 use OCP\ILogger;
 
@@ -41,7 +42,6 @@ use OCP\ILogger;
  * @package OCA\GlobalSiteSelector\UserDiscoveryModules
  */
 class ManualUserMapping implements IUserDiscoveryModule {
-
 	/** @var string */
 	private $idpParameter;
 	/** @var string */
@@ -76,7 +76,6 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 * @return string
 	 */
 	public function getLocation($data) {
-
 		$location = '';
 		$dictionary = $this->getDictionary();
 		$key = $this->getKey($data);
@@ -118,7 +117,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 			$mapString = file_get_contents($this->file);
 			$dictionary = json_decode($mapString, true);
 
-			if ($dictionary === NULL || !is_array($dictionary)) {
+			if ($dictionary === null || !is_array($dictionary)) {
 				$this->logger->critical('Your json file at "' . $this->file . '" is not valid!');
 			}
 		}
@@ -154,7 +153,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$normalized = $key;
 		$pos = strrpos($key, '@');
 		if ($pos !== false) {
-			$normalized = substr($key, $pos+1);
+			$normalized = substr($key, $pos + 1);
 		}
 
 		$this->logger->debug('Normalized key: ' . $normalized);

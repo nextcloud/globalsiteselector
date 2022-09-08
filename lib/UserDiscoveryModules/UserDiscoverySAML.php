@@ -20,6 +20,7 @@
  */
 
 namespace OCA\GlobalSiteSelector\UserDiscoveryModules;
+
 use OCP\IConfig;
 
 /**
@@ -34,7 +35,6 @@ use OCP\IConfig;
  * @package OCA\GlobalSiteSelector\UserDiscoveryModule
  */
 class UserDiscoverySAML implements IUserDiscoveryModule {
-
 	/** @var string */
 	private $idpParameter;
 
@@ -62,5 +62,4 @@ class UserDiscoverySAML implements IUserDiscoveryModule {
 
 		return $location;
 	}
-
 }

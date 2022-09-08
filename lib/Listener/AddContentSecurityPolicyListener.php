@@ -34,7 +34,6 @@ use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 
 class AddContentSecurityPolicyListener implements IEventListener {
-
 	private $config;
 	private $userSession;
 	private $request;

@@ -22,13 +22,11 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
-
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCP\IConfig;
 use Test\TestCase;
 
 class GlobalSiteSelectorTest extends TestCase {
-
 	/** @var  IConfig|\PHPUnit_Framework_MockObject_MockObject */
 	private $config;
 
@@ -77,5 +75,4 @@ class GlobalSiteSelectorTest extends TestCase {
 
 		$this->assertSame('result', $result);
 	}
-
 }

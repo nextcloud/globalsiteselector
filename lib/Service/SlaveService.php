@@ -33,9 +33,7 @@ use OCP\IUser;
 use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
-
 class SlaveService {
-
 	private LoggerInterface $logger;
 	private IClientService $clientService;
 	private IUserManager $userManager;
@@ -97,7 +95,7 @@ class SlaveService {
 		}
 
 		$this->logger->debug('Batch updating users: {users}',
-							 ['users' => $users]
+			['users' => $users]
 		);
 
 		$this->postLookup('/gs/users', ['users' => $users]);
@@ -119,7 +117,7 @@ class SlaveService {
 			);
 		} catch (Exception $e) {
 			$this->logger->warning('Could not send user to lookup server',
-								   ['exception' => $e]
+				['exception' => $e]
 			);
 		}
 	}
@@ -147,9 +145,9 @@ class SlaveService {
 		$properties = $data = [];
 
 		if ((string)$this->config->getAppValue(
-				Application::APP_ID,
-				'ignore_properties', '0'
-			) !== '1') {
+			Application::APP_ID,
+			'ignore_properties', '0'
+		) !== '1') {
 			$properties = $this->accountManager->getAccount($user)->getProperties();
 		}
 
@@ -165,5 +163,4 @@ class SlaveService {
 
 		return $data;
 	}
-
 }

@@ -32,9 +32,7 @@ use OCP\User\Backend\ICountUsersBackend;
 use OCP\UserInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
-
 class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
-
 	/** @var string  name of the database table to store the users logged in from the master node */
 	private $dbName = 'global_scale_users';
 
@@ -105,7 +103,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @param string $uid
 	 */
 	public function createUserIfNotExists($uid) {
-		if(!$this->userExistsInDatabase($uid)) {
+		if (!$this->userExistsInDatabase($uid)) {
 			$values = [
 				'uid' => $uid,
 			];
@@ -113,7 +111,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			/* @var $qb IQueryBuilder */
 			$qb = $this->db->getQueryBuilder();
 			$qb->insert($this->dbName);
-			foreach($values as $column => $value) {
+			foreach ($values as $column => $value) {
 				$qb->setValue($column, $qb->createNamedParameter($value));
 			}
 			$qb->execute();
@@ -140,7 +138,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @since 4.5.0
 	 */
 	public function deleteUser($uid) {
-		if($this->userExistsInDatabase($uid)) {
+		if ($this->userExistsInDatabase($uid)) {
 			/* @var $qb IQueryBuilder */
 			$qb = $this->db->getQueryBuilder();
 			$qb->delete($this->dbName)
@@ -169,7 +167,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 				$qb->expr()->iLike('uid', $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($search) . '%'))
 			)
 			->setMaxResults($limit);
-		if($offset !== null) {
+		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
 		$result = $qb->execute();
@@ -177,7 +175,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		$result->closeCursor();
 
 		$uids = [];
-		foreach($users as $user) {
+		foreach ($users as $user) {
 			$uids[] = $user['uid'];
 		}
 
@@ -191,7 +189,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return int|bool
 	 */
 	public function countUsers() {
-
 		$query = $this->db->getQueryBuilder();
 		$query->select($query->func()->count('uid'))
 			->from($this->dbName);
@@ -207,7 +204,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @since 4.5.0
 	 */
 	public function userExists($uid) {
-		if($backend = $this->getActualUserBackend($uid)) {
+		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->userExists($uid);
 		} else {
 			return $this->userExistsInDatabase($uid);
@@ -215,7 +212,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	}
 
 	public function setDisplayName($uid, $displayName) {
-		if($backend = $this->getActualUserBackend($uid)) {
+		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->setDisplayName($uid, $displayName);
 		}
 
@@ -239,10 +236,10 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @since 4.5.0
 	 */
 	public function getDisplayName($uid) {
-		if($backend = $this->getActualUserBackend($uid)) {
+		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->getDisplayName($uid);
 		} else {
-			if($this->userExistsInDatabase($uid)) {
+			if ($this->userExistsInDatabase($uid)) {
 				$qb = $this->db->getQueryBuilder();
 				$qb->select('displayname')
 					->from($this->dbName)
@@ -279,7 +276,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 				$qb->expr()->iLike('displayname', $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($search) . '%'))
 			)
 			->setMaxResults($limit);
-		if($offset !== null) {
+		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
 		$result = $qb->execute();
@@ -287,7 +284,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		$result->closeCursor();
 
 		$uids = [];
-		foreach($users as $user) {
+		foreach ($users as $user) {
 			$uids[$user['uid']] = $user['displayname'];
 		}
 
@@ -310,7 +307,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @since 6.0.0
 	 */
 	public function isSessionActive() {
-		if($this->getCurrentUserId() !== '') {
+		if ($this->getCurrentUserId() !== '') {
 			return true;
 		}
 		return false;
@@ -325,7 +322,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	public function getCurrentUserId() {
 		$uid = $this->session->get('globalScale.uid');
 
-		if(!empty($uid) && $this->userExists($uid)) {
+		if (!empty($uid) && $this->userExists($uid)) {
 			$this->session->set('last-password-confirm', time());
 			return $uid;
 		}
@@ -362,8 +359,8 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return null|UserInterface
 	 */
 	public function getActualUserBackend($uid) {
-		foreach(self::$backends as $backend) {
-			if($backend->userExists($uid)) {
+		foreach (self::$backends as $backend) {
+			if ($backend->userExists($uid)) {
 				return $backend;
 			}
 		}
@@ -387,7 +384,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 
 	public function updateAttributes($uid, array $attributes) {
-
 		$user = $this->userManager->get($uid);
 
 		$userData = $attributes['userData'];
@@ -461,6 +457,4 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 		return !empty($users);
 	}
-
-
 }

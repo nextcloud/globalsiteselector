@@ -22,14 +22,12 @@
 
 namespace OCA\GlobalSiteSelector\BackgroundJobs;
 
-
 use OC\BackgroundJob\Job;
 use OCA\GlobalSiteSelector\Slave;
 use OCP\BackgroundJob\IJobList;
 use OCP\ILogger;
 
 class UpdateLookupServer extends Job {
-
 	/** @var Slave */
 	private $slave;
 
@@ -54,7 +52,6 @@ class UpdateLookupServer extends Job {
 	 * @param ILogger|null $logger
 	 */
 	public function execute($jobList, ILogger $logger = null) {
-
 		if ($this->shouldRun()) {
 			parent::execute($jobList, $logger);
 		}

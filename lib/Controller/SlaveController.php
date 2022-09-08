@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\Controller;
 
-
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use OC\Authentication\Token\IToken;
@@ -51,7 +50,6 @@ use OCP\Security\ICrypto;
  * @package OCA\GlobalSiteSelector\Controller
  */
 class SlaveController extends OCSController {
-
 	/** @var GlobalSiteSelector */
 	private $gss;
 
@@ -165,7 +163,6 @@ class SlaveController extends OCSController {
 			if ($result === false) {
 				throw new \Exception('wrong username or password given for: ' . $uid);
 			}
-
 		} catch (ExpiredException $e) {
 			$this->logger->info('token expired', ['app' => 'globalsiteselector']);
 
@@ -192,7 +189,6 @@ class SlaveController extends OCSController {
 	 * @return DataResponse
 	 */
 	public function createAppToken($jwt) {
-
 		if ($this->gss->getMode() === 'master' || empty($jwt)) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
@@ -224,7 +220,6 @@ class SlaveController extends OCSController {
 		}
 
 		return new DataResponse([], Http::STATUS_BAD_REQUEST);
-
 	}
 
 	/**
@@ -262,7 +257,6 @@ class SlaveController extends OCSController {
 	 * @param array $options
 	 */
 	protected function autoprovisionIfNeeded($uid, $options) {
-
 		// make sure that a valid UID is given
 		if (empty($uid)) {
 			$this->logger->error('Uid "{uid}" is not valid.', ['app' => $this->appName, 'uid' => $uid]);
@@ -272,5 +266,4 @@ class SlaveController extends OCSController {
 		$this->userBackend->createUserIfNotExists($uid);
 		$this->userBackend->updateAttributes($uid, $options);
 	}
-
 }
