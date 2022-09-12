@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 
-
 use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -39,7 +38,6 @@ use OCP\Security\ICrypto;
 use Test\TestCase;
 
 class SlaveControllerTest extends TestCase {
-
 	/** @var  IRequest|\PHPUnit_Framework_MockObject_MockObject */
 	private $request;
 
@@ -117,7 +115,6 @@ class SlaveControllerTest extends TestCase {
 	}
 
 	public function testDecodeJwt() {
-
 		$controller = $this->getInstance();
 		$jwtKey = 'jwtkey';
 		$encryptedPassword = 'password-encrypted';
@@ -142,5 +139,4 @@ class SlaveControllerTest extends TestCase {
 		$this->assertSame($plainPassword, $password);
 		$this->assertSame($options, ['option1' => 'foo']);
 	}
-
 }

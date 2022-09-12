@@ -22,7 +22,6 @@
 namespace OCA\GlobalSiteSelector\UserDiscoveryModules;
 
 interface IUserDiscoveryModule {
-
 	/**
 	 * get the initial user location
 	 *

@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector;
 
-
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
@@ -36,7 +35,6 @@ use OCP\ILogger;
  * @package OCA\GlobalSiteSelector
  */
 class Lookup {
-
 	/** @var IClientService */
 	private $httpClientService;
 
@@ -76,7 +74,6 @@ class Lookup {
 	 * @return string the url of the server where the user is located
 	 */
 	public function search($uid) {
-
 		$result = '';
 
 		// admin need to specify a lookup server with GSS capabilities
@@ -96,7 +93,6 @@ class Lookup {
 			} else {
 				$this->logger->debug('search: federationId not set for ' . $uid);
 			}
-
 		} catch (\Exception $e) {
 			// Nothing to do, we just return a empty string below as a indicator
 			// that nothing was found
@@ -104,7 +100,6 @@ class Lookup {
 
 		$this->logger->debug('serach: location for ' . $uid . ' is ' . $result);
 		return $result;
-
 	}
 
 	/**
@@ -123,7 +118,7 @@ class Lookup {
 				[
 					'query' => [
 						'search' => $uid,
-						'exact'  => '1',
+						'exact' => '1',
 					]
 				]
 			)
@@ -162,11 +157,10 @@ class Lookup {
 		return array_merge(
 			$options,
 			[
-				'timeout'         => 10,
+				'timeout' => 10,
 				'connect_timeout' => 3,
-				'nextcloud'       => ['allow_local_address' => true]
+				'nextcloud' => ['allow_local_address' => true]
 			]
 		);
 	}
-
 }

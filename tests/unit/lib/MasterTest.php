@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
-
 use Firebase\JWT\JWT;
 use OC\HintException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -37,7 +36,6 @@ use OCP\Security\ICrypto;
 use Test\TestCase;
 
 class MasterTest extends TestCase {
-
 	/** @var  GlobalSiteSelector|\PHPUnit_Framework_MockObject_MockObject */
 	private $gss;
 
@@ -135,7 +133,6 @@ class MasterTest extends TestCase {
 	}
 
 	public function testCreateJWT() {
-
 		$uid = 'user1';
 		$plainPassword = 'password';
 		$encryptedPassword = 'password-encrypted';
@@ -200,5 +197,4 @@ class MasterTest extends TestCase {
 
 		];
 	}
-
 }

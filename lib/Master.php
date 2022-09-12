@@ -40,7 +40,6 @@ use OCP\Security\ICrypto;
  * @package OCA\GlobalSiteSelector
  */
 class Master {
-
 	/** @var GlobalSiteSelector */
 	private $gss;
 
@@ -104,30 +103,30 @@ class Master {
 	 * @throws HintException
 	 */
 	public function handleLoginRequest($param) {
-		$this->logger->debug( 'start handle login request');
+		$this->logger->debug('start handle login request');
 
 		// if there is a valid JWT it is a internal GSS request between master and slave
 		// -> skip login
 		$jwt = $this->request->getParam('jwt', '');
-		if($this->isValidJwt($jwt)){
+		if ($this->isValidJwt($jwt)) {
 			return;
 		}
 
 		$target = $this->request->getPathInfo() === false ? '/' : '/index.php' . $this->request->getPathInfo();
-		$this->logger->debug( 'handleLoginRequest: target is: ' . $target);
+		$this->logger->debug('handleLoginRequest: target is: ' . $target);
 
 		$options = ['target' => $target];
 		$discoveryData = [];
 
 		$userDiscoveryModule = $this->config->getSystemValue('gss.user.discovery.module', '');
-		$this->logger->debug( 'handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
+		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
 		/** @var SAMLUserBackend $backend */
 		$backend = isset($param['backend']) ? $param['backend'] : '';
 		if (class_exists('\OCA\User_SAML\UserBackend') &&
 			$backend instanceof \OCA\User_SAML\UserBackend
 		) {
-			$this->logger->debug( 'handleLoginRequest: backend is SAML');
+			$this->logger->debug('handleLoginRequest: backend is SAML');
 
 			$options['backend'] = 'saml';
 			$options['userData'] = $backend->getUserData();
@@ -148,13 +147,13 @@ class Master {
 		// let the admin of the master node login, everyone else will redirected to a client
 		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);
 		if (is_array($masterAdmins) && in_array($uid, $masterAdmins, true)) {
-			$this->logger->debug( 'handleLoginRequest: this user is a local admin so ignore');
+			$this->logger->debug('handleLoginRequest: this user is a local admin so ignore');
 			return;
 		}
 
 		// first ask the lookup server if we already know the user
 		$location = $this->queryLookupServer($uid);
-		$this->logger->debug( 'handleLoginRequest: location according to lookup server: ' . $location);
+		$this->logger->debug('handleLoginRequest: location according to lookup server: ' . $location);
 
 		// if not we fall-back to a initial user deployment method, if configured
 		if (empty($location) && !empty($userDiscoveryModule)) {
@@ -171,7 +170,7 @@ class Master {
 			}
 		}
 		if (!empty($location)) {
-			$this->logger->debug( 'handleLoginRequest: redirecting user: ' . $uid . ' to ' . $this->normalizeLocation($location));
+			$this->logger->debug('handleLoginRequest: redirecting user: ' . $uid . ' to ' . $this->normalizeLocation($location));
 			$this->redirectUser($uid, $password, $this->normalizeLocation($location), $options);
 		} else {
 			$this->logger->log(ILogger::DEBUG, 'handleLoginRequest: Could not find location for user: ' . $uid);
@@ -213,7 +212,6 @@ class Master {
 	 * @throws \Exception
 	 */
 	protected function redirectUser($uid, $password, $location, array $options = []) {
-
 		$isClient = $this->request->isUserAgent(
 			[
 				IRequest::USER_AGENT_CLIENT_IOS,
@@ -231,9 +229,9 @@ class Master {
 		if ($isClient && $isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client direct webdav request');
 			$redirectUrl = $location . '/remote.php/webdav/';
-		} else if($isClient && !$isDirectWebDavAccess) {
+		} elseif ($isClient && !$isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client request generating apptoken');
-			$appToken = $this->getAppToken($location, $uid, $password,  $options);
+			$appToken = $this->getAppToken($location, $uid, $password, $options);
 			$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
 		} else {
 			$this->logger->debug('redirectUser: direct login so forward to target node');
@@ -288,9 +286,9 @@ class Master {
 					'headers' => [
 						'OCS-APIRequest' => 'true'
 					],
-					'query'   => [
+					'query' => [
 						'format' => 'json',
-						'jwt'    => $jwt
+						'jwt' => $jwt
 					]
 				]
 			)
@@ -325,7 +323,7 @@ class Master {
 	protected function buildBasicAuthUrl($url, $uid, $password) {
 		if (strpos($url, 'http://') === 0) {
 			$protocol = 'http://';
-		} else if (strpos($url, 'https://') === 0) {
+		} elseif (strpos($url, 'https://') === 0) {
 			$protocol = 'https://';
 		} else {
 			// no protocol given, switch to https as default
@@ -348,5 +346,4 @@ class Master {
 
 		return true;
 	}
-
 }

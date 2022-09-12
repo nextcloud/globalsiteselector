@@ -31,16 +31,12 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector\Command;
 
-
 use OC\Core\Command\Base;
 use OCA\GlobalSiteSelector\Slave;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-
 class UsersUpdate extends Base {
-
-
 	/** @var Slave */
 	private $slave;
 

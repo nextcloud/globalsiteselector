@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector;
 
-
 use OCP\IConfig;
 
 /**
@@ -33,7 +32,6 @@ use OCP\IConfig;
  * @package OCA\GlobalSiteSelector
  */
 class GlobalSiteSelector {
-
 	/** @var  IConfig */
 	private $config;
 
@@ -81,5 +79,4 @@ class GlobalSiteSelector {
 	public function getLookupServerUrl() {
 		return $this->config->getSystemValue('lookup_server', '');
 	}
-
 }

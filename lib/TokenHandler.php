@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector;
 
-
 use OC\Authentication\Token\IProvider;
 use OC\Authentication\Token\IToken;
 use OCP\Security\ISecureRandom;
@@ -35,7 +34,6 @@ use OCP\Security\ISecureRandom;
  * @package OCA\GlobalSiteSelector
  */
 class TokenHandler {
-
 	/** @var IProvider */
 	private $tokenProvider;
 
@@ -63,8 +61,5 @@ class TokenHandler {
 			'token' => $token,
 			'deviceToken' => $tokenData,
 		];
-
-
 	}
-
 }

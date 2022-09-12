@@ -22,7 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
-
 use OCA\GlobalSiteSelector\Lookup;
 use OCP\Federation\ICloudId;
 use OCP\Federation\ICloudIdManager;
@@ -32,7 +31,6 @@ use OCP\ILogger;
 use Test\TestCase;
 
 class LookupTest extends TestCase {
-
 	/** @var  IClientService|\PHPUnit_Framework_MockObject_MockObject */
 	private $httpClientService;
 
@@ -95,7 +93,6 @@ class LookupTest extends TestCase {
 		$result = $lookup->search('uid');
 
 		$this->assertSame($expected, $result);
-
 	}
 
 	public function dataTestSearch() {
@@ -124,5 +121,4 @@ class LookupTest extends TestCase {
 
 		$this->assertSame($location, $result);
 	}
-
 }

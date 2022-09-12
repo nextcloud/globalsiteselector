@@ -33,7 +33,6 @@ use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
 class Slave {
-
 	/** @var IAccountManager */
 	private $accountManager;
 
@@ -102,10 +101,10 @@ class Slave {
 		$uid = $params['uid'];
 
 		$this->logger->debug('Adding new user: {uid}',
-							 [
-								 'app' => Application::APP_ID,
-								 'uid' => $uid,
-							 ]
+			[
+				'app' => Application::APP_ID,
+				'uid' => $uid,
+			]
 		);
 
 		$user = $this->userManager->get($uid);
@@ -127,10 +126,10 @@ class Slave {
 		}
 
 		$this->logger->debug('Updating user: {uid}',
-							 [
-								 'app' => Application::APP_ID,
-								 'uid' => $user->getUID(),
-							 ]
+			[
+				'app' => Application::APP_ID,
+				'uid' => $user->getUID(),
+			]
 		);
 
 		$userData = [];
@@ -166,10 +165,10 @@ class Slave {
 		$uid = $params['uid'];
 
 		$this->logger->debug('Removing user: {uid}',
-							 [
-								 'app' => Application::APP_ID,
-								 'uid' => $uid,
-							 ]
+			[
+				'app' => Application::APP_ID,
+				'uid' => $uid,
+			]
 		);
 
 		if (isset(self::$toRemove[$uid])) {
@@ -217,9 +216,9 @@ class Slave {
 		$properties = $data = [];
 
 		if ((string)$this->config->getAppValue(
-				Application::APP_ID,
-				'ignore_properties', '0'
-			) !== '1') {
+			Application::APP_ID,
+			'ignore_properties', '0'
+		) !== '1') {
 			$properties = $this->accountManager->getAccount($user)->getProperties();
 		}
 
@@ -245,10 +244,10 @@ class Slave {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
 		$this->logger->debug('Batch updating users: {users}',
-							 [
-								 'app' => Application::APP_ID,
-								 'users' => $users,
-							 ]
+			[
+				'app' => Application::APP_ID,
+				'users' => $users,
+			]
 		);
 
 		$httpClient = $this->clientService->newClient();
@@ -259,10 +258,10 @@ class Slave {
 			);
 		} catch (Exception $e) {
 			$this->logger->warning('Could not send user to lookup server',
-								   [
-									   'app' => Application::APP_ID,
-									   'exception' => $e,
-								   ]
+				[
+					'app' => Application::APP_ID,
+					'exception' => $e,
+				]
 			);
 		}
 	}
@@ -276,10 +275,10 @@ class Slave {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
 		$this->logger->debug('Batch deleting users: {users}',
-							 [
-								 'app' => Application::APP_ID,
-								 'users' => $users,
-							 ]
+			[
+				'app' => Application::APP_ID,
+				'users' => $users,
+			]
 		);
 
 		$httpClient = $this->clientService->newClient();
@@ -290,10 +289,10 @@ class Slave {
 			);
 		} catch (Exception $e) {
 			$this->logger->warning('Could not remove user from the lookup server',
-								   [
-									   'app' => Application::APP_ID,
-									   'exception' => $e,
-								   ]
+				[
+					'app' => Application::APP_ID,
+					'exception' => $e,
+				]
 			);
 		}
 	}
@@ -304,9 +303,9 @@ class Slave {
 			|| empty($this->authKey)
 		) {
 			$this->logger->error('global site selector app not configured correctly',
-								 [
-									 'app' => Application::APP_ID,
-								 ]
+				[
+					'app' => Application::APP_ID,
+				]
 			);
 
 			return false;
