@@ -23,7 +23,9 @@
 namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use OC\HintException;
+use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
 use OCP\AppFramework\IAppContainer;
 use OCP\Http\Client\IClientService;
@@ -102,7 +104,7 @@ class Master {
 	 * @param array $param
 	 * @throws HintException
 	 */
-	public function handleLoginRequest($param) {
+	public function handleLoginRequest(array $param): void {
 		$this->logger->debug('start handle login request');
 
 		// if there is a valid JWT it is a internal GSS request between master and slave
@@ -260,7 +262,7 @@ class Master {
 			'exp' => time() + 300, // expires after 5 minutes
 		];
 
-		$jwt = JWT::encode($token, $this->gss->getJwtKey());
+		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
 
 		return $jwt;
 	}
@@ -339,7 +341,7 @@ class Master {
 	private function isValidJwt($jwt) {
 		try {
 			$key = $this->gss->getJwtKey();
-			JWT::decode($jwt, $key, ['HS256']);
+			JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
 		} catch (\Exception $e) {
 			return false;
 		}

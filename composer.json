@@ -1,14 +1,42 @@
 {
+    "name": "nextcloud/globalsiteselector",
+    "description": "globalsiteselector",
+    "minimum-stability": "stable",
+    "license": "agpl",
+    "config": {
+        "optimize-autoloader": true,
+        "classmap-authoritative": true,
+        "autoloader-suffix": "GlobalSiteSelector",
+        "platform": {
+            "php": "7.4"
+        }
+    },
+    "authors": [
+        {
+            "name": "Maxence Lange",
+            "email": "maxence@artificial-owl.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "OCA\\GlobalSiteSelector\\": "lib/"
+        }
+    },
     "require": {
-        "firebase/php-jwt": "^4.0"
+        "firebase/php-jwt": "^6.3.0"
     },
     "require-dev": {
         "nextcloud/coding-standard": "^1.0.0",
+        "vimeo/psalm": "^4.22",
         "phpunit/phpunit": "^9.5"
     },
-	"scripts": {
-        "lint": "find . -name \\*.php -not -path './vendor/*' -not -path './build/*' -print0 | xargs -0 -n1 php -l",
+    "scripts": {
         "cs:check": "php-cs-fixer fix --dry-run --diff",
-        "cs:fix": "php-cs-fixer fix"
+        "cs:fix": "php-cs-fixer fix",
+        "psalm": "psalm --threads=1 --update-baseline",
+        "psalm:update-baseline": "psalm --threads=1 --update-baseline",
+        "psalm:clear": "psalm --clear-cache && psalm --clear-global-cache",
+        "psalm:fix": "psalm --alter --issues=InvalidReturnType,InvalidNullableReturnType,MissingParamType,InvalidFalsableReturnType",
+        "lint": "find . -name \\*.php -not -path './vendor/*' -print0 | xargs -0 -n1 php -l"
     }
 }

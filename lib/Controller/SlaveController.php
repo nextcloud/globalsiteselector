@@ -24,6 +24,9 @@ namespace OCA\GlobalSiteSelector\Controller;
 
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
@@ -132,8 +135,13 @@ class SlaveController extends OCSController {
 	 * @return RedirectResponse
 	 */
 	public function autoLogin($jwt) {
-		$masterUrl = $this->gss->getMasterUrl();
-		if ($this->gss->getMode() === 'master') {
+		try {
+			$masterUrl = $this->gss->getMasterUrl();
+		} catch (MasterUrlException $e) {
+			return new RedirectResponse('');
+		}
+
+		if ($this->gss->isMaster()) {
 			return new RedirectResponse($masterUrl);
 		}
 		if ($jwt === '') {
@@ -232,7 +240,7 @@ class SlaveController extends OCSController {
 	 */
 	protected function decodeJwt($jwt) {
 		$key = $this->gss->getJwtKey();
-		$decoded = (array)JWT::decode($jwt, $key, ['HS256']);
+		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
 
 		if (!isset($decoded['uid'])) {
 			throw new \Exception('"uid" not set in JWT');

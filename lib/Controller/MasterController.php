@@ -23,6 +23,8 @@
 namespace OCA\GlobalSiteSelector\Controller;
 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
@@ -91,7 +93,7 @@ class MasterController extends OCSController {
 						'exp' => time() + 300, // expires after 5 minutes
 					];
 
-					$jwt = JWT::encode($token, $this->gss->getJwtKey());
+					$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
 
 					return new RedirectResponse($logoutUrl . '?jwt=' . $jwt);
 				}
@@ -113,7 +115,7 @@ class MasterController extends OCSController {
 	 */
 	protected function isValidJwt($jwt) {
 		$key = $this->gss->getJwtKey();
-		JWT::decode($jwt, $key, ['HS256']);
+		JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
 
 		return true;
 	}

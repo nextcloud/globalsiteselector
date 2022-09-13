@@ -332,7 +332,7 @@ class Slave {
 			'exp' => time() + 300, // expires after 5 minute
 		];
 
-		$jwt = JWT::encode($token, $this->gss->getJwtKey());
+		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
 		$location = $this->config->getSystemValue('gss.master.url', '');
 
 		if ($location === '') {
