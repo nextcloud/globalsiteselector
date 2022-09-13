@@ -133,8 +133,11 @@ class Master {
 			$uid = $options['userData']['formatted']['uid'];
 			$password = '';
 			$discoveryData['saml'] = $options['userData']['raw'];
-			// we only send the formatted user data to the slave
+			$discoveryData['saml']['module'] = $userDiscoveryModule;
+
+			// we only send the formatted user data to the slave and discovery tool data
 			$options['userData'] = $options['userData']['formatted'];
+			$options['discovery'] = $discoveryData;
 		} else {
 			$this->logger->debug('handleLoginRequest: backend is not SAML');
 

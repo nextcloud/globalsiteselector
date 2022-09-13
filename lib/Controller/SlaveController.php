@@ -163,6 +163,9 @@ class SlaveController extends OCSController {
 			if ($result === false) {
 				throw new \Exception('wrong username or password given for: ' . $uid);
 			}
+
+			\OC::$server->getLogger()->log(3, 'options: ' . json_encode($options));
+
 		} catch (ExpiredException $e) {
 			$this->logger->info('token expired', ['app' => 'globalsiteselector']);
 
