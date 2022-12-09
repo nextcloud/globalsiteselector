@@ -23,6 +23,7 @@
 namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 
 use Firebase\JWT\JWT;
+use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
@@ -127,7 +128,7 @@ class SlaveControllerTest extends TestCase {
 			'exp' => time() + 300, // expires after 5 minutes
 		];
 
-		$jwt = JWT::encode($token, $jwtKey);
+		$jwt = JWT::encode($token, $jwtKey, Application::JWT_ALGORITHM);
 
 		$this->gss->expects($this->any())->method('getJwtKey')->willReturn($jwtKey);
 		$this->crypto->expects($this->once())->method('decrypt')->with($encryptedPassword, $jwtKey)

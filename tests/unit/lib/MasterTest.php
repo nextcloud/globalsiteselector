@@ -23,7 +23,9 @@
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use OC\HintException;
+use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
@@ -147,7 +149,7 @@ class MasterTest extends TestCase {
 
 		$token = $this->invokePrivate($master, 'createJwt', [$uid, $plainPassword, $options]);
 
-		$decoded = (array)JWT::decode($token, $jwtKey, ['HS256']);
+		$decoded = (array)JWT::decode($token, new Key($jwtKey, Application::JWT_ALGORITHM));
 
 		$this->assertSame($uid, $decoded['uid']);
 		$this->assertSame($encryptedPassword, $decoded['password']);
