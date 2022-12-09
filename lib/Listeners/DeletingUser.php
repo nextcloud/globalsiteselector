@@ -77,7 +77,7 @@ class DeletingUser implements IEventListener {
 
 		$params = [
 			'run' => true,
-			'uid' => $event->getUID()
+			'uid' => $event->getUser()->getUID()
 		];
 
 		$this->slave->preDeleteUser($params);
