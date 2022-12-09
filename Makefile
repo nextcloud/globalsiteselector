@@ -2,18 +2,33 @@ app_name=globalsiteselector
 
 project_dir=$(CURDIR)/../$(app_name)
 build_dir=$(CURDIR)/build/artifacts
-appstore_dir=$(build_dir)/appstore
 source_dir=$(build_dir)/source
 sign_dir=$(build_dir)/sign
 package_name=$(app_name)
 version+=2.2.0
 
-all: release
+all: appstore
+
+release: appstore
 
 clean:
 	rm -rf $(build_dir)
 
-release: clean
+cs-check: composer-dev
+	composer cs:check
+
+cs-fix: composer-dev
+	composer cs:fix
+
+composer:
+	composer install --prefer-dist --no-dev
+	composer upgrade --prefer-dist --no-dev
+
+composer-dev:
+	composer install --prefer-dist --dev
+	composer upgrade --prefer-dist --dev
+
+appstore: clean composer
 	mkdir -p $(sign_dir)
 	rsync -a \
 	--exclude=/build \
