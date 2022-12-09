@@ -76,7 +76,7 @@ class UserDeleted implements IEventListener {
 		}
 
 		$params = [
-			'uid' => $event->getUID()
+			'uid' => $event->getUser()->getUID()
 		];
 
 		$this->slave->deleteUser($params);
