@@ -28,12 +28,17 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCP\Accounts\IAccountManager;
 use OCP\Http\Client\IClientService;
+use OCP\ICache;
+use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IUser;
 use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
 class SlaveService {
+	private const CACHE_DISPLAY_NAME = 'gss/displayName';
+	private const CACHE_DISPLAY_NAME_TTL = 3600;
+
 	private LoggerInterface $logger;
 	private IClientService $clientService;
 	private IUserManager $userManager;
@@ -43,6 +48,8 @@ class SlaveService {
 	private string $lookupServer;
 	private string $operationMode;
 	private string $authKey;
+	private ICache $cacheDisplayName;
+	private int $cacheDisplayNameTtl;
 
 	public function __construct(
 		LoggerInterface $logger,
@@ -51,7 +58,8 @@ class SlaveService {
 		IAccountManager $accountManager,
 		IConfig $config,
 		Lookup $lookup,
-		GlobalSiteSelector $gss
+		GlobalSiteSelector $gss,
+		ICacheFactory $cacheFactory
 	) {
 		$this->logger = $logger;
 		$this->clientService = $clientService;
@@ -63,6 +71,10 @@ class SlaveService {
 		$this->lookupServer = rtrim($gss->getLookupServerUrl(), '/');
 		$this->operationMode = $gss->getMode();
 		$this->authKey = $gss->getJwtKey();
+
+		$this->cacheDisplayName = $cacheFactory->createDistributed(self::CACHE_DISPLAY_NAME);
+		$ttl = (int) $this->config->getAppValue('globalsiteselector', 'cache_displayname');
+		$this->cacheDisplayNameTtl = ($ttl === 0) ? self::CACHE_DISPLAY_NAME_TTL : $ttl;
 	}
 
 
@@ -89,17 +101,90 @@ class SlaveService {
 	}
 
 
-	protected function updateUsersOnLookup(array $users): void {
-		if (!$this->checkConfiguration()) {
-			return;
+	/**
+	 * get single user's display name
+	 *
+	 * @param string $userId
+	 * @param bool $cacheOnly - only get data from cache, do not request lus
+	 *
+	 * @return string
+	 */
+	public function getUserDisplayName(string $userId, bool $cacheOnly = false): string {
+		$userId = trim($userId, '/');
+		$details = $this->getUsersDisplayName([$userId], $cacheOnly);
+		if (array_key_exists($userId, $details)) {
+			return $details[$userId];
 		}
 
+		return '';
+	}
+
+	/**
+	 * get multiple users' display name
+	 *
+	 * @param array $userIds
+	 * @param bool $cacheOnly - only get data from cache, do not request lus
+	 *
+	 * @return array
+	 */
+	public function getUsersDisplayName(array $userIds, bool $cacheOnly = false): array {
+		return $this->getDetails(
+			array_map(function (string $userId): string {
+				return trim($userId, '/');
+			}, $userIds), $cacheOnly
+		);
+	}
+
+	/**
+	 * get details for a list of userIds from the LUS.
+	 * Will first get data from cache, and will cache data returned by lus
+	 *
+	 * @param array $users
+	 * @param bool $cacheOnly - only get data from cache, do not request lus
+	 *
+	 * @return array
+	 */
+	protected function getDetails(array $users, bool $cacheOnly = false): array {
+		$knownDetails = [];
+		foreach ($users as $userId) {
+			$knownName = $this->cacheDisplayName->get($userId);
+			if ($knownName !== null) {
+				$knownDetails[$userId] = $knownName;
+			}
+		}
+
+		if ($cacheOnly) {
+			return $knownDetails;
+		}
+
+		$details = [];
+		$users = array_diff($users, array_keys($knownDetails));
+		if (!empty($users)) {
+			$details = json_decode($this->getLookup('/gs/users', ['users' => $users]), true);
+		}
+
+		if (!is_array($details)) {
+			$details = [];
+		}
+
+		// cache displayName
+		foreach ($details as $userId => $displayName) {
+			$this->cacheDisplayName->set($userId, $displayName, $this->cacheDisplayNameTtl);
+		}
+
+		return array_merge($knownDetails, $details);
+	}
+
+
+
+	protected function updateUsersOnLookup(array $users): void {
 		$this->logger->debug('Batch updating users: {users}',
 			['users' => $users]
 		);
 
 		$this->postLookup('/gs/users', ['users' => $users]);
 	}
+
 
 
 	protected function postLookup(string $path, array $data): void {
@@ -120,6 +205,30 @@ class SlaveService {
 				['exception' => $e]
 			);
 		}
+	}
+
+
+
+	protected function getLookup(string $path, array $data): string {
+		if (!$this->checkConfiguration()) {
+			return '';
+		}
+
+		$dataBatch = array_merge(['authKey' => $this->authKey], $data);
+
+		$httpClient = $this->clientService->newClient();
+		try {
+			$response = $httpClient->get(
+				$this->lookupServer . $path,
+				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
+			);
+		} catch (Exception $e) {
+			$this->logger->warning('Could not get data from lookup server',
+				['exception' => $e]
+			);
+		}
+
+		return $response->getBody();
 	}
 
 
