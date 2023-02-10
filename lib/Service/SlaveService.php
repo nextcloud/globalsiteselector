@@ -24,6 +24,7 @@ namespace OCA\GlobalSiteSelector\Service;
 
 use Exception;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Exceptions\ConfigurationException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCP\Accounts\IAccountManager;
@@ -73,7 +74,7 @@ class SlaveService {
 		$this->authKey = $gss->getJwtKey();
 
 		$this->cacheDisplayName = $cacheFactory->createDistributed(self::CACHE_DISPLAY_NAME);
-		$ttl = (int) $this->config->getAppValue('globalsiteselector', 'cache_displayname');
+		$ttl = (int)$this->config->getAppValue('globalsiteselector', 'cache_displayname');
 		$this->cacheDisplayNameTtl = ($ttl === 0) ? self::CACHE_DISPLAY_NAME_TTL : $ttl;
 	}
 
@@ -91,7 +92,9 @@ class SlaveService {
 	 * @param IUser $user
 	 */
 	public function updateUser(IUser $user): void {
-		if ($this->checkConfiguration() === false) {
+		try {
+			$this->checkConfiguration();
+		} catch (ConfigurationException $e) {
 			return;
 		}
 
@@ -112,11 +115,8 @@ class SlaveService {
 	public function getUserDisplayName(string $userId, bool $cacheOnly = false): string {
 		$userId = trim($userId, '/');
 		$details = $this->getUsersDisplayName([$userId], $cacheOnly);
-		if (array_key_exists($userId, $details)) {
-			return $details[$userId];
-		}
 
-		return '';
+		return $details[$userId] ?? '';
 	}
 
 	/**
@@ -160,14 +160,19 @@ class SlaveService {
 		$details = [];
 		$users = array_diff($users, array_keys($knownDetails));
 		if (!empty($users)) {
-			$details = json_decode($this->getLookup('/gs/users', ['users' => $users]), true);
+			try {
+				$details = json_decode(
+					$this->getLookup('/gs/users', ['users' => $users]),
+					true,
+					512, JSON_THROW_ON_ERROR
+				);
+			} catch (Exception $e) {
+				// if configuration issue or request is not complete, we return known details.
+				return $knownDetails;
+			}
 		}
 
-		if (!is_array($details)) {
-			$details = [];
-		}
-
-		// cache displayName
+		// cache displayName on returned result
 		foreach ($details as $userId => $displayName) {
 			$this->cacheDisplayName->set($userId, $displayName, $this->cacheDisplayNameTtl);
 		}
@@ -176,9 +181,9 @@ class SlaveService {
 	}
 
 
-
 	protected function updateUsersOnLookup(array $users): void {
-		$this->logger->debug('Batch updating users: {users}',
+		$this->logger->debug(
+			'Batch updating users: {users}',
 			['users' => $users]
 		);
 
@@ -186,9 +191,10 @@ class SlaveService {
 	}
 
 
-
 	protected function postLookup(string $path, array $data): void {
-		if (!$this->checkConfiguration()) {
+		try {
+			$this->checkConfiguration();
+		} catch (ConfigurationException $e) {
 			return;
 		}
 
@@ -201,18 +207,23 @@ class SlaveService {
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
-			$this->logger->warning('Could not send user to lookup server',
+			$this->logger->warning(
+				'Could not send user to lookup server',
 				['exception' => $e]
 			);
 		}
 	}
 
 
-
+	/**
+	 * @param string $path
+	 * @param array $data
+	 *
+	 * @return string
+	 * @throws ConfigurationException
+	 */
 	protected function getLookup(string $path, array $data): string {
-		if (!$this->checkConfiguration()) {
-			return '';
-		}
+		$this->checkConfiguration();
 
 		$dataBatch = array_merge(['authKey' => $this->authKey], $data);
 
@@ -223,30 +234,34 @@ class SlaveService {
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
-			$this->logger->warning('Could not get data from lookup server',
+			$this->logger->warning(
+				'Could not get data from lookup server',
 				['exception' => $e]
 			);
+
+			return '';
 		}
 
 		return $response->getBody();
 	}
 
 
-	protected function checkConfiguration(): bool {
+	/**
+	 * @return void
+	 * @throws ConfigurationException
+	 */
+	protected function checkConfiguration(): void {
 		if (empty($this->lookupServer)
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error('global site selector app not configured correctly');
-
-			return false;
+			$this->logger->error('app not configured correctly');
+			throw new ConfigurationException('globalsiteselector app not configured correctly');
 		}
 
 		if ($this->operationMode !== 'slave') {
-			return false;
+			throw new ConfigurationException('not configured as slave');
 		}
-
-		return true;
 	}
 
 
