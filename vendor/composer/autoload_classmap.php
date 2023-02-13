@@ -19,6 +19,7 @@ return array(
     'OCA\\GlobalSiteSelector\\Command\\UsersUpdate' => $baseDir . '/lib/Command/UsersUpdate.php',
     'OCA\\GlobalSiteSelector\\Controller\\MasterController' => $baseDir . '/lib/Controller/MasterController.php',
     'OCA\\GlobalSiteSelector\\Controller\\SlaveController' => $baseDir . '/lib/Controller/SlaveController.php',
+    'OCA\\GlobalSiteSelector\\Exceptions\\ConfigurationException' => $baseDir . '/lib/Exceptions/ConfigurationException.php',
     'OCA\\GlobalSiteSelector\\Exceptions\\MasterUrlException' => $baseDir . '/lib/Exceptions/MasterUrlException.php',
     'OCA\\GlobalSiteSelector\\GlobalSiteSelector' => $baseDir . '/lib/GlobalSiteSelector.php',
     'OCA\\GlobalSiteSelector\\Listener\\AddContentSecurityPolicyListener' => $baseDir . '/lib/Listener/AddContentSecurityPolicyListener.php',

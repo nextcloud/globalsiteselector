@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-
 /**
  * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -38,7 +37,6 @@ use OCA\GlobalSiteSelector\Listeners\UserCreated;
 use OCA\GlobalSiteSelector\Listeners\UserDeleted;
 use OCA\GlobalSiteSelector\Listeners\UserLoggedOut;
 use OCA\GlobalSiteSelector\Listeners\UserLoggingIn;
-use OCA\GlobalSiteSelector\Master;
 use OCA\GlobalSiteSelector\PublicCapabilities;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
@@ -46,29 +44,25 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
-use OCP\AppFramework\IAppContainer;
-use OCP\AppFramework\QueryException;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\IServerContainer;
 use OCP\ISession;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
+use OCP\Server;
 use OCP\User\Events\BeforeUserDeletedEvent;
 use OCP\User\Events\BeforeUserLoggedInEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\User\Events\UserDeletedEvent;
 use OCP\User\Events\UserLoggedOutEvent;
-use OCP\Util;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Throwable;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
-
 
 /**
  * Class Application
@@ -87,25 +81,6 @@ class Application extends App implements IBootstrap {
 		//TODO: Add proper CSP exception for NC://
 	}
 
-	/**
-	 * register hooks for the portal if it operates as a master which redirects
-	 * users to their login server
-	 *
-	 * @param IAppContainer $c
-	 */
-	private function registerMasterHooks(IAppContainer $c) {
-		$master = $c->query(Master::class);
-		Util::connectHook('OC_User', 'pre_login', $master, 'handleLoginRequest');
-
-		try {
-			/** @var IEventDispatcher $eventDispatcher */
-			$eventDispatcher = $c->getServer()->query(IEventDispatcher::class);
-			$eventDispatcher->addServiceListener(
-				AddContentSecurityPolicyEvent::class, AddContentSecurityPolicyListener::class
-			);
-		} catch (QueryException $e) {
-		}
-	}
 
 	/**
 	 * @param IRegistrationContext $context
@@ -113,8 +88,12 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerCapability(PublicCapabilities::class);
 
-		// event on master
+		// events on master
 		$context->registerEventListener(BeforeUserLoggedInEvent::class, UserLoggingIn::class);
+		$context->registerEventListener(
+			AddContentSecurityPolicyEvent::class,
+			AddContentSecurityPolicyListener::class
+		);
 
 		// events on slave
 		$context->registerEventListener(UserCreatedEvent::class, UserCreated::class);
@@ -123,9 +102,11 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(UserLoggedOutEvent::class, UserLoggedOut::class);
 
 		// It seems that AccountManager use deprecated dispatcher, let's use a deprecated listener
-		$dispatcher = OC::$server->getEventDispatcher();
+		/** @var IEventDispatcher $eventDispatcher */
+		$dispatcher = Server::get(IEventDispatcher::class);
 		$dispatcher->addListener(
-			'OC\AccountManager::userUpdated', function (GenericEvent $event) {
+			'OC\AccountManager::userUpdated',
+			function (GenericEvent $event) {
 				/** @var IUser $user */
 				$user = $event->getSubject();
 				$slave = OC::$server->get(Slave::class);
@@ -151,14 +132,12 @@ class Application extends App implements IBootstrap {
 
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
-	 *
-	 * @param IServerContainer $container
 	 */
-	private function registerUserBackendForSlave(IServerContainer $container) {
+	private function registerUserBackendForSlave() {
 		if (!$this->globalSiteSelector->isSlave()) {
 			return;
 		}
-		$userManager = $container->get(IUserManager::class);
+		$userManager = Server::get(IUserManager::class);
 
 		// make sure that we register the backend only once
 		$backends = $userManager->getBackends();
@@ -169,9 +148,9 @@ class Application extends App implements IBootstrap {
 		}
 
 		$userBackend = new UserBackend(
-			$container->get(IDBConnection::class),
-			$container->get(ISession::class),
-			$container->get(IGroupManager::class),
+			Server::get(IDBConnection::class),
+			Server::get(ISession::class),
+			Server::get(IGroupManager::class),
 			$userManager
 		);
 		$userBackend->registerBackends($userManager->getBackends());
@@ -181,10 +160,8 @@ class Application extends App implements IBootstrap {
 
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
-	 *
-	 * @param IServerContainer $container
 	 */
-	private function redirectToMasterLogin(IServerContainer $container) {
+	private function redirectToMasterLogin() {
 		if (OC::$CLI) {
 			return;
 		}
@@ -197,9 +174,9 @@ class Application extends App implements IBootstrap {
 			$masterUrl = $this->globalSiteSelector->getMasterUrl();
 
 			/** @var IUserSession $userSession */
-			$userSession = $container->get(IUserSession::class);
+			$userSession = Server::get(IUserSession::class);
 			/** @var IRequest $request */
-			$request = $container->get(IRequest::class);
+			$request = Server::get(IRequest::class);
 
 			if ($userSession->isLoggedIn() || $request->getPathInfo() !== '/login') {
 				return;

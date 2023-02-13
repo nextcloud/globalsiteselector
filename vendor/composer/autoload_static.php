@@ -42,6 +42,7 @@ class ComposerStaticInitGlobalSiteSelector
         'OCA\\GlobalSiteSelector\\Command\\UsersUpdate' => __DIR__ . '/../..' . '/lib/Command/UsersUpdate.php',
         'OCA\\GlobalSiteSelector\\Controller\\MasterController' => __DIR__ . '/../..' . '/lib/Controller/MasterController.php',
         'OCA\\GlobalSiteSelector\\Controller\\SlaveController' => __DIR__ . '/../..' . '/lib/Controller/SlaveController.php',
+        'OCA\\GlobalSiteSelector\\Exceptions\\ConfigurationException' => __DIR__ . '/../..' . '/lib/Exceptions/ConfigurationException.php',
         'OCA\\GlobalSiteSelector\\Exceptions\\MasterUrlException' => __DIR__ . '/../..' . '/lib/Exceptions/MasterUrlException.php',
         'OCA\\GlobalSiteSelector\\GlobalSiteSelector' => __DIR__ . '/../..' . '/lib/GlobalSiteSelector.php',
         'OCA\\GlobalSiteSelector\\Listener\\AddContentSecurityPolicyListener' => __DIR__ . '/../..' . '/lib/Listener/AddContentSecurityPolicyListener.php',
