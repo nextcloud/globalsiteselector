@@ -24,16 +24,22 @@ namespace OCA\GlobalSiteSelector\Service;
 
 use Exception;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Exceptions\ConfigurationException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCP\Accounts\IAccountManager;
 use OCP\Http\Client\IClientService;
+use OCP\ICache;
+use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IUser;
 use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
 class SlaveService {
+	private const CACHE_DISPLAY_NAME = 'gss/displayName';
+	private const CACHE_DISPLAY_NAME_TTL = 3600;
+
 	private LoggerInterface $logger;
 	private IClientService $clientService;
 	private IUserManager $userManager;
@@ -43,6 +49,8 @@ class SlaveService {
 	private string $lookupServer;
 	private string $operationMode;
 	private string $authKey;
+	private ICache $cacheDisplayName;
+	private int $cacheDisplayNameTtl;
 
 	public function __construct(
 		LoggerInterface $logger,
@@ -51,7 +59,8 @@ class SlaveService {
 		IAccountManager $accountManager,
 		IConfig $config,
 		Lookup $lookup,
-		GlobalSiteSelector $gss
+		GlobalSiteSelector $gss,
+		ICacheFactory $cacheFactory
 	) {
 		$this->logger = $logger;
 		$this->clientService = $clientService;
@@ -63,6 +72,10 @@ class SlaveService {
 		$this->lookupServer = rtrim($gss->getLookupServerUrl(), '/');
 		$this->operationMode = $gss->getMode();
 		$this->authKey = $gss->getJwtKey();
+
+		$this->cacheDisplayName = $cacheFactory->createDistributed(self::CACHE_DISPLAY_NAME);
+		$ttl = (int)$this->config->getAppValue('globalsiteselector', 'cache_displayname');
+		$this->cacheDisplayNameTtl = ($ttl === 0) ? self::CACHE_DISPLAY_NAME_TTL : $ttl;
 	}
 
 
@@ -79,7 +92,9 @@ class SlaveService {
 	 * @param IUser $user
 	 */
 	public function updateUser(IUser $user): void {
-		if ($this->checkConfiguration() === false) {
+		try {
+			$this->checkConfiguration();
+		} catch (ConfigurationException $e) {
 			return;
 		}
 
@@ -89,12 +104,86 @@ class SlaveService {
 	}
 
 
-	protected function updateUsersOnLookup(array $users): void {
-		if (!$this->checkConfiguration()) {
-			return;
+	/**
+	 * get single user's display name
+	 *
+	 * @param string $userId
+	 * @param bool $cacheOnly - only get data from cache, do not request lus
+	 *
+	 * @return string
+	 */
+	public function getUserDisplayName(string $userId, bool $cacheOnly = false): string {
+		$userId = trim($userId, '/');
+		$details = $this->getUsersDisplayName([$userId], $cacheOnly);
+
+		return $details[$userId] ?? '';
+	}
+
+	/**
+	 * get multiple users' display name
+	 *
+	 * @param array $userIds
+	 * @param bool $cacheOnly - only get data from cache, do not request lus
+	 *
+	 * @return array
+	 */
+	public function getUsersDisplayName(array $userIds, bool $cacheOnly = false): array {
+		return $this->getDetails(
+			array_map(function (string $userId): string {
+				return trim($userId, '/');
+			}, $userIds), $cacheOnly
+		);
+	}
+
+	/**
+	 * get details for a list of userIds from the LUS.
+	 * Will first get data from cache, and will cache data returned by lus
+	 *
+	 * @param array $users
+	 * @param bool $cacheOnly - only get data from cache, do not request lus
+	 *
+	 * @return array
+	 */
+	protected function getDetails(array $users, bool $cacheOnly = false): array {
+		$knownDetails = [];
+		foreach ($users as $userId) {
+			$knownName = $this->cacheDisplayName->get($userId);
+			if ($knownName !== null) {
+				$knownDetails[$userId] = $knownName;
+			}
 		}
 
-		$this->logger->debug('Batch updating users: {users}',
+		if ($cacheOnly) {
+			return $knownDetails;
+		}
+
+		$details = [];
+		$users = array_diff($users, array_keys($knownDetails));
+		if (!empty($users)) {
+			try {
+				$details = json_decode(
+					$this->getLookup('/gs/users', ['users' => $users]),
+					true,
+					512, JSON_THROW_ON_ERROR
+				);
+			} catch (Exception $e) {
+				// if configuration issue or request is not complete, we return known details.
+				return $knownDetails;
+			}
+		}
+
+		// cache displayName on returned result
+		foreach ($details as $userId => $displayName) {
+			$this->cacheDisplayName->set($userId, $displayName, $this->cacheDisplayNameTtl);
+		}
+
+		return array_merge($knownDetails, $details);
+	}
+
+
+	protected function updateUsersOnLookup(array $users): void {
+		$this->logger->debug(
+			'Batch updating users: {users}',
 			['users' => $users]
 		);
 
@@ -103,7 +192,9 @@ class SlaveService {
 
 
 	protected function postLookup(string $path, array $data): void {
-		if (!$this->checkConfiguration()) {
+		try {
+			$this->checkConfiguration();
+		} catch (ConfigurationException $e) {
 			return;
 		}
 
@@ -116,28 +207,61 @@ class SlaveService {
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
-			$this->logger->warning('Could not send user to lookup server',
+			$this->logger->warning(
+				'Could not send user to lookup server',
 				['exception' => $e]
 			);
 		}
 	}
 
 
-	protected function checkConfiguration(): bool {
+	/**
+	 * @param string $path
+	 * @param array $data
+	 *
+	 * @return string
+	 * @throws ConfigurationException
+	 */
+	protected function getLookup(string $path, array $data): string {
+		$this->checkConfiguration();
+
+		$dataBatch = array_merge(['authKey' => $this->authKey], $data);
+
+		$httpClient = $this->clientService->newClient();
+		try {
+			$response = $httpClient->get(
+				$this->lookupServer . $path,
+				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
+			);
+		} catch (Exception $e) {
+			$this->logger->warning(
+				'Could not get data from lookup server',
+				['exception' => $e]
+			);
+
+			return '';
+		}
+
+		return $response->getBody();
+	}
+
+
+	/**
+	 * @return void
+	 * @throws ConfigurationException
+	 */
+	protected function checkConfiguration(): void {
 		if (empty($this->lookupServer)
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error('global site selector app not configured correctly');
-
-			return false;
+			$this->logger->error('app not configured correctly');
+			throw new ConfigurationException('globalsiteselector app not configured correctly');
 		}
 
 		if ($this->operationMode !== 'slave') {
-			return false;
+			throw new ConfigurationException('not configured as slave');
 		}
-
-		return true;
 	}
 
 
