@@ -1,5 +1,20 @@
 # Changelog
 
+## [6.4.0](https://github.com/firebase/php-jwt/compare/v6.3.2...v6.4.0) (2023-02-08)
+
+
+### Features
+
+* add support for W3C ES256K ([#462](https://github.com/firebase/php-jwt/issues/462)) ([213924f](https://github.com/firebase/php-jwt/commit/213924f51936291fbbca99158b11bd4ae56c2c95))
+* improve caching by only decoding jwks when necessary ([#486](https://github.com/firebase/php-jwt/issues/486)) ([78d3ed1](https://github.com/firebase/php-jwt/commit/78d3ed1073553f7d0bbffa6c2010009a0d483d5c))
+
+## [6.3.2](https://github.com/firebase/php-jwt/compare/v6.3.1...v6.3.2) (2022-11-01)
+
+
+### Bug Fixes
+
+* check kid before using as array index ([bad1b04](https://github.com/firebase/php-jwt/commit/bad1b040d0c736bbf86814c6b5ae614f517cf7bd))
+
 ## [6.3.1](https://github.com/firebase/php-jwt/compare/v6.3.0...v6.3.1) (2022-11-01)
 
 
@@ -88,5 +103,3 @@ between signing and verifying entities. Thanks to [@lcabral](https://github.com/
   asymmetric keys are used together.
 - Update signature for `JWT::decode(...)` to require an array of supported
   algorithms to use when verifying token signatures.
-
-
