@@ -59,6 +59,9 @@ use OCP\User\Events\BeforeUserLoggedInEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\User\Events\UserDeletedEvent;
 use OCP\User\Events\UserLoggedOutEvent;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Throwable;
 
@@ -74,6 +77,7 @@ class Application extends App implements IBootstrap {
 	public const JWT_ALGORITHM = 'HS256';
 
 	private GlobalSiteSelector $globalSiteSelector;
+	private LoggerInterface $logger;
 
 	public function __construct(array $urlParams = []) {
 		parent::__construct(self::APP_ID, $urlParams);
@@ -122,9 +126,10 @@ class Application extends App implements IBootstrap {
 	 * @throws Throwable
 	 */
 	public function boot(IBootContext $context): void {
-		$this->globalSiteSelector = $context->getAppContainer()
-											->get(GlobalSiteSelector::class);
+		$this->globalSiteSelector = $context->getAppContainer()->get(GlobalSiteSelector::class);
+		$this->logger = $context->getServerContainer()->get(LoggerInterface::class);
 
+		$this->logger->debug('booting ' . self::APP_ID, ['app' => self::APP_ID]);
 		$context->injectFn(Closure::fromCallable([$this, 'registerUserBackendForSlave']));
 		$context->injectFn(Closure::fromCallable([$this, 'redirectToMasterLogin']));
 	}
@@ -137,6 +142,7 @@ class Application extends App implements IBootstrap {
 		if (!$this->globalSiteSelector->isSlave()) {
 			return;
 		}
+
 		$userManager = Server::get(IUserManager::class);
 
 		// make sure that we register the backend only once
@@ -170,20 +176,32 @@ class Application extends App implements IBootstrap {
 			return;
 		}
 
+		$this->logger->debug('Current is slave. should we redirect to master ?', ['app' => self::APP_ID]);
+
 		try {
 			$masterUrl = $this->globalSiteSelector->getMasterUrl();
 
 			/** @var IUserSession $userSession */
 			$userSession = Server::get(IUserSession::class);
+			if ($userSession->isLoggedIn()) {
+				$this->logger->debug('already logged in, we stay on slave', ['app' => self::APP_ID]);
+
+				return;
+			}
+
 			/** @var IRequest $request */
 			$request = Server::get(IRequest::class);
+			if ($request->getPathInfo() !== '/login') {
+				$this->logger->debug('login page not called, we stay on slave', ['app' => self::APP_ID]);
 
-			if ($userSession->isLoggedIn() || $request->getPathInfo() !== '/login') {
 				return;
 			}
 
 			$params = $request->getParams();
 			if (isset($params['direct'])) {
+				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]
+				);
+
 				return;
 			}
 
@@ -191,10 +209,18 @@ class Application extends App implements IBootstrap {
 				$masterUrl .= '?redirect_url=' . $params['redirect_url'];
 			}
 
+			$this->logger->debug('Redirecting client to ' . $masterUrl, ['app' => self::APP_ID]);
+
 			header('Location: ' . $masterUrl);
 			exit();
-		} catch (Exception $e) {
-			return;
+		} catch (Exception|ContainerExceptionInterface|NotFoundExceptionInterface $e) {
+			$this->logger->debug(
+				'issue during redirectToMasterLogin',
+				[
+					'exception' => $e,
+					'app' => self::APP_ID
+				]
+			);
 		}
 	}
 }

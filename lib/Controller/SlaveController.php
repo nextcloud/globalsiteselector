@@ -25,9 +25,9 @@ namespace OCA\GlobalSiteSelector\Controller;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
-use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\TokenHandler;
@@ -36,7 +36,6 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -44,6 +43,7 @@ use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class SlaveController
@@ -55,9 +55,6 @@ use OCP\Security\ICrypto;
 class SlaveController extends OCSController {
 	/** @var GlobalSiteSelector */
 	private $gss;
-
-	/** @var ILogger */
-	private $logger;
 
 	/** @var IUserSession */
 	private $userSession;
@@ -81,28 +78,12 @@ class SlaveController extends OCSController {
 	private $session;
 
 	private SlaveService $slaveService;
+	private LoggerInterface $logger;
 
-	/**
-	 * SlaveController constructor.
-	 *
-	 * @param string $appName
-	 * @param IRequest $request
-	 * @param GlobalSiteSelector $gss
-	 * @param ILogger $logger
-	 * @param IUserSession $userSession
-	 * @param ISession $session
-	 * @param IURLGenerator $urlGenerator
-	 * @param ICrypto $crypto
-	 * @param TokenHandler $tokenHandler
-	 * @param IUserManager $userManager
-	 * @param UserBackend $userBackend
-	 * @param SlaveService $slaveService
-	 */
 	public function __construct(
 		$appName,
 		IRequest $request,
 		GlobalSiteSelector $gss,
-		ILogger $logger,
 		IUserSession $userSession,
 		ISession $session,
 		IURLGenerator $urlGenerator,
@@ -110,11 +91,11 @@ class SlaveController extends OCSController {
 		TokenHandler $tokenHandler,
 		IUserManager $userManager,
 		UserBackend $userBackend,
-		SlaveService $slaveService
+		SlaveService $slaveService,
+		LoggerInterface $logger
 	) {
 		parent::__construct($appName, $request);
 		$this->gss = $gss;
-		$this->logger = $logger;
 		$this->userSession = $userSession;
 		$this->urlGenerator = $urlGenerator;
 		$this->crypto = $crypto;
@@ -123,6 +104,7 @@ class SlaveController extends OCSController {
 		$this->userBackend = $userBackend;
 		$this->session = $session;
 		$this->slaveService = $slaveService;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -135,9 +117,12 @@ class SlaveController extends OCSController {
 	 * @return RedirectResponse
 	 */
 	public function autoLogin($jwt) {
+		$this->logger->debug('autologin incoming request with ' . $jwt);
+
 		try {
 			$masterUrl = $this->gss->getMasterUrl();
 		} catch (MasterUrlException $e) {
+			$this->logger->warning('missing master url');
 			return new RedirectResponse('');
 		}
 
@@ -150,41 +135,53 @@ class SlaveController extends OCSController {
 
 		try {
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
+			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
+
 			$target = $options['target'];
 			if (is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
+				$this->logger->debug('saml enabled');
 				$this->autoprovisionIfNeeded($uid, $options);
-				try {
-					$user = $this->userManager->get($uid);
-					if (!($user instanceof IUser)) {
-						throw new \InvalidArgumentException('User is not valid');
-					}
-					$user->updateLastLoginTimestamp();
-				} catch (\Exception $e) {
-					$this->logger->logException($e, ['app' => $this->appName]);
-					throw $e;
+
+				$user = $this->userManager->get($uid);
+				if (!($user instanceof IUser)) {
+					throw new \InvalidArgumentException('User is not valid');
 				}
+				$user->updateLastLoginTimestamp();
+
 				$this->session->set('globalScale.userData', $options);
 				$this->session->set('globalScale.uid', $uid);
 				$result = true;
 			} else {
+				$this->logger->debug('testing normal login process');
 				$result = $this->userSession->login($uid, $password);
 			}
+
+			$this->logger->notice('auth result: '. json_encode($result));
 			if ($result === false) {
 				throw new \Exception('wrong username or password given for: ' . $uid);
 			}
 		} catch (ExpiredException $e) {
-			$this->logger->info('token expired', ['app' => 'globalsiteselector']);
+			$this->logger->info('token expired');
 
 			return new RedirectResponse($masterUrl);
 		} catch (\Exception $e) {
-			$this->logger->logException($e, ['app' => 'globalsiteselector']);
+			$this->logger->warning('issue during login process', ['exception' => $e]);
 
 			return new RedirectResponse($masterUrl);
 		}
 
+		$this->logger->debug('all good. creating session');
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
-		$home = $this->urlGenerator->getAbsoluteURL($target);
+		$this->logger->debug('session initiated: ' . json_encode($this->userSession->isLoggedIn()));
+
 		$this->slaveService->updateUserById($uid);
+		$this->logger->debug('userdata updated on lus');
+
+		// in some case, redirecting to login page will lose the session
+		$target = (in_array($target, ['/index.php/login', '/login'])) ? '/' : $target;
+
+		$home = $this->urlGenerator->getAbsoluteURL($target);
+		$this->logger->debug('redirecting to ' . $home);
 
 		return new RedirectResponse($home);
 	}
@@ -223,9 +220,9 @@ class SlaveController extends OCSController {
 				}
 			}
 		} catch (ExpiredException $e) {
-			$this->logger->info('Create app password: JWT token expired', ['app' => 'globalsiteselector']);
+			$this->logger->info('Create app password: JWT token expired');
 		} catch (\Exception $e) {
-			$this->logger->logException($e, ['app' => 'globalsiteselector']);
+			$this->logger->info('issue while token creation', ['exception' => $e]);
 		}
 
 		return new DataResponse([], Http::STATUS_BAD_REQUEST);
@@ -253,7 +250,7 @@ class SlaveController extends OCSController {
 
 		$uid = $decoded['uid'];
 		$password = $this->crypto->decrypt($decoded['password'], $key);
-		$options = isset($decoded['options']) ? $decoded['options'] : json_encode([]);
+		$options = $decoded['options'] ?? json_encode([]);
 
 		return [$uid, $password, json_decode($options, true)];
 	}
