@@ -199,8 +199,7 @@ class Application extends App implements IBootstrap {
 
 			$params = $request->getParams();
 			if (isset($params['direct'])) {
-				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]
-				);
+				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]);
 
 				return;
 			}
@@ -214,7 +213,7 @@ class Application extends App implements IBootstrap {
 			header('Location: ' . $masterUrl);
 			exit();
 		} catch (Exception|ContainerExceptionInterface|NotFoundExceptionInterface $e) {
-			$this->logger->debug(
+			$this->logger->warning(
 				'issue during redirectToMasterLogin',
 				[
 					'exception' => $e,
