@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -19,20 +22,19 @@
  *
  */
 
-
 namespace OCA\GlobalSiteSelector;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use OC\HintException;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
-use OCP\AppFramework\IAppContainer;
+use OCP\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
+use OCP\Server;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Master
@@ -42,50 +44,22 @@ use OCP\Security\ICrypto;
  * @package OCA\GlobalSiteSelector
  */
 class Master {
-	/** @var GlobalSiteSelector */
-	private $gss;
+	private GlobalSiteSelector $gss;
+	private ICrypto $crypto;
+	private Lookup $lookup;
+	private IRequest $request;
+	private IClientService $clientService;
+	private IConfig $config;
+	private LoggerInterface $logger;
 
-	/** @var ICrypto */
-	private $crypto;
-
-	/** @var Lookup */
-	private $lookup;
-
-	/** @var IRequest */
-	private $request;
-
-	/** @var IClientService */
-	private $clientService;
-
-	/** @var IConfig */
-	private $config;
-
-	/** @var ILogger */
-	private $logger;
-
-	/** @var IAppContainer */
-	private $container;
-
-	/**
-	 * Master constructor.
-	 *
-	 * @param GlobalSiteSelector $gss
-	 * @param ICrypto $crypto
-	 * @param Lookup $lookup
-	 * @param IRequest $request
-	 * @param IClientService $clientService
-	 * @param IConfig $config
-	 * @param ILogger $logger
-	 * @param IAppContainer $container
-	 */
-	public function __construct(GlobalSiteSelector $gss,
-								ICrypto $crypto,
-								Lookup $lookup,
-								IRequest $request,
-								IClientService $clientService,
-								IConfig $config,
-								ILogger $logger,
-								IAppContainer $container
+	public function __construct(
+		GlobalSiteSelector $gss,
+		ICrypto $crypto,
+		Lookup $lookup,
+		IRequest $request,
+		IClientService $clientService,
+		IConfig $config,
+		LoggerInterface $logger
 	) {
 		$this->gss = $gss;
 		$this->crypto = $crypto;
@@ -94,7 +68,6 @@ class Master {
 		$this->clientService = $clientService;
 		$this->config = $config;
 		$this->logger = $logger;
-		$this->container = $container;
 	}
 
 
@@ -102,19 +75,25 @@ class Master {
 	 * find users location and redirect them to the right server
 	 *
 	 * @param array $param
+	 *
 	 * @throws HintException
 	 */
 	public function handleLoginRequest(array $param): void {
-		$this->logger->debug('start handle login request');
+		$sanitizedParams = $param;
+		if (array_key_exists('password', $sanitizedParams)) {
+			$sanitizedParams['password'] = '***';
+		}
+		$this->logger->debug('start handle login request', ['param' => $sanitizedParams]);
 
 		// if there is a valid JWT it is a internal GSS request between master and slave
-		// -> skip login
 		$jwt = $this->request->getParam('jwt', '');
 		if ($this->isValidJwt($jwt)) {
+			$this->logger->debug('detected valid jwt; skip login process.');
+
 			return;
 		}
 
-		$target = $this->request->getPathInfo() === false ? '/' : '/index.php' . $this->request->getPathInfo();
+		$target = (!$this->request->getPathInfo()) ? '/' : '/index.php' . $this->request->getPathInfo();
 		$this->logger->debug('handleLoginRequest: target is: ' . $target);
 
 		$options = ['target' => $target];
@@ -124,10 +103,9 @@ class Master {
 		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
 		/** @var SAMLUserBackend $backend */
-		$backend = isset($param['backend']) ? $param['backend'] : '';
-		if (class_exists('\OCA\User_SAML\UserBackend') &&
-			$backend instanceof \OCA\User_SAML\UserBackend
-		) {
+		$backend = $param['backend'] ?? '';
+		if (class_exists('\OCA\User_SAML\UserBackend')
+			&& $backend instanceof \OCA\User_SAML\UserBackend) {
 			$this->logger->debug('handleLoginRequest: backend is SAML');
 
 			$options['backend'] = 'saml';
@@ -137,11 +115,13 @@ class Master {
 			$discoveryData['saml'] = $options['userData']['raw'];
 			// we only send the formatted user data to the slave
 			$options['userData'] = $options['userData']['formatted'];
+
+			$this->logger->debug('handleLoginRequest: backend is SAML.', ['options' => $options]);
 		} else {
 			$this->logger->debug('handleLoginRequest: backend is not SAML');
 
 			$uid = $param['uid'];
-			$password = isset($param['password']) ? $param['password'] : '';
+			$password = $param['password'] ?? '';
 		}
 
 		$this->logger->debug('handleLoginRequest: uid is: ' . $uid);
@@ -150,6 +130,7 @@ class Master {
 		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);
 		if (is_array($masterAdmins) && in_array($uid, $masterAdmins, true)) {
 			$this->logger->debug('handleLoginRequest: this user is a local admin so ignore');
+
 			return;
 		}
 
@@ -163,20 +144,30 @@ class Master {
 				$this->logger->debug('handleLoginRequest: obtaining location from discovery module');
 
 				/** @var IUserDiscoveryModule $module */
-				$module = $this->container->query($userDiscoveryModule);
+				$module = Server::get($userDiscoveryModule);
 				$location = $module->getLocation($discoveryData);
 
-				$this->logger->debug('handleLoginRequest: location according to discovery module: ' . $location);
+				$this->logger->debug(
+					'handleLoginRequest: location according to discovery module: ' . $location
+				);
 			} catch (\Exception $e) {
-				$this->logger->warning('could not load user discovery module: ' . $userDiscoveryModule . ': ' . $e->getMessage(), ['app' => 'GlobalSiteSelector']);
+				$this->logger->warning(
+					'could not load user discovery module: ' . $userDiscoveryModule,
+					['exception' => $e->getMessage()]
+				);
 			}
 		}
+
 		if (!empty($location)) {
-			$this->logger->debug('handleLoginRequest: redirecting user: ' . $uid . ' to ' . $this->normalizeLocation($location));
+			$this->logger->debug(
+				'handleLoginRequest: redirecting user: ' . $uid . ' to ' . $this->normalizeLocation($location)
+			);
+
 			$this->redirectUser($uid, $password, $this->normalizeLocation($location), $options);
 		} else {
-			$this->logger->log(ILogger::DEBUG, 'handleLoginRequest: Could not find location for user: ' . $uid);
-			throw new HintException('Could not find location for user, ' . $uid);
+			$this->logger->debug('handleLoginRequest: Could not find location for account ' . $uid);
+
+			throw new HintException('Unknown Account');
 		}
 	}
 
@@ -184,6 +175,7 @@ class Master {
 	 * format URL
 	 *
 	 * @param string $url
+	 *
 	 * @return string
 	 */
 	protected function normalizeLocation($url) {
@@ -198,6 +190,7 @@ class Master {
 	 * search for the user and return the location of the user
 	 *
 	 * @param $uid
+	 *
 	 * @return string
 	 */
 	protected function queryLookupServer($uid) {
@@ -211,6 +204,7 @@ class Master {
 	 * @param string $password
 	 * @param string $location
 	 * @param array $options can contain additional parameters, e.g. from SAML
+	 *
 	 * @throws \Exception
 	 */
 	protected function redirectUser($uid, $password, $location, array $options = []) {
@@ -234,14 +228,17 @@ class Master {
 		} elseif ($isClient && !$isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client request generating apptoken');
 			$appToken = $this->getAppToken($location, $uid, $password, $options);
-			$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
+			$redirectUrl =
+				'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode(
+					$appToken
+				);
 		} else {
 			$this->logger->debug('redirectUser: direct login so forward to target node');
 			$jwt = $this->createJwt($uid, $password, $options);
 			$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
 		}
 
-		$this->logger->debug('redirectUser: redirecting to: ' . $location);
+		$this->logger->debug('redirectUser: redirecting to: ' . $redirectUrl);
 		header('Location: ' . $redirectUrl, true, 302);
 		die();
 	}
@@ -252,6 +249,7 @@ class Master {
 	 * @param string $uid
 	 * @param string $password
 	 * @param array $options
+	 *
 	 * @return string
 	 */
 	protected function createJwt($uid, $password, $options) {
@@ -274,6 +272,7 @@ class Master {
 	 * @param string $uid
 	 * @param string $password
 	 * @param array $options
+	 *
 	 * @return string
 	 * @throws \Exception
 	 */
@@ -302,8 +301,8 @@ class Master {
 		$jsonErrorCode = json_last_error();
 		if ($jsonErrorCode !== JSON_ERROR_NONE) {
 			$info = 'getAppToken - Decoding the JSON failed ' .
-				$jsonErrorCode . ' ' .
-				json_last_error_msg();
+					$jsonErrorCode . ' ' .
+					json_last_error_msg();
 			throw new \Exception($info);
 		}
 		if (!isset($data['ocs']['data']['token'])) {
@@ -320,6 +319,7 @@ class Master {
 	 * @param string $url
 	 * @param string $uid
 	 * @param string $password
+	 *
 	 * @return string
 	 */
 	protected function buildBasicAuthUrl($url, $uid, $password) {
@@ -338,14 +338,18 @@ class Master {
 		return str_replace($protocol, $basicAuth, $url);
 	}
 
-	private function isValidJwt($jwt) {
-		try {
-			$key = $this->gss->getJwtKey();
-			JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
-		} catch (\Exception $e) {
+	private function isValidJwt(?string $jwt): bool {
+		if (!is_string($jwt)) {
 			return false;
 		}
 
-		return true;
+		try {
+			JWT::decode($jwt, new Key($this->gss->getJwtKey(), Application::JWT_ALGORITHM));
+
+			return true;
+		} catch (\Exception $e) {
+		}
+
+		return false;
 	}
 }

@@ -29,13 +29,13 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
+use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class SlaveControllerTest extends TestCase {
@@ -45,7 +45,7 @@ class SlaveControllerTest extends TestCase {
 	/** @var  GlobalSiteSelector|\PHPUnit_Framework_MockObject_MockObject */
 	private $gss;
 
-	/** @var  ILogger|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var  LoggerInterface|\PHPUnit_Framework_MockObject_MockObject */
 	private $logger;
 
 	/** @var  IUserSession|\PHPUnit_Framework_MockObject_MockObject */
@@ -78,7 +78,7 @@ class SlaveControllerTest extends TestCase {
 		$this->request = $this->createMock(IRequest::class);
 		$this->gss = $this->getMockBuilder(GlobalSiteSelector::class)
 			->disableOriginalConstructor()->getMock();
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->userSession = $this->createMock(IUserSession::class);
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
 		$this->crypto = $this->createMock(ICrypto::class);
@@ -102,7 +102,6 @@ class SlaveControllerTest extends TestCase {
 					'gss-tests',
 					$this->request,
 					$this->gss,
-					$this->logger,
 					$this->userSession,
 					$this->session,
 					$this->urlGenerator,
@@ -110,7 +109,8 @@ class SlaveControllerTest extends TestCase {
 					$this->tokenHandler,
 					$this->userManager,
 					$this->userBackend,
-					$this->slaveService
+					$this->slaveService,
+					$this->logger
 				]
 			)->setMethods($mockMathods)->getMock();
 	}

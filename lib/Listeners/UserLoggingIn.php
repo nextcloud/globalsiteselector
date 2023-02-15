@@ -37,6 +37,7 @@ use OCA\GlobalSiteSelector\Master;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\User\Events\BeforeUserLoggedInEvent;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class UserLoggingIn
@@ -44,22 +45,18 @@ use OCP\User\Events\BeforeUserLoggedInEvent;
  * @package OCA\GlobalSiteSelector\Listeners
  */
 class UserLoggingIn implements IEventListener {
-	/** @var GlobalSiteSelector */
-	private $globalSiteSelector;
+	private GlobalSiteSelector $globalSiteSelector;
+	private Master $master;
+	private LoggerInterface $logger;
 
-	/** @var Master */
-	private $master;
-
-
-	/**
-	 * UserLoggingIn constructor.
-	 *
-	 * @param GlobalSiteSelector $globalSiteSelector
-	 * @param Master $master
-	 */
-	public function __construct(GlobalSiteSelector $globalSiteSelector, Master $master) {
+	public function __construct(
+		GlobalSiteSelector $globalSiteSelector,
+		Master $master,
+		LoggerInterface $logger
+	) {
 		$this->globalSiteSelector = $globalSiteSelector;
 		$this->master = $master;
+		$this->logger = $logger;
 	}
 
 
@@ -74,9 +71,11 @@ class UserLoggingIn implements IEventListener {
 		}
 
 		/** only used in master mode */
-		if ($this->globalSiteSelector->getMode() !== GlobalSiteSelector::MASTER) {
+		if (!$this->globalSiteSelector->isMaster()) {
 			return;
 		}
+
+		$this->logger->debug('new BeforeUserLoggedInEvent event');
 
 		$params = [
 			'run' => true,
@@ -85,5 +84,7 @@ class UserLoggingIn implements IEventListener {
 		];
 
 		$this->master->handleLoginRequest($params);
+
+		$this->logger->debug('ending BeforeUserLoggedInEvent event');
 	}
 }

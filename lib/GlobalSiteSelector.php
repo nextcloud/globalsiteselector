@@ -99,7 +99,7 @@ class GlobalSiteSelector {
 	public function getMasterUrl(): string {
 		$masterUrl = $this->config->getSystemValue('gss.master.url', '');
 		if ($masterUrl === '') {
-			throw new MasterUrlException();
+			throw new MasterUrlException('missing gss.master.url in config');
 		}
 
 		return $masterUrl;
