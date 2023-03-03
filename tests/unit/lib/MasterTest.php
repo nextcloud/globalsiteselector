@@ -97,7 +97,6 @@ class MasterTest extends TestCase {
 	}
 
 	public function testHandleLoginRequest() {
-		$params = ['uid' => 'user', 'password' => 'password'];
 		$location = 'nextcloud.com';
 		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
 		$master->expects($this->once())->method('queryLookupServer')
@@ -106,13 +105,12 @@ class MasterTest extends TestCase {
 		$this->request->method('getServerProtocol')
 			->willReturn('https');
 		$master->expects($this->once())->method('redirectUser')
-			->with($params['uid'], $params['password'], 'https://' . $location);
+			->with('user', 'password', 'https://' . $location);
 
-		$master->handleLoginRequest($params);
+		$master->handleLoginRequest('user', 'password');
 	}
 
 	public function testHandleLoginRequestException() {
-		$params = ['uid' => 'user', 'password' => 'password'];
 		$location = '';
 		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
 		$master->expects($this->once())->method('queryLookupServer')
@@ -120,7 +118,7 @@ class MasterTest extends TestCase {
 
 		$this->expectException(HintException::class);
 		$master->expects($this->never())->method('redirectUser');
-		$master->handleLoginRequest($params);
+		$master->handleLoginRequest('user', 'password');
 	}
 
 

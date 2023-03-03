@@ -143,24 +143,23 @@ class Application extends App implements IBootstrap {
 			return;
 		}
 
-		$userManager = Server::get(IUserManager::class);
+		$this->logger->debug('registering gss UserBackend for slave', ['app' => self::APP_ID]);
 
-		// make sure that we register the backend only once
-		$backends = $userManager->getBackends();
-		foreach ($backends as $backend) {
-			if ($backend instanceof UserBackend) {
-				return;
-			}
+		try {
+			$userManager = Server::get(IUserManager::class);
+			$backend = Server::get(UserBackend::class);
+			$userManager->registerBackend($backend);
+		} catch (ContainerExceptionInterface $e) {
+			$this->logger->debug(
+				'issue during user backend registration',
+				[
+					'app' => self::APP_ID,
+					'exception' => $e
+				]
+			);
 		}
 
-		$userBackend = new UserBackend(
-			Server::get(IDBConnection::class),
-			Server::get(ISession::class),
-			Server::get(IGroupManager::class),
-			$userManager
-		);
-		$userBackend->registerBackends($userManager->getBackends());
-		OC_User::useBackend($userBackend);
+		$this->logger->debug('gss UserBackend registered', ['app' => self::APP_ID]);
 	}
 
 
@@ -199,7 +198,8 @@ class Application extends App implements IBootstrap {
 
 			$params = $request->getParams();
 			if (isset($params['direct'])) {
-				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]);
+				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]
+				);
 
 				return;
 			}
