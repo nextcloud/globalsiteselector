@@ -3,7 +3,7 @@
         'name' => 'nextcloud/globalsiteselector',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '47cd3c540c68064332569c3db0d85316687e62e0',
+        'reference' => 'e210f80d6e7087b5c7f4387fb4ddfe875f468781',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'nextcloud/globalsiteselector' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '47cd3c540c68064332569c3db0d85316687e62e0',
+            'reference' => 'e210f80d6e7087b5c7f4387fb4ddfe875f468781',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -138,7 +138,7 @@ class SlaveController extends OCSController {
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
 
 			$target = $options['target'];
-			if (is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
+			if (($options['backend'] ?? '') === 'saml') {
 				$this->logger->debug('saml enabled');
 				$this->autoprovisionIfNeeded($uid, $options);
 
@@ -172,13 +172,12 @@ class SlaveController extends OCSController {
 
 		$this->logger->debug('all good. creating session');
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
-		$this->logger->debug('session initiated: ' . json_encode($this->userSession->isLoggedIn()));
 
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
 
-		// in some case, redirecting to login page will lose the session
-		$target = (in_array($target, ['/index.php/login', '/login'])) ? '/' : $target;
+		// should be needed anymore
+//		$target = (in_array($target, ['/index.php/login', '/login'])) ? '/' : $target;
 
 		$home = $this->urlGenerator->getAbsoluteURL($target);
 		$this->logger->debug('redirecting to ' . $home);

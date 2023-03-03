@@ -1,4 +1,6 @@
 <?php
+
+
 /**
  * @copyright Copyright (c) 2018 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -23,15 +25,15 @@
 namespace OCA\GlobalSiteSelector\Controller;
 
 use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Master;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
-use OCP\ILogger;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class MasterController
@@ -41,39 +43,28 @@ use OCP\IURLGenerator;
  * @package OCA\GlobalSiteSelector\Controller
  */
 class MasterController extends OCSController {
-	/** @var GlobalSiteSelector  */
-	private $gss;
+	private IURLGenerator $urlGenerator;
+	private ISession $session;
+	private GlobalSiteSelector $gss;
+	private Master $master;
+	private LoggerInterface $logger;
 
-	/** @var IURLGenerator */
-	private $urlGenerator;
-
-	/** @var ILogger */
-	private $logger;
-
-	/** @var ISession */
-	private $session;
-
-	/**
-	 * SlaveController constructor.
-	 *
-	 * @param string $appName
-	 * @param IRequest $request
-	 * @param IURLGenerator $urlGenerator
-	 * @param ILogger $logger
-	 * @param GlobalSiteSelector $globalSiteSelector
-	 */
-	public function __construct($appName,
-								IRequest $request,
-								IURLGenerator $urlGenerator,
-								ILogger $logger,
-								GlobalSiteSelector $globalSiteSelector,
-								ISession $session
+	public function __construct(
+		$appName,
+		IRequest $request,
+		IURLGenerator $urlGenerator,
+		ISession $session,
+		GlobalSiteSelector $globalSiteSelector,
+		Master $master,
+		LoggerInterface $logger
 	) {
 		parent::__construct($appName, $request);
+
 		$this->urlGenerator = $urlGenerator;
-		$this->logger = $logger;
-		$this->gss = $globalSiteSelector;
 		$this->session = $session;
+		$this->gss = $globalSiteSelector;
+		$this->master = $master;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -81,15 +72,17 @@ class MasterController extends OCSController {
 	 * @NoCSRFRequired
 	 * @UseSession
 	 *
-	 * @param string $jwt
+	 * @param string|null $jwt
+	 *
 	 * @return RedirectResponse
 	 */
-	public function autoLogout($jwt) {
+	public function autoLogout(?string $jwt) {
 		try {
-			if ($this->isValidJwt($jwt)) {
+			if ($jwt !== null && $this->master->isValidJwt($jwt)) {
 				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
 				if (!empty($logoutUrl) && $this->session->get('user_saml.Idp') !== null) {
-					$token = ['logout' => 'logout',
+					$token = [
+						'logout' => 'logout',
 						'exp' => time() + 300, // expires after 5 minutes
 					];
 
@@ -99,24 +92,11 @@ class MasterController extends OCSController {
 				}
 			}
 		} catch (\Exception $e) {
-			$this->logger->error('remote logout request failed: ' . $e->getMessage());
+			$this->logger->warning('remote logout request failed', ['exception' => $e]);
 		}
 
 		$home = $this->urlGenerator->getAbsoluteURL('/');
+
 		return new RedirectResponse($home);
-	}
-
-	/**
-	 * decode jwt to check if the message comes from a server in the global scale network
-	 *
-	 * @param string $jwt
-	 * @return bool
-	 * @throws \Exception
-	 */
-	protected function isValidJwt($jwt) {
-		$key = $this->gss->getJwtKey();
-		JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
-
-		return true;
 	}
 }

@@ -76,14 +76,11 @@ class UserLoggingIn implements IEventListener {
 		}
 
 		$this->logger->debug('new BeforeUserLoggedInEvent event');
-
-		$params = [
-			'run' => true,
-			'uid' => $event->getUsername(),
-			'password' => $event->getPassword()
-		];
-
-		$this->master->handleLoginRequest($params);
+		$this->master->handleLoginRequest(
+			$event->getUsername(),
+			$event->getPassword(),
+			$event->getBackend()
+		);
 
 		$this->logger->debug('ending BeforeUserLoggedInEvent event');
 	}
