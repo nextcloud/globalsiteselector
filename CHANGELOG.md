@@ -1,17 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 2.2.3
+## 2.3.0
 
 - new session is now generated on slave when using user_saml
 - fixed logout with SAML
-
-## 2.2.2
-
+- fix a conflict with ldap authentication
+- retrieve and cache display names
 - more debug log
 - cleaning code
-- retrieve and cache display names
-- fix a conflict with ldap authentication
 
 ## 2.2.0
 
