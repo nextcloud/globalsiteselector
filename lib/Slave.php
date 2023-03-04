@@ -100,7 +100,8 @@ class Slave {
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Adding new user: {uid}',
+		$this->logger->debug(
+			'Adding new user: {uid}',
 			[
 				'app' => Application::APP_ID,
 				'uid' => $uid,
@@ -125,7 +126,8 @@ class Slave {
 			return;
 		}
 
-		$this->logger->debug('Updating user: {uid}',
+		$this->logger->debug(
+			'Updating user: {uid}',
 			[
 				'app' => Application::APP_ID,
 				'uid' => $user->getUID(),
@@ -164,7 +166,8 @@ class Slave {
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Removing user: {uid}',
+		$this->logger->debug(
+			'Removing user: {uid}',
 			[
 				'app' => Application::APP_ID,
 				'uid' => $uid,
@@ -213,19 +216,20 @@ class Slave {
 	 * @return array
 	 */
 	protected function getAccountData(IUser $user): array {
-		$properties = $data = [];
+		$data = [ // we get basic values from IUser
+			'userid' => $user->getUID(),
+			'name' => $user->getDisplayName()
+		];
 
-		if ((string)$this->config->getAppValue(
-			Application::APP_ID,
-			'ignore_properties', '0'
-		) !== '1') {
-			$properties = $this->accountManager->getAccount($user)->getProperties();
+		// we ignore properties (like mail address) if instance is set as not priority
+		if ((string)$this->config->getAppValue(Application::APP_ID, 'ignore_properties', '0') === '1') {
+			return $data;
 		}
 
+		$properties = $this->accountManager->getAccount($user)->getProperties();
 		foreach ($properties as $property) {
-			if ($property->getName() === IAccountManager::PROPERTY_DISPLAYNAME) {
-				$data['name'] = $property->getValue();
-			} elseif ($property->getValue() !== '') {
+			// display name can be wrong in account properties ...
+			if ($property->getName() !== IAccountManager::PROPERTY_DISPLAYNAME) {
 				$data[$property->getName()] = $property->getValue();
 			}
 		}
@@ -243,7 +247,8 @@ class Slave {
 	protected function addUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch updating users: {users}',
+		$this->logger->debug(
+			'Batch updating users: {users}',
 			[
 				'app' => Application::APP_ID,
 				'users' => $users,
@@ -257,7 +262,8 @@ class Slave {
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
-			$this->logger->warning('Could not send user to lookup server',
+			$this->logger->warning(
+				'Could not send user to lookup server',
 				[
 					'app' => Application::APP_ID,
 					'exception' => $e,
@@ -274,7 +280,8 @@ class Slave {
 	protected function removeUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch deleting users: {users}',
+		$this->logger->debug(
+			'Batch deleting users: {users}',
 			[
 				'app' => Application::APP_ID,
 				'users' => $users,
@@ -288,7 +295,8 @@ class Slave {
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
-			$this->logger->warning('Could not remove user from the lookup server',
+			$this->logger->warning(
+				'Could not remove user from the lookup server',
 				[
 					'app' => Application::APP_ID,
 					'exception' => $e,
@@ -302,7 +310,8 @@ class Slave {
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error('global site selector app not configured correctly',
+			$this->logger->error(
+				'global site selector app not configured correctly',
 				[
 					'app' => Application::APP_ID,
 				]

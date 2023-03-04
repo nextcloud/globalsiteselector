@@ -37,13 +37,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class UsersUpdate extends Base {
-	/** @var Slave */
-	private $slave;
+	private Slave $slave;
 
-
-	/**
-	 * @param Slave $slave
-	 */
 	public function __construct(Slave $slave) {
 		parent::__construct();
 
