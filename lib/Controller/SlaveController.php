@@ -138,6 +138,7 @@ class SlaveController extends OCSController {
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
 
 			$target = $options['target'];
+			$result = false;
 			if (is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
 				$this->logger->debug('saml enabled');
 				$this->autoprovisionIfNeeded($uid, $options);
@@ -152,8 +153,13 @@ class SlaveController extends OCSController {
 				$this->session->set('globalScale.uid', $uid);
 				$result = true;
 			} else {
-				$this->logger->debug('testing normal login process');
-				$result = $this->userSession->login($uid, $password);
+				$this->logger->debug('checking userId availability');
+				$user = $this->userManager->get($uid);
+
+				if ($user !== null) {
+					$this->logger->debug('going through normal login process');
+					$result = $this->userSession->login($user->getUID(), $password);
+				}
 			}
 
 			$this->logger->notice('auth result: '. json_encode($result));
@@ -206,10 +212,11 @@ class SlaveController extends OCSController {
 				$this->autoprovisionIfNeeded($uid, $options);
 			}
 
-			if ($this->userManager->userExists($uid)) {
+			$user = $this->userManager->get($uid);
+			if ($user !== null) {
 				// if we have a password, we verify it
 				if (!empty($password)) {
-					$result = $this->userSession->login($uid, $password);
+					$result = $this->userSession->login($user->getUID(), $password);
 				} else {
 					$result = true;
 				}
