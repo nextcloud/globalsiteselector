@@ -29,7 +29,6 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 use Closure;
 use Exception;
 use OC;
-use OC_User;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Listener\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Listeners\DeletingUser;
@@ -45,10 +44,7 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\EventDispatcher\IEventDispatcher;
-use OCP\IDBConnection;
-use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\ISession;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
@@ -129,7 +125,6 @@ class Application extends App implements IBootstrap {
 		$this->globalSiteSelector = $context->getAppContainer()->get(GlobalSiteSelector::class);
 		$this->logger = $context->getServerContainer()->get(LoggerInterface::class);
 
-		$this->logger->debug('booting ' . self::APP_ID, ['app' => self::APP_ID]);
 		$context->injectFn(Closure::fromCallable([$this, 'registerUserBackendForSlave']));
 		$context->injectFn(Closure::fromCallable([$this, 'redirectToMasterLogin']));
 	}
