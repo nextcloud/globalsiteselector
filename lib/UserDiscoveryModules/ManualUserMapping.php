@@ -84,7 +84,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 
 		// regular lookup
 		if (!empty($key) && is_array($dictionary) && !$this->useRegularExpressions) {
-			$location = isset($dictionary[$key]) ? $dictionary[$key] : '';
+			$location = $dictionary[$key] ?? '';
 		}
 
 		// dictionary contains regular expressions
