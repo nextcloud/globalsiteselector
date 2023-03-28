@@ -115,8 +115,10 @@ class Master {
 		$userDiscoveryModule = $this->config->getSystemValue('gss.user.discovery.module', '');
 		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
+		$isSaml = false;
 		if (class_exists('\OCA\User_SAML\UserBackend')
 			&& $backend instanceof \OCA\User_SAML\UserBackend) {
+			$isSaml = true;
 			$this->logger->debug('handleLoginRequest: backend is SAML');
 
 			$options['backend'] = 'saml';
@@ -143,7 +145,8 @@ class Master {
 		}
 
 		// first ask the lookup server if we already know the user
-		$location = $this->queryLookupServer($uid);
+		// is from SAML, only search on userId, ignore email.
+		$location = $this->queryLookupServer($uid, $isSaml);
 		$this->logger->debug('handleLoginRequest: location according to lookup server: ' . $location);
 
 		// if not we fall-back to a initial user deployment method, if configured
@@ -201,8 +204,8 @@ class Master {
 	 *
 	 * @return string
 	 */
-	protected function queryLookupServer(string &$uid): string {
-		return $this->lookup->search($uid);
+	protected function queryLookupServer(string &$uid, bool $matchUid = false): string {
+		return $this->lookup->search($uid, $matchUid);
 	}
 
 	/**

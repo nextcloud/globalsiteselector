@@ -55,10 +55,11 @@ class Lookup {
 	 * @param ILogger $logger
 	 * @param ICloudIdManager $cloudIdManager
 	 */
-	public function __construct(IClientService $clientService,
-								IConfig $config,
-								ILogger $logger,
-								ICloudIdManager $cloudIdManager
+	public function __construct(
+		IClientService $clientService,
+		IConfig $config,
+		ILogger $logger,
+		ICloudIdManager $cloudIdManager
 	) {
 		$this->httpClientService = $clientService;
 		$this->lookupServerUrl = $config->getSystemValue('lookup_server', '');
@@ -71,9 +72,10 @@ class Lookup {
 	 * email addresses and federated cloud ids and internal UIDs.
 	 *
 	 * @param string $uid
+	 *
 	 * @return string the url of the server where the user is located
 	 */
-	public function search(string &$uid): string {
+	public function search(string &$uid, bool $matchUid = false): string {
 		$location = '';
 
 		// admin need to specify a lookup server with GSS capabilities
@@ -86,7 +88,7 @@ class Lookup {
 		}
 
 		try {
-			$body = $this->queryLookupServer($uid);
+			$body = $this->queryLookupServer($uid, $matchUid);
 
 			if (isset($body['federationId'])) {
 				$location = $this->getUserLocation($body['federationId']);
@@ -107,11 +109,12 @@ class Lookup {
 	 * query lookup server and return result
 	 *
 	 * @param $uid
+	 *
 	 * @return mixed
 	 * @throws \Exception
 	 */
-	protected function queryLookupServer($uid) {
-		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid);
+	protected function queryLookupServer(string $uid, bool $matchUid = false) {
+		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid . ' (matchUid: ' . json_encode($matchUid) . ')');
 		$client = $this->httpClientService->newClient();
 		$response = $client->get(
 			$this->lookupServerUrl . '/users',
@@ -120,14 +123,13 @@ class Lookup {
 					'query' => [
 						'search' => $uid,
 						'exact' => '1',
+						'keys' => ($matchUid) ? ['userid'] : []
 					]
 				]
 			)
 		);
 
-		$body = json_decode($response->getBody(), true);
-
-		return $body;
+		return json_decode($response->getBody(), true);
 	}
 
 	/**
