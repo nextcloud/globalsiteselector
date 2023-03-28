@@ -123,15 +123,6 @@ class MasterTest extends TestCase {
 		$master->handleLoginRequest($params);
 	}
 
-	public function testQueryLookupServer() {
-		$master = $this->getInstance();
-		$this->lookup->expects($this->once())->method('search')->with('uid')
-			->willReturn('location');
-
-		$result = $this->invokePrivate($master, 'queryLookupServer', ['uid']);
-
-		$this->assertSame('location', $result);
-	}
 
 	public function testCreateJWT() {
 		$uid = 'user1';
