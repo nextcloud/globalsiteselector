@@ -90,7 +90,8 @@ class LookupTest extends TestCase {
 				->willReturn($userLocation);
 		}
 
-		$result = $lookup->search('uid');
+		$userId = 'uid';
+		$result = $lookup->search($userId);
 
 		$this->assertSame($expected, $result);
 	}

@@ -73,8 +73,8 @@ class Lookup {
 	 * @param string $uid
 	 * @return string the url of the server where the user is located
 	 */
-	public function search($uid) {
-		$result = '';
+	public function search(string &$uid): string {
+		$location = '';
 
 		// admin need to specify a lookup server with GSS capabilities
 		if (empty($this->lookupServerUrl)) {
@@ -82,14 +82,15 @@ class Lookup {
 				'Can not lookup user, no lookup server registered',
 				['app' => 'globalsiteselector']
 			);
-			return $result;
+			return $location;
 		}
 
 		try {
 			$body = $this->queryLookupServer($uid);
 
 			if (isset($body['federationId'])) {
-				$result = $this->getUserLocation($body['federationId']);
+				$location = $this->getUserLocation($body['federationId']);
+				$uid = $body['userid']['value'] ?? $uid;
 			} else {
 				$this->logger->debug('search: federationId not set for ' . $uid);
 			}
@@ -98,8 +99,8 @@ class Lookup {
 			// that nothing was found
 		}
 
-		$this->logger->debug('serach: location for ' . $uid . ' is ' . $result);
-		return $result;
+		$this->logger->debug('search: location for ' . $uid . ' is ' . $location);
+		return $location;
 	}
 
 	/**

@@ -193,7 +193,7 @@ class Master {
 	 *
 	 * @return string
 	 */
-	protected function queryLookupServer($uid) {
+	protected function queryLookupServer(string &$uid): string {
 		return $this->lookup->search($uid);
 	}
 
