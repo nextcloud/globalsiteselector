@@ -25,7 +25,7 @@ namespace OCA\GlobalSiteSelector;
 use Exception;
 use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\AppInfo\Application;
-use OCP\Accounts\IAccountManager;
+use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IUser;
@@ -33,55 +33,31 @@ use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
 class Slave {
-	/** @var IAccountManager */
-	private $accountManager;
+	private IUserManager $userManager;
+	private IClientService $clientService;
+	private SlaveService $slaveService;
+	private Lookup $lookup;
+	private LoggerInterface $logger;
+	private string $lookupServer;
+	private string $operationMode;
+	private string $authKey;
+	private GlobalSiteSelector $gss;
+	private IConfig $config;
+	private static array $toRemove = []; // remember users which should be removed
 
-	/** @var IUserManager */
-	private $userManager;
-
-	/** @var IClientService */
-	private $clientService;
-
-	/** @var Lookup */
-	private $lookup;
-
-	/** @var LoggerInterface */
-	private $logger;
-
-	/** @var string */
-	private $lookupServer;
-
-	/** @var string */
-	private $operationMode;
-
-	/** @var string */
-	private $authKey;
-
-	/**
-	 * remember users which should be removed
-	 *
-	 * @var array
-	 */
-	private static $toRemove = [];
-
-	/** @var GlobalSiteSelector */
-	private $gss;
-
-	/** @var IConfig */
-	private $config;
 
 	public function __construct(
-		IAccountManager $accountManager,
 		IUserManager $userManager,
 		IClientService $clientService,
+		SlaveService $slaveService,
 		Lookup $lookup,
 		GlobalSiteSelector $gss,
 		LoggerInterface $logger,
 		IConfig $config
 	) {
-		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->clientService = $clientService;
+		$this->slaveService = $slaveService;
 		$this->lookup = $lookup;
 		$this->logger = $logger;
 		$this->lookupServer = $gss->getLookupServerUrl();
@@ -111,7 +87,7 @@ class Slave {
 		$user = $this->userManager->get($uid);
 		$userData = [];
 		if ($user !== null) {
-			$userData[$user->getCloudId()] = $this->getAccountData($user);
+			$userData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 			$this->addUsers($userData);
 		}
 	}
@@ -135,7 +111,7 @@ class Slave {
 		);
 
 		$userData = [];
-		$userData[$user->getCloudId()] = $this->getAccountData($user);
+		$userData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 		$this->addUsers($userData);
 	}
 
@@ -199,44 +175,13 @@ class Slave {
 				foreach ($users as $uid) {
 					$user = $this->userManager->get($uid);
 					if ($user !== null) {
-						$usersData[$user->getCloudId()] = $this->getAccountData($user);
+						$usersData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 					}
 				}
 				$offset += $limit;
 				$this->addUsers($usersData);
 			} while (count($users) >= $limit);
 		}
-	}
-
-	/**
-	 * get user data from account manager
-	 *
-	 * @param IUser $user
-	 *
-	 * @return array
-	 */
-	protected function getAccountData(IUser $user): array {
-		$data = [ // we get basic values from IUser
-			'userid' => $user->getUID(),
-			'name' => $user->getDisplayName()
-		];
-
-		// we ignore properties (like mail address) if instance is set as not priority
-		if ((string)$this->config->getAppValue(Application::APP_ID, 'ignore_properties', '0') === '1') {
-			return $data;
-		}
-
-		$properties = $this->accountManager->getAccount($user)->getProperties();
-		foreach ($properties as $property) {
-			// display name can be wrong in account properties ...
-			if ($property->getName() !== IAccountManager::PROPERTY_DISPLAYNAME) {
-				$data[$property->getName()] = $property->getValue();
-			}
-		}
-
-		$data['userid'] = $user->getUID();
-
-		return $data;
 	}
 
 	/**
