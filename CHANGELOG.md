@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.3.2
+
+- new app type extended_authentication
+
+## 2.3.1
+
+- get full account data on login
+
 ## 2.3.0
 
 - new session is now generated on slave when using user_saml
