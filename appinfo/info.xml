@@ -9,8 +9,7 @@
 	<author>Bjoern Schiessle</author>
 	<author>Maxence Lange</author>
 	<types>
-		<!-- workaround to wait for all authentication apps to be loaded while being able to register a UserBackend before dav -->
-		<filesystem/>
+		<extended_authentication/>
 	</types>
 	<namespace>GlobalSiteSelector</namespace>
 	<category>tools</category>
