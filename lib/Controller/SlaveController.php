@@ -26,6 +26,7 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use OC\Authentication\Token\IToken;
+use OC\Authentication\TwoFactorAuth\Manager;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -53,30 +54,15 @@ use Psr\Log\LoggerInterface;
  * @package OCA\GlobalSiteSelector\Controller
  */
 class SlaveController extends OCSController {
-	/** @var GlobalSiteSelector */
-	private $gss;
-
-	/** @var IUserSession */
-	private $userSession;
-
-	/** @var IURLGenerator */
-	private $urlGenerator;
-
-	/** @var ICrypto */
-	private $crypto;
-
-	/** @var TokenHandler */
-	private $tokenHandler;
-
-	/** @var IUserManager */
-	private $userManager;
-
-	/** @var UserBackend */
-	private $userBackend;
-
-	/** @var ISession */
-	private $session;
-
+	private GlobalSiteSelector $gss;
+	private IUserSession $userSession;
+	private IURLGenerator $urlGenerator;
+	private ICrypto $crypto;
+	private TokenHandler $tokenHandler;
+	private IUserManager $userManager;
+	private UserBackend $userBackend;
+	private ISession $session;
+	private Manager $twoFactorManager;
 	private SlaveService $slaveService;
 	private LoggerInterface $logger;
 
@@ -86,6 +72,7 @@ class SlaveController extends OCSController {
 		GlobalSiteSelector $gss,
 		IUserSession $userSession,
 		ISession $session,
+		Manager $twoFactorManager,
 		IURLGenerator $urlGenerator,
 		ICrypto $crypto,
 		TokenHandler $tokenHandler,
@@ -98,6 +85,7 @@ class SlaveController extends OCSController {
 		$this->gss = $gss;
 		$this->userSession = $userSession;
 		$this->urlGenerator = $urlGenerator;
+		$this->twoFactorManager = $twoFactorManager;
 		$this->crypto = $crypto;
 		$this->tokenHandler = $tokenHandler;
 		$this->userManager = $userManager;
@@ -116,7 +104,7 @@ class SlaveController extends OCSController {
 	 *
 	 * @return RedirectResponse
 	 */
-	public function autoLogin($jwt) {
+	public function autoLogin(string $jwt): RedirectResponse {
 		$this->logger->debug('autologin incoming request with ' . $jwt);
 
 		try {
@@ -138,7 +126,7 @@ class SlaveController extends OCSController {
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
 
 			$target = $options['target'];
-			if (is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
+			if (($options['backend'] ?? '') === 'saml') {
 				$this->logger->debug('saml enabled');
 				$this->autoprovisionIfNeeded($uid, $options);
 
@@ -172,13 +160,12 @@ class SlaveController extends OCSController {
 
 		$this->logger->debug('all good. creating session');
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
-		$this->logger->debug('session initiated: ' . json_encode($this->userSession->isLoggedIn()));
+
+//		$user = $this->userManager->get($uid);
+//		$this->twoFactorManager->prepareTwoFactorLogin($user, false);
 
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
-
-		// in some case, redirecting to login page will lose the session
-		$target = (in_array($target, ['/index.php/login', '/login'])) ? '/' : $target;
 
 		$home = $this->urlGenerator->getAbsoluteURL($target);
 		$this->logger->debug('redirecting to ' . $home);

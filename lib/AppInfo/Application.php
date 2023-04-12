@@ -29,7 +29,6 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 use Closure;
 use Exception;
 use OC;
-use OC_User;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Listener\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Listeners\DeletingUser;
@@ -45,10 +44,7 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\EventDispatcher\IEventDispatcher;
-use OCP\IDBConnection;
-use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\ISession;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
@@ -129,7 +125,6 @@ class Application extends App implements IBootstrap {
 		$this->globalSiteSelector = $context->getAppContainer()->get(GlobalSiteSelector::class);
 		$this->logger = $context->getServerContainer()->get(LoggerInterface::class);
 
-		$this->logger->debug('booting ' . self::APP_ID, ['app' => self::APP_ID]);
 		$context->injectFn(Closure::fromCallable([$this, 'registerUserBackendForSlave']));
 		$context->injectFn(Closure::fromCallable([$this, 'redirectToMasterLogin']));
 	}
@@ -143,24 +138,23 @@ class Application extends App implements IBootstrap {
 			return;
 		}
 
-		$userManager = Server::get(IUserManager::class);
+		$this->logger->debug('registering gss UserBackend for slave', ['app' => self::APP_ID]);
 
-		// make sure that we register the backend only once
-		$backends = $userManager->getBackends();
-		foreach ($backends as $backend) {
-			if ($backend instanceof UserBackend) {
-				return;
-			}
+		try {
+			$userManager = Server::get(IUserManager::class);
+			$backend = Server::get(UserBackend::class);
+			$userManager->registerBackend($backend);
+		} catch (ContainerExceptionInterface $e) {
+			$this->logger->debug(
+				'issue during user backend registration',
+				[
+					'app' => self::APP_ID,
+					'exception' => $e
+				]
+			);
 		}
 
-		$userBackend = new UserBackend(
-			Server::get(IDBConnection::class),
-			Server::get(ISession::class),
-			Server::get(IGroupManager::class),
-			$userManager
-		);
-		$userBackend->registerBackends($userManager->getBackends());
-		OC_User::useBackend($userBackend);
+		$this->logger->debug('gss UserBackend registered', ['app' => self::APP_ID]);
 	}
 
 
@@ -199,7 +193,8 @@ class Application extends App implements IBootstrap {
 
 			$params = $request->getParams();
 			if (isset($params['direct'])) {
-				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]);
+				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]
+				);
 
 				return;
 			}

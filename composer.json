@@ -23,7 +23,7 @@
         }
     },
     "require": {
-        "firebase/php-jwt": "^6.3.0"
+        "firebase/php-jwt": "^6.4.0"
     },
     "require-dev": {
         "nextcloud/coding-standard": "^1.0.0",

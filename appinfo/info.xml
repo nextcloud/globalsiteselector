@@ -4,13 +4,14 @@
 	<name>Global Site Selector</name>
 	<summary>Nextcloud Portal to redirect users to the right instance</summary>
 	<description>The Global Site Selector allows you to run multiple small Nextcloud instances and redirect users to the right server</description>
-	<version>2.2.0</version>
+	<version>2.3.2</version>
 	<licence>agpl</licence>
 	<author>Bjoern Schiessle</author>
-	<namespace>GlobalSiteSelector</namespace>
+	<author>Maxence Lange</author>
 	<types>
-		<authentication/>
+		<extended_authentication/>
 	</types>
+	<namespace>GlobalSiteSelector</namespace>
 	<category>tools</category>
 	<website>https://nextcloud.com/globalscale/</website>
 	<bugs>https://github.com/nextcloud/globalsiteselector/issues</bugs>

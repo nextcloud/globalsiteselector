@@ -265,20 +265,28 @@ class SlaveService {
 	}
 
 
-	protected function getAccountData(IUser $user): array {
-		$properties = $data = [];
+	/**
+	 * get user data from account manager
+	 *
+	 * @param IUser $user
+	 *
+	 * @return array
+	 */
+	public function getAccountData(IUser $user): array {
+		$data = [ // we get basic values from IUser
+			'userid' => $user->getUID(),
+			'name' => $user->getDisplayName()
+		];
 
-		if ((string)$this->config->getAppValue(
-			Application::APP_ID,
-			'ignore_properties', '0'
-		) !== '1') {
-			$properties = $this->accountManager->getAccount($user)->getProperties();
+		// we ignore properties (like mail address) if instance is set as not priority
+		if ((string)$this->config->getAppValue(Application::APP_ID, 'ignore_properties', '0') === '1') {
+			return $data;
 		}
 
+		$properties = $this->accountManager->getAccount($user)->getProperties();
 		foreach ($properties as $property) {
-			if ($property->getName() === IAccountManager::PROPERTY_DISPLAYNAME) {
-				$data['name'] = $property->getValue();
-			} elseif ($property->getValue() !== '') {
+			// display name can be wrong in account properties ...
+			if ($property->getName() !== IAccountManager::PROPERTY_DISPLAYNAME) {
 				$data[$property->getName()] = $property->getValue();
 			}
 		}

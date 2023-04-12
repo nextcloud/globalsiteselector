@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.3.0
+
+- new session is now generated on slave when using user_saml
+- fixed logout with SAML
+- fix a conflict with ldap authentication
+- retrieve and cache display names
+- more debug log
+- cleaning code
+
 ## 2.2.0
 
 - compat nc25

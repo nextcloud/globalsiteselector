@@ -24,16 +24,20 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector;
 
+use Exception;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
+use OCP\Authentication\IApacheBackend;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\Security\ICrypto;
 use OCP\Server;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -74,21 +78,30 @@ class Master {
 	/**
 	 * find users location and redirect them to the right server
 	 *
-	 * @param array $param
+	 * @param string $uid
+	 * @param string|null $password
+	 * @param IApacheBackend|null $backend
 	 *
+	 * @throws ContainerExceptionInterface
 	 * @throws HintException
+	 * @throws NotFoundExceptionInterface
 	 */
-	public function handleLoginRequest(array $param): void {
-		$sanitizedParams = $param;
-		if (array_key_exists('password', $sanitizedParams)) {
-			$sanitizedParams['password'] = '***';
-		}
-		$this->logger->debug('start handle login request', ['param' => $sanitizedParams]);
+	public function handleLoginRequest(
+		string $uid,
+		?string $password,
+		?IApacheBackend $backend = null
+	): void {
+		$this->logger->debug(
+			'start handle login request',
+			[
+				'uid' => $uid,
+				'backend' => ($backend === null) ? null : get_class($backend)
+			]
+		);
 
-		// if there is a valid JWT it is a internal GSS request between master and slave
-		$jwt = $this->request->getParam('jwt', '');
-		if ($this->isValidJwt($jwt)) {
-			$this->logger->debug('detected valid jwt; skip login process.');
+		/** ignoring request from slave with valid jwt */
+		if ($this->isValidJwt($this->request->getParam('jwt', ''))) {
+			$this->logger->debug('ignore request with valid jwt');
 
 			return;
 		}
@@ -102,10 +115,10 @@ class Master {
 		$userDiscoveryModule = $this->config->getSystemValue('gss.user.discovery.module', '');
 		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
-		/** @var SAMLUserBackend $backend */
-		$backend = $param['backend'] ?? '';
+		$isSaml = false;
 		if (class_exists('\OCA\User_SAML\UserBackend')
 			&& $backend instanceof \OCA\User_SAML\UserBackend) {
+			$isSaml = true;
 			$this->logger->debug('handleLoginRequest: backend is SAML');
 
 			$options['backend'] = 'saml';
@@ -119,9 +132,6 @@ class Master {
 			$this->logger->debug('handleLoginRequest: backend is SAML.', ['options' => $options]);
 		} else {
 			$this->logger->debug('handleLoginRequest: backend is not SAML');
-
-			$uid = $param['uid'];
-			$password = $param['password'] ?? '';
 		}
 
 		$this->logger->debug('handleLoginRequest: uid is: ' . $uid);
@@ -135,7 +145,8 @@ class Master {
 		}
 
 		// first ask the lookup server if we already know the user
-		$location = $this->queryLookupServer($uid);
+		// is from SAML, only search on userId, ignore email.
+		$location = $this->queryLookupServer($uid, $isSaml);
 		$this->logger->debug('handleLoginRequest: location according to lookup server: ' . $location);
 
 		// if not we fall-back to a initial user deployment method, if configured
@@ -150,7 +161,7 @@ class Master {
 				$this->logger->debug(
 					'handleLoginRequest: location according to discovery module: ' . $location
 				);
-			} catch (\Exception $e) {
+			} catch (Exception $e) {
 				$this->logger->warning(
 					'could not load user discovery module: ' . $userDiscoveryModule,
 					['exception' => $e->getMessage()]
@@ -193,8 +204,8 @@ class Master {
 	 *
 	 * @return string
 	 */
-	protected function queryLookupServer(string &$uid): string {
-		return $this->lookup->search($uid);
+	protected function queryLookupServer(string &$uid, bool $matchUid = false): string {
+		return $this->lookup->search($uid, $matchUid);
 	}
 
 	/**
@@ -205,7 +216,7 @@ class Master {
 	 * @param string $location
 	 * @param array $options can contain additional parameters, e.g. from SAML
 	 *
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	protected function redirectUser($uid, $password, $location, array $options = []) {
 		$isClient = $this->request->isUserAgent(
@@ -274,7 +285,7 @@ class Master {
 	 * @param array $options
 	 *
 	 * @return string
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	protected function getAppToken($location, $uid, $password, $options) {
 		$client = $this->clientService->newClient();
@@ -287,6 +298,7 @@ class Master {
 					'headers' => [
 						'OCS-APIRequest' => 'true'
 					],
+					'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
 					'query' => [
 						'format' => 'json',
 						'jwt' => $jwt
@@ -303,11 +315,11 @@ class Master {
 			$info = 'getAppToken - Decoding the JSON failed ' .
 					$jsonErrorCode . ' ' .
 					json_last_error_msg();
-			throw new \Exception($info);
+			throw new Exception($info);
 		}
 		if (!isset($data['ocs']['data']['token'])) {
 			$info = 'getAppToken - data doesn\'t contain token: ' . json_encode($data);
-			throw new \Exception($info);
+			throw new Exception($info);
 		}
 
 		return $data['ocs']['data']['token'];
@@ -338,8 +350,8 @@ class Master {
 		return str_replace($protocol, $basicAuth, $url);
 	}
 
-	private function isValidJwt(?string $jwt): bool {
-		if (!is_string($jwt)) {
+	public function isValidJwt(?string $jwt): bool {
+		if (($jwt ?? '') === '') {
 			return false;
 		}
 
@@ -347,7 +359,8 @@ class Master {
 			JWT::decode($jwt, new Key($this->gss->getJwtKey(), Application::JWT_ALGORITHM));
 
 			return true;
-		} catch (\Exception $e) {
+		} catch (Exception $e) {
+			$this->logger->debug('issue while decoding jwt', ['exception' => $e]);
 		}
 
 		return false;

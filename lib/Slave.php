@@ -25,7 +25,7 @@ namespace OCA\GlobalSiteSelector;
 use Exception;
 use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\AppInfo\Application;
-use OCP\Accounts\IAccountManager;
+use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IUser;
@@ -33,55 +33,31 @@ use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
 class Slave {
-	/** @var IAccountManager */
-	private $accountManager;
+	private IUserManager $userManager;
+	private IClientService $clientService;
+	private SlaveService $slaveService;
+	private Lookup $lookup;
+	private LoggerInterface $logger;
+	private string $lookupServer;
+	private string $operationMode;
+	private string $authKey;
+	private GlobalSiteSelector $gss;
+	private IConfig $config;
+	private static array $toRemove = []; // remember users which should be removed
 
-	/** @var IUserManager */
-	private $userManager;
-
-	/** @var IClientService */
-	private $clientService;
-
-	/** @var Lookup */
-	private $lookup;
-
-	/** @var LoggerInterface */
-	private $logger;
-
-	/** @var string */
-	private $lookupServer;
-
-	/** @var string */
-	private $operationMode;
-
-	/** @var string */
-	private $authKey;
-
-	/**
-	 * remember users which should be removed
-	 *
-	 * @var array
-	 */
-	private static $toRemove = [];
-
-	/** @var GlobalSiteSelector */
-	private $gss;
-
-	/** @var IConfig */
-	private $config;
 
 	public function __construct(
-		IAccountManager $accountManager,
 		IUserManager $userManager,
 		IClientService $clientService,
+		SlaveService $slaveService,
 		Lookup $lookup,
 		GlobalSiteSelector $gss,
 		LoggerInterface $logger,
 		IConfig $config
 	) {
-		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->clientService = $clientService;
+		$this->slaveService = $slaveService;
 		$this->lookup = $lookup;
 		$this->logger = $logger;
 		$this->lookupServer = $gss->getLookupServerUrl();
@@ -100,7 +76,8 @@ class Slave {
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Adding new user: {uid}',
+		$this->logger->debug(
+			'Adding new user: {uid}',
 			[
 				'app' => Application::APP_ID,
 				'uid' => $uid,
@@ -110,7 +87,7 @@ class Slave {
 		$user = $this->userManager->get($uid);
 		$userData = [];
 		if ($user !== null) {
-			$userData[$user->getCloudId()] = $this->getAccountData($user);
+			$userData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 			$this->addUsers($userData);
 		}
 	}
@@ -125,7 +102,8 @@ class Slave {
 			return;
 		}
 
-		$this->logger->debug('Updating user: {uid}',
+		$this->logger->debug(
+			'Updating user: {uid}',
 			[
 				'app' => Application::APP_ID,
 				'uid' => $user->getUID(),
@@ -133,7 +111,7 @@ class Slave {
 		);
 
 		$userData = [];
-		$userData[$user->getCloudId()] = $this->getAccountData($user);
+		$userData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 		$this->addUsers($userData);
 	}
 
@@ -164,7 +142,8 @@ class Slave {
 
 		$uid = $params['uid'];
 
-		$this->logger->debug('Removing user: {uid}',
+		$this->logger->debug(
+			'Removing user: {uid}',
 			[
 				'app' => Application::APP_ID,
 				'uid' => $uid,
@@ -196,43 +175,13 @@ class Slave {
 				foreach ($users as $uid) {
 					$user = $this->userManager->get($uid);
 					if ($user !== null) {
-						$usersData[$user->getCloudId()] = $this->getAccountData($user);
+						$usersData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 					}
 				}
 				$offset += $limit;
 				$this->addUsers($usersData);
 			} while (count($users) >= $limit);
 		}
-	}
-
-	/**
-	 * get user data from account manager
-	 *
-	 * @param IUser $user
-	 *
-	 * @return array
-	 */
-	protected function getAccountData(IUser $user): array {
-		$properties = $data = [];
-
-		if ((string)$this->config->getAppValue(
-			Application::APP_ID,
-			'ignore_properties', '0'
-		) !== '1') {
-			$properties = $this->accountManager->getAccount($user)->getProperties();
-		}
-
-		foreach ($properties as $property) {
-			if ($property->getName() === IAccountManager::PROPERTY_DISPLAYNAME) {
-				$data['name'] = $property->getValue();
-			} elseif ($property->getValue() !== '') {
-				$data[$property->getName()] = $property->getValue();
-			}
-		}
-
-		$data['userid'] = $user->getUID();
-
-		return $data;
 	}
 
 	/**
@@ -243,7 +192,8 @@ class Slave {
 	protected function addUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch updating users: {users}',
+		$this->logger->debug(
+			'Batch updating users: {users}',
 			[
 				'app' => Application::APP_ID,
 				'users' => $users,
@@ -257,7 +207,8 @@ class Slave {
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
-			$this->logger->warning('Could not send user to lookup server',
+			$this->logger->warning(
+				'Could not send user to lookup server',
 				[
 					'app' => Application::APP_ID,
 					'exception' => $e,
@@ -274,7 +225,8 @@ class Slave {
 	protected function removeUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
 
-		$this->logger->debug('Batch deleting users: {users}',
+		$this->logger->debug(
+			'Batch deleting users: {users}',
 			[
 				'app' => Application::APP_ID,
 				'users' => $users,
@@ -288,7 +240,8 @@ class Slave {
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
 		} catch (Exception $e) {
-			$this->logger->warning('Could not remove user from the lookup server',
+			$this->logger->warning(
+				'Could not remove user from the lookup server',
 				[
 					'app' => Application::APP_ID,
 					'exception' => $e,
@@ -302,7 +255,8 @@ class Slave {
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error('global site selector app not configured correctly',
+			$this->logger->error(
+				'global site selector app not configured correctly',
 				[
 					'app' => Application::APP_ID,
 				]
