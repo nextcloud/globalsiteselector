@@ -31,12 +31,14 @@ use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
+use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -64,6 +66,7 @@ class SlaveController extends OCSController {
 	private ISession $session;
 	private Manager $twoFactorManager;
 	private SlaveService $slaveService;
+	private IConfig $config;
 	private LoggerInterface $logger;
 
 	public function __construct(
@@ -79,6 +82,7 @@ class SlaveController extends OCSController {
 		IUserManager $userManager,
 		UserBackend $userBackend,
 		SlaveService $slaveService,
+		IConfig $config,
 		LoggerInterface $logger
 	) {
 		parent::__construct($appName, $request);
@@ -92,6 +96,7 @@ class SlaveController extends OCSController {
 		$this->userBackend = $userBackend;
 		$this->session = $session;
 		$this->slaveService = $slaveService;
+		$this->config = $config;
 		$this->logger = $logger;
 	}
 
@@ -138,13 +143,20 @@ class SlaveController extends OCSController {
 
 				$this->session->set('globalScale.userData', $options);
 				$this->session->set('globalScale.uid', $uid);
+				$this->config->setUserValue(
+					$user->getUID(),
+					Application::APP_ID,
+					Slave::SAML_IDP,
+					$options['saml']['idp'] ?? 0
+				);
+
 				$result = true;
 			} else {
 				$this->logger->debug('testing normal login process');
 				$result = $this->userSession->login($uid, $password);
 			}
 
-			$this->logger->notice('auth result: '. json_encode($result));
+			$this->logger->notice('auth result: ' . json_encode($result));
 			if ($result === false) {
 				throw new \Exception('wrong username or password given for: ' . $uid);
 			}

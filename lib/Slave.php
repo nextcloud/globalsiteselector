@@ -33,6 +33,8 @@ use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 
 class Slave {
+	public const SAML_IDP = 'saml_idp';
+
 	private IUserManager $userManager;
 	private IClientService $clientService;
 	private SlaveService $slaveService;
@@ -280,10 +282,11 @@ class Slave {
 	/**
 	 * send user back to master
 	 */
-	public function handleLogoutRequest() {
+	public function handleLogoutRequest(IUser $user) {
 		$token = [
 			'logout' => 'true',
-			'exp' => time() + 300, // expires after 5 minute
+			'saml.idp' => $this->config->getUserValue($user->getUID(), Application::APP_ID, self::SAML_IDP),
+			'exp' => time() + 300 // expires after 5 minute
 		];
 
 		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
