@@ -105,6 +105,41 @@ class SlaveService {
 
 
 	/**
+	 * clean a federationId that might contain 'https': i.e. handle@https://cloud.example.net
+	 *
+	 * @param string $userId
+	 *
+	 * @return string
+	 */
+	public function cleanFederationId(string $userId): string {
+		$clean = $this->cleanFederationIds([$userId]);
+		return $clean[0] ?? $userId;
+	}
+
+	/**
+	 * clean a list of federationId that might contain 'https': i.e. handle@https://cloud.example.net
+	 *
+	 * @param array $userIds
+	 *
+	 * @return array
+	 */
+	public function cleanFederationIds(array $userIds): array {
+		return array_map(function (string $userId): string {
+			if (!strpos($userId, '@')) {
+				return $userId;
+			}
+
+			[$handle, $domain] = explode('@', $userId, 2);
+			if (str_starts_with($domain, 'https://')) {
+				return $handle . '@' . substr($domain, 8);
+			}
+
+			return $userId;
+		}, $userIds);
+	}
+
+
+	/**
 	 * get single user's display name
 	 *
 	 * @param string $userId

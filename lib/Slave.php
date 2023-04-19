@@ -300,7 +300,7 @@ class Slave {
 			return;
 		}
 
-		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologout?jwt=' . $jwt;
+		$redirectUrl = rtrim($location, '/') . '/index.php/apps/globalsiteselector/autologout?jwt=' . $jwt;
 
 		header('Location: ' . $redirectUrl);
 		die();
