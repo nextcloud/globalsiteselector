@@ -25,6 +25,7 @@
 namespace OCA\GlobalSiteSelector\Controller;
 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Master;
@@ -79,8 +80,12 @@ class MasterController extends OCSController {
 	public function autoLogout(?string $jwt) {
 		try {
 			if ($jwt !== null && $this->master->isValidJwt($jwt)) {
+				$key = $this->gss->getJwtKey();
+				$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
+
+				$idp = $decoded['saml.idp'] ?? null;
 				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
-				if (!empty($logoutUrl) && $this->session->get('user_saml.Idp') !== null) {
+				if (!empty($logoutUrl) && $idp !== null) {
 					$token = [
 						'logout' => 'logout',
 						'exp' => time() + 300, // expires after 5 minutes

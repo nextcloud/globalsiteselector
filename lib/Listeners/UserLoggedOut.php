@@ -75,6 +75,6 @@ class UserLoggedOut implements IEventListener {
 			return;
 		}
 
-		$this->slave->handleLogoutRequest();
+		$this->slave->handleLogoutRequest($event->getUser());
 	}
 }

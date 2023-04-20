@@ -30,6 +30,7 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
@@ -76,6 +77,10 @@ class SlaveControllerTest extends TestCase {
 	/** @var SlaveService | \PHPUnit_Framework_MockObject_MockObject */
 	private $slaveService;
 
+	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
+	private $config;
+
+
 	public function setUp(): void {
 		parent::setUp();
 
@@ -94,6 +99,7 @@ class SlaveControllerTest extends TestCase {
 		$this->session = $this->createMock(ISession::class);
 		$this->twoFactorManager = $this->createMock(Manager::class);
 		$this->slaveService = $this->createMock(SlaveService::class);
+		$this->config = $this->createMock(IConfig::class);
 	}
 
 	/**
@@ -116,6 +122,7 @@ class SlaveControllerTest extends TestCase {
 					$this->userManager,
 					$this->userBackend,
 					$this->slaveService,
+					$this->config,
 					$this->logger
 				]
 			)->setMethods($mockMathods)->getMock();
