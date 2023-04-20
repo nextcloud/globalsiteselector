@@ -1,5 +1,11 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
+
+## 2.3.3
+
+- passing idp to slave, back to master on logout.
+- storing idp in user preferences.
 
 ## 2.3.2
 
@@ -46,27 +52,33 @@ All notable changes to this project will be documented in this file.
 - #52 Use addServiceListener for registration with the IEventDispatcher @juliushaertl
 
 ## 1.3.0
+
 ### Added
+
 - NC19 compatible
 
 ## 1.2.1
 
 ### Added
+
 - Extra debug info
 - Added capabilities so the client knows to use the old flow
 - NC18 compatible
 
 ### Changed
+
 - Use longer generated apptokens
 
 ## 1.2.0
 
 ### Added
+
 - NC16 and NC17 compatibility
 - Added Regex matching for GSS nodes
 - Added debug log statements
 
 ### Fixed
+
 - Redirect users to GSS if they are not logged in
 - Fixed non email username mappiong
 - Fixed login flow with branded android clients
