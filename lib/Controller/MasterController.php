@@ -83,6 +83,7 @@ class MasterController extends OCSController {
 				if (!empty($logoutUrl) && $this->session->get('user_saml.Idp') !== null) {
 					$token = [
 						'logout' => 'logout',
+						'idp' => $idp,
 						'exp' => time() + 300, // expires after 5 minutes
 					];
 
