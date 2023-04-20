@@ -34,6 +34,7 @@ use OCP\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IRequest;
+use OCP\ISession;
 use OCP\Security\ICrypto;
 use OCP\Server;
 use Psr\Container\ContainerExceptionInterface;
@@ -48,6 +49,7 @@ use Psr\Log\LoggerInterface;
  * @package OCA\GlobalSiteSelector
  */
 class Master {
+	private ISession $session;
 	private GlobalSiteSelector $gss;
 	private ICrypto $crypto;
 	private Lookup $lookup;
@@ -57,6 +59,7 @@ class Master {
 	private LoggerInterface $logger;
 
 	public function __construct(
+		ISession $session,
 		GlobalSiteSelector $gss,
 		ICrypto $crypto,
 		Lookup $lookup,
@@ -65,6 +68,7 @@ class Master {
 		IConfig $config,
 		LoggerInterface $logger
 	) {
+		$this->session = $session;
 		$this->gss = $gss;
 		$this->crypto = $crypto;
 		$this->lookup = $lookup;
@@ -128,6 +132,9 @@ class Master {
 			$discoveryData['saml'] = $options['userData']['raw'];
 			// we only send the formatted user data to the slave
 			$options['userData'] = $options['userData']['formatted'];
+			$options['saml'] = [
+				'idp' => $this->session->get('user_saml.Idp')
+			];
 
 			$this->logger->debug('handleLoginRequest: backend is SAML.', ['options' => $options]);
 		} else {
