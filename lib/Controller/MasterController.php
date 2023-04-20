@@ -79,15 +79,16 @@ class MasterController extends OCSController {
 	 */
 	public function autoLogout(?string $jwt) {
 		try {
-			if ($jwt !== null && $this->master->isValidJwt($jwt)) {
+			if ($jwt !== null) {
 				$key = $this->gss->getJwtKey();
 				$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
-
 				$idp = $decoded['saml.idp'] ?? null;
+
 				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
-				if (!empty($logoutUrl) && $idp !== null) {
+				if (!empty($logoutUrl)) {
 					$token = [
 						'logout' => 'logout',
+						'idp' => $idp,
 						'exp' => time() + 300, // expires after 5 minutes
 					];
 
