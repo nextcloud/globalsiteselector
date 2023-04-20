@@ -33,6 +33,7 @@ use OCP\AppFramework\IAppContainer;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IRequest;
+use OCP\ISession;
 use OCP\Security\ICrypto;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
@@ -62,6 +63,9 @@ class MasterTest extends TestCase {
 	/** @var \PHPUnit_Framework_MockObject_MockObject|IAppContainer */
 	private $container;
 
+	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
+	private $session;
+
 	public function setUp(): void {
 		parent::setUp();
 
@@ -75,6 +79,7 @@ class MasterTest extends TestCase {
 		$this->config = $this->createMock(IConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->container = $this->createMock(IAppContainer::class);
+		$this->session = $this->createMock(ISession::class);
 	}
 
 	/**
@@ -85,6 +90,7 @@ class MasterTest extends TestCase {
 		return $this->getMockBuilder(Master::class)
 			->setConstructorArgs(
 				[
+					$this->session,
 					$this->gss,
 					$this->crypto,
 					$this->lookup,
