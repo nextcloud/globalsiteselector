@@ -293,6 +293,15 @@ class Slave {
 			'exp' => time() + 300 // expires after 5 minute
 		];
 
+		if ($user->getBackend() instanceof \OC\User\Database
+			&& (int)$this->config->getAppValue(
+				Application::APP_ID,
+				'local_account_stays_on_slave',
+				0
+			) === 1) {
+			return;
+		}
+
 		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
 		$location = $this->config->getSystemValue('gss.master.url', '');
 
