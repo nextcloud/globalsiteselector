@@ -27,28 +27,21 @@ use OCP\Federation\ICloudId;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class LookupTest extends TestCase {
-	/** @var  IClientService|\PHPUnit_Framework_MockObject_MockObject */
-	private $httpClientService;
-
-	/** @var  IConfig|\PHPUnit_Framework_MockObject_MockObject */
-	private $config;
-
-	/** @var  ILogger|\PHPUnit_Framework_MockObject_MockObject */
-	private $logger;
-
-	/** @var  ICloudIdManager | \PHPUnit_Framework_MockObject_MockObject */
-	private $cloudIdManager;
+	private IClientService $httpClientService;
+	private IConfig $config;
+	private LoggerInterface $logger;
+	private ICloudIdManager $cloudIdManager;
 
 	public function setUp(): void {
 		parent::setUp();
 
 		$this->httpClientService = $this->createMock(IClientService::class);
 		$this->config = $this->createMock(IConfig::class);
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->cloudIdManager = $this->createMock(ICloudIdManager::class);
 	}
 
@@ -63,9 +56,9 @@ class LookupTest extends TestCase {
 			->setConstructorArgs(
 				[
 					$this->httpClientService,
-					$this->config,
 					$this->logger,
-					$this->cloudIdManager
+					$this->cloudIdManager,
+					$this->config
 				]
 			)->setMethods($mockMethods)->getMock();
 	}

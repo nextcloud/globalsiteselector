@@ -3,7 +3,7 @@
         'name' => 'nextcloud/globalsiteselector',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => 'e210f80d6e7087b5c7f4387fb4ddfe875f468781',
+        'reference' => '79eb1a4336bf0070a2daa18f1d4e68cbfc803df2',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'firebase/php-jwt' => array(
-            'pretty_version' => 'v6.4.0',
-            'version' => '6.4.0.0',
-            'reference' => '4dd1e007f22a927ac77da5a3fbb067b42d3bc224',
+            'pretty_version' => 'v6.8.0',
+            'version' => '6.8.0.0',
+            'reference' => '48b0210c51718d682e53210c24d25c5a10a2299b',
             'type' => 'library',
             'install_path' => __DIR__ . '/../firebase/php-jwt',
             'aliases' => array(),
@@ -22,7 +22,7 @@
         'nextcloud/globalsiteselector' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'e210f80d6e7087b5c7f4387fb4ddfe875f468781',
+            'reference' => '79eb1a4336bf0070a2daa18f1d4e68cbfc803df2',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

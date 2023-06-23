@@ -23,7 +23,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GlobalSiteSelector\Listener;
+namespace OCA\GlobalSiteSelector\Listeners;
 
 use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\EventDispatcher\Event;
@@ -33,16 +33,18 @@ use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 
+/**
+ * @template-implements IEventListener<AddContentSecurityPolicyEvent>
+ */
 class AddContentSecurityPolicyListener implements IEventListener {
-	private $config;
-	private $userSession;
-	private $request;
 
-	public function __construct(IConfig $config, IUserSession $userSession, IRequest $request) {
-		$this->config = $config;
-		$this->userSession = $userSession;
-		$this->request = $request;
+	public function __construct(
+		private IConfig $config,
+		private IUserSession $userSession,
+		private IRequest $request
+	) {
 	}
+
 	public function handle(Event $event): void {
 		if (!$event instanceof AddContentSecurityPolicyEvent) {
 			return;

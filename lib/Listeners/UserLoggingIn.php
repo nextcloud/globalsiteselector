@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-
 /**
  * GlobalSiteSelector - Nextcloud Portal to redirect users to the right instance
  *
@@ -28,10 +27,8 @@ declare(strict_types=1);
  *
  */
 
-
 namespace OCA\GlobalSiteSelector\Listeners;
 
-use OC\HintException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Master;
 use OCP\EventDispatcher\Event;
@@ -40,30 +37,19 @@ use OCP\User\Events\BeforeUserLoggedInEvent;
 use Psr\Log\LoggerInterface;
 
 /**
- * Class UserLoggingIn
- *
- * @package OCA\GlobalSiteSelector\Listeners
+ * @template-implements IEventListener<BeforeUserLoggedInEvent>
  */
 class UserLoggingIn implements IEventListener {
-	private GlobalSiteSelector $globalSiteSelector;
-	private Master $master;
-	private LoggerInterface $logger;
 
 	public function __construct(
-		GlobalSiteSelector $globalSiteSelector,
-		Master $master,
-		LoggerInterface $logger
+		private GlobalSiteSelector $globalSiteSelector,
+		private Master $master,
+		private LoggerInterface $logger
 	) {
-		$this->globalSiteSelector = $globalSiteSelector;
-		$this->master = $master;
-		$this->logger = $logger;
 	}
-
 
 	/**
 	 * @param Event $event
-	 *
-	 * @throws HintException
 	 */
 	public function handle(Event $event): void {
 		if (!$event instanceof BeforeUserLoggedInEvent) {

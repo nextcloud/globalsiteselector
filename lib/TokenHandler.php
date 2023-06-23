@@ -19,7 +19,6 @@
  *
  */
 
-
 namespace OCA\GlobalSiteSelector;
 
 use OC\Authentication\Token\IProvider;
@@ -34,21 +33,18 @@ use OCP\Security\ISecureRandom;
  * @package OCA\GlobalSiteSelector
  */
 class TokenHandler {
-	/** @var IProvider */
-	private $tokenProvider;
 
-	/** @var ISecureRandom */
-	private $random;
-
-	public function __construct(ISecureRandom $ramdom, IProvider $tokenProvider) {
-		$this->random = $ramdom;
-		$this->tokenProvider = $tokenProvider;
+	public function __construct(
+		private IProvider $tokenProvider,
+		private ISecureRandom $random
+	) {
 	}
 
 	/**
 	 * generate app token
 	 *
 	 * @param string $uid
+	 *
 	 * @return array
 	 */
 	public function generateAppToken($uid) {

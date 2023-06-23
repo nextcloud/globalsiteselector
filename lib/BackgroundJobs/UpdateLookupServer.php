@@ -1,6 +1,9 @@
 <?php
+
+declare(strict_types=1);
+
 /**
- * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
+ * @copyright Copyright (c) 2023 Maxence Lange <maxence@artificial-owl.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -19,67 +22,33 @@
  *
  */
 
-
 namespace OCA\GlobalSiteSelector\BackgroundJobs;
 
-use OC\BackgroundJob\Job;
+use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Slave;
-use OCP\BackgroundJob\IJobList;
-use OCP\ILogger;
+use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\BackgroundJob\IJob;
+use OCP\BackgroundJob\TimedJob;
 
-class UpdateLookupServer extends Job {
-	/** @var Slave */
-	private $slave;
+class UpdateLookupServer extends TimedJob {
 
 
-	/**
-	 * UpdateLookupServer constructor.
-	 *
-	 * @param Slave $slave
-	 */
-	public function __construct(Slave $slave) {
-		$this->slave = $slave;
+	public function __construct(
+		ITimeFactory $time,
+		private GlobalSiteSelector $globalSiteSelector,
+		private Slave $slave
+	) {
+		parent::__construct($time);
+
+		$this->setInterval(86400);
+		$this->setTimeSensitivity(IJob::TIME_SENSITIVE);
 	}
 
 	protected function run($argument) {
+		if (!$this->globalSiteSelector->isSlave()) {
+			return;
+		}
+
 		$this->slave->batchUpdate();
-	}
-
-	/**
-	 * run the job, then remove it from the jobList
-	 *
-	 * @param JobList $jobList
-	 * @param ILogger|null $logger
-	 */
-	public function execute($jobList, ILogger $logger = null) {
-		if ($this->shouldRun()) {
-			parent::execute($jobList, $logger);
-		}
-	}
-
-	/**
-	 * re-add background job with updated arguments
-	 *
-	 * @param IJobList $jobList
-	 */
-	protected function reAddJob(IJobList $jobList) {
-		$jobList->add(UpdateLookupServer::class, ['lastRun' => time()]);
-	}
-
-	/**
-	 * check if it is time for the next update (update happens every 24 hours)
-	 *
-	 * @return bool
-	 */
-	protected function shouldRun() {
-		$lastRun = (int)$this->lastRun;
-		$currentTime = time();
-
-		// update every 24 hours and only if the app runs in slave mode
-		if ($this->slave->getOperationMode() !== 'slave' || $lastRun > $currentTime - 86400) {
-			return false;
-		}
-
-		return true;
 	}
 }

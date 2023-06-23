@@ -1,0 +1,229 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * @copyright Copyright (c) 2021 Robin Appelman <robin@icewind.nl>
+ *
+ * @license GNU AGPL version 3 or any later version
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+namespace {
+	use OCP\IServerContainer;
+
+	class OC {
+		static $CLI = false;
+		/** @var IServerContainer */
+		static $server;
+	}
+}
+
+namespace OC\Core\Command {
+	use Symfony\Component\Console\Input\InputInterface;
+	use Symfony\Component\Console\Output\OutputInterface;
+	class Base {
+		public const OUTPUT_FORMAT_PLAIN = 'plain';
+		public const OUTPUT_FORMAT_JSON = 'json';
+		public const OUTPUT_FORMAT_JSON_PRETTY = 'json_pretty';
+
+		public function __construct() {}
+		protected function configure() {}
+		public function run(InputInterface $input, OutputInterface $output) {}
+		public function setName(string $name) {}
+		public function getHelper(string $name) {}
+		protected function writeArrayInOutputFormat(InputInterface $input, OutputInterface $output, $items, $prefix = '  - ') {
+		}
+	}
+}
+
+namespace Symfony\Component\Console\Helper {
+	use Symfony\Component\Console\Output\OutputInterface;
+	class Table {
+		public function __construct(OutputInterface $text) {}
+		public function setHeaders(array $header) {}
+		public function setRows(array $rows) {}
+		public function render() {}
+		public function appendRow(array $row) {}
+	}
+}
+
+namespace Symfony\Component\Console\Input {
+	class InputInterface {
+		public function getOption(string $key) {}
+		public function getArgument(string $key) {}
+	}
+	class InputArgument {
+		const REQUIRED = 0;
+		const OPTIONAL = 1;
+		const IS_ARRAY = 1;
+	}
+	class InputOption {
+		const VALUE_NONE = 1;
+		const VALUE_REQUIRED = 1;
+		const VALUE_OPTIONAL = 1;
+	}
+}
+
+namespace Symfony\Component\Console\Question {
+	class ConfirmationQuestion {
+		public function __construct(string $text, bool $default, string $accept = 'y') {}
+	}
+}
+
+namespace Symfony\Component\Console\Output {
+	class OutputInterface {
+		public const VERBOSITY_VERBOSE = 1;
+		public function writeln(string $text, int $flat = 0) {}
+		public function write(string $text, int $flat = 0) {}
+	}
+}
+
+namespace OC\DB {
+    use OCP\IDBConnection;
+    class ConnectionAdapter {}
+
+    class SchemaWrapper {
+        public function __construct(IDBConnection $connection) {}
+
+        public function performDropTableCalls();
+    }
+}
+
+namespace OC {
+    class SystemConfig {}
+}
+
+namespace Doctrine\DBAL\Query {
+    class QueryBuilder {
+        public const SELECT = 'select';
+    }
+}
+
+namespace OC\DB\QueryBuilder {
+	use OC\DB\ConnectionAdapter;
+	use OC\SystemConfig;
+    use OCP\DB\IResult;
+    use OCP\DB\QueryBuilder\ICompositeExpression;
+    use OCP\DB\QueryBuilder\ILiteral;
+    use OCP\DB\QueryBuilder\IParameter;
+    use OCP\DB\QueryBuilder\IQueryBuilder;
+    use OCP\DB\QueryBuilder\IQueryFunction;
+    use Psr\Log\LoggerInterface;
+
+    class QueryBuilder implements IQueryBuilder {
+        public function __construct(ConnectionAdapter $connection, SystemConfig $systemConfig, LoggerInterface $logger) {
+        }
+        public function automaticTablePrefix($enabled) { }
+        public function expr() { }
+        public function func() { }
+        public function getType() { }
+        public function getConnection() { }
+        public function getState() { }
+        public function execute() { }
+        public function executeQuery(): IResult { }
+        public function executeUpdate(): int { }
+        public function executeStatement(): int { }
+        public function getSQL() { }
+        public function setParameter($key, $value, $type = null) { }
+        public function setParameters(array $params, array $types = []) { }
+        public function getParameters() { }
+        public function getParameter($key) { }
+        public function getParameterTypes() { }
+        public function getParameterType($key) { }
+        public function setFirstResult($firstResult) { }
+        public function getFirstResult() { }
+        public function setMaxResults($maxResults) { }
+        public function getMaxResults() { }
+        public function select(...$selects) { }
+        public function selectAlias($select, $alias) { }
+        public function selectDistinct($select) { }
+        public function addSelect(...$selects) { }
+        public function delete($delete = null, $alias = null) { }
+        public function update($update = null, $alias = null) { }
+        public function insert($insert = null) { }
+        public function from($from, $alias = null) { }
+        public function join($fromAlias, $join, $alias, $condition = null) { }
+        public function innerJoin($fromAlias, $join, $alias, $condition = null) { }
+        public function leftJoin($fromAlias, $join, $alias, $condition = null) { }
+        public function rightJoin($fromAlias, $join, $alias, $condition = null) { }
+        public function set($key, $value) { }
+        public function where(...$predicates) { }
+        public function andWhere(...$where) { }
+        public function orWhere(...$where) { }
+        public function groupBy(...$groupBys) { }
+        public function addGroupBy(...$groupBys) { }
+        public function setValue($column, $value) { }
+        public function values(array $values) { }
+        public function having(...$having) { }
+        public function andHaving(...$having) { }
+        public function orHaving(...$having) { }
+        public function orderBy($sort, $order = null) { }
+        public function addOrderBy($sort, $order = null) { }
+        public function getQueryPart($queryPartName) { }
+        public function getQueryParts() { }
+        public function resetQueryParts($queryPartNames = null) { }
+        public function resetQueryPart($queryPartName) { }
+        public function createNamedParameter($value, $type = IQueryBuilder::PARAM_STR, $placeHolder = null) { }
+        public function createPositionalParameter($value, $type = IQueryBuilder::PARAM_STR) { }
+        public function createParameter($name) { }
+        public function createFunction($call) { }
+        public function getLastInsertId(): int { }
+        public function getTableName($table) { }
+        protected function prefixTableName($table) { }
+        public function getColumnName($column, $tableAlias = '') { }
+        public function quoteAlias($alias) { }
+    }
+}
+
+namespace OC\User {
+	use OCP\UserInterface;
+	use OCP\IUser;
+	use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+	class User implements IUser {
+		public function __construct(string $uid, ?UserInterface $backend, EventDispatcherInterface $dispatcher, $emitter = null, IConfig $config = null, $urlGenerator = null) {}
+	}
+}
+
+namespace OC\BackgroundJob {
+	use OCP\BackgroundJob\IJob;
+	use OCP\BackgroundJob\IJobList;
+	use OCP\ILogger;
+
+	abstract class TimedJob implements IJob {
+		public function execute(IJobList $jobList, ILogger $logger = null) {
+		}
+
+		abstract protected function run($argument);
+
+		public function setId(int $id) {
+		}
+
+		public function setLastRun(int $lastRun) {
+		}
+
+		public function setArgument($argument) {
+		}
+
+		public function getId() {
+		}
+
+		public function getLastRun() {
+		}
+
+		public function getArgument() {
+		}
+	}
+}

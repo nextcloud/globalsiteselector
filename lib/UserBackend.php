@@ -22,10 +22,12 @@
 namespace OCA\GlobalSiteSelector;
 
 use OC\User\Backend;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\NotPermittedException;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\ISession;
+use OCP\IUser;
 use OCP\IUserBackend;
 use OCP\IUserManager;
 use OCP\User\Backend\ICountUsersBackend;
@@ -33,41 +35,17 @@ use OCP\UserInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
 class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
-	/** @var string  name of the database table to store the users logged in from the master node */
-	private $dbName = 'global_scale_users';
+	private string $dbName = 'global_scale_users';
 
-	/** @var IDBConnection */
-	private $db;
+	/** @var UserInterface[] */
+	private static array $backends = [];
 
-	/** @var ISession */
-	private $session;
-
-	/** @var IGroupManager */
-	private $groupManager;
-
-	/** @var IUserManager */
-	private $userManager;
-
-	/** @var \OCP\UserInterface[] */
-	private static $backends = [];
-
-	/**
-	 * UserBackend constructor.
-	 *
-	 * @param IDBConnection $db
-	 * @param ISession $session
-	 * @param IGroupManager $groupManager
-	 * @param IUserManager $userManager
-	 */
-	public function __construct(IDBConnection $db,
-								ISession $session,
-								IGroupManager $groupManager,
-								IUserManager $userManager
+	public function __construct(
+		private IDBConnection $db,
+		private ISession $session,
+		private IGroupManager $groupManager,
+		private IUserManager $userManager
 	) {
-		$this->db = $db;
-		$this->session = $session;
-		$this->groupManager = $groupManager;
-		$this->userManager = $userManager;
 	}
 
 
@@ -77,23 +55,25 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return string the name of the backend to be shown
 	 * @since 0.11.0
 	 */
-	public function getBackendName() {
+	public function getBackendName(): string {
 		return 'user_globalsiteselector';
 	}
 
 	/**
 	 * Check if backend implements actions
+	 *
 	 * @param int $actions bitwise-or'ed actions
-	 * @return boolean
 	 *
 	 * Returns the supported actions as int to be
 	 * compared with \OC\User\Backend::CREATE_USER etc.
+	 *
 	 * @since 4.5.0
 	 */
-	public function implementsActions($actions) {
+	public function implementsActions($actions): bool {
 		$availableActions = Backend::CHECK_PASSWORD;
 		$availableActions |= Backend::GET_DISPLAYNAME;
 		$availableActions |= Backend::COUNT_USERS;
+
 		return (bool)($availableActions & $actions);
 	}
 
@@ -102,7 +82,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 *
 	 * @param string $uid
 	 */
-	public function createUserIfNotExists($uid) {
+	public function createUserIfNotExists(string $uid): void {
 		if (!$this->userExistsInDatabase($uid)) {
 			$values = [
 				'uid' => $uid,
@@ -127,25 +107,31 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			}
 			// trigger any other initialization
 			$user = $this->userManager->get($uid);
-			\OC::$server->getEventDispatcher()->dispatch(IUser::class . '::firstLogin', new GenericEvent($user));
+			\OC::$server->getEventDispatcher()->dispatch(
+				IUser::class . '::firstLogin', new GenericEvent($user)
+			);
 		}
 	}
 
 	/**
 	 * delete a user
+	 *
 	 * @param string $uid The username of the user to delete
+	 *
 	 * @return bool
 	 * @since 4.5.0
 	 */
-	public function deleteUser($uid) {
+	public function deleteUser($uid): bool {
 		if ($this->userExistsInDatabase($uid)) {
 			/* @var $qb IQueryBuilder */
 			$qb = $this->db->getQueryBuilder();
 			$qb->delete($this->dbName)
-				->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-				->execute();
+			   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+			   ->execute();
+
 			return true;
 		}
+
 		return false;
 	}
 
@@ -155,18 +141,23 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @param string $search
 	 * @param null|int $limit
 	 * @param null|int $offset
+	 *
 	 * @return string[] an array of all uids
 	 * @since 4.5.0
 	 */
-	public function getUsers($search = '', $limit = null, $offset = null) {
+	public function getUsers($search = '', $limit = null, $offset = null): array {
 		/* @var $qb IQueryBuilder */
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('uid', 'displayname')
-			->from($this->dbName)
-			->where(
-				$qb->expr()->iLike('uid', $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($search) . '%'))
-			)
-			->setMaxResults($limit);
+		   ->from($this->dbName)
+		   ->where(
+		   	$qb->expr()->iLike(
+		   		'uid', $qb->createNamedParameter(
+		   			'%' . $this->db->escapeLikeParameter($search) . '%'
+		   		)
+		   	)
+		   )
+		   ->setMaxResults($limit);
 		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
@@ -188,10 +179,10 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 *
 	 * @return int|bool
 	 */
-	public function countUsers() {
+	public function countUsers(): int {
 		$query = $this->db->getQueryBuilder();
 		$query->select($query->func()->count('uid'))
-			->from($this->dbName);
+			  ->from($this->dbName);
 		$result = $query->execute();
 
 		return $result->fetchColumn();
@@ -199,11 +190,13 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 	/**
 	 * check if a user exists
+	 *
 	 * @param string $uid the username
+	 *
 	 * @return boolean
 	 * @since 4.5.0
 	 */
-	public function userExists($uid) {
+	public function userExists($uid): bool {
 		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->userExists($uid);
 		} else {
@@ -211,7 +204,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		}
 	}
 
-	public function setDisplayName($uid, $displayName) {
+	public function setDisplayName(string $uid, string $displayName): bool {
 		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->setDisplayName($uid, $displayName);
 		}
@@ -219,9 +212,10 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		if ($this->userExistsInDatabase($uid)) {
 			$qb = $this->db->getQueryBuilder();
 			$qb->update($this->dbName)
-				->set('displayname', $qb->createNamedParameter($displayName))
-				->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-				->execute();
+			   ->set('displayname', $qb->createNamedParameter($displayName))
+			   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+			   ->execute();
+
 			return true;
 		}
 
@@ -232,19 +226,20 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * Get display name of the user
 	 *
 	 * @param string $uid user ID of the user
+	 *
 	 * @return string display name
 	 * @since 4.5.0
 	 */
-	public function getDisplayName($uid) {
+	public function getDisplayName($uid): string {
 		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->getDisplayName($uid);
 		} else {
 			if ($this->userExistsInDatabase($uid)) {
 				$qb = $this->db->getQueryBuilder();
 				$qb->select('displayname')
-					->from($this->dbName)
-					->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-					->setMaxResults(1);
+				   ->from($this->dbName)
+				   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+				   ->setMaxResults(1);
 				$result = $qb->execute();
 				$users = $result->fetchAll();
 				if (isset($users[0]['displayname'])) {
@@ -262,20 +257,29 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @param string $search
 	 * @param string|null $limit
 	 * @param string|null $offset
+	 *
 	 * @return array an array of all displayNames (value) and the corresponding uids (key)
 	 * @since 4.5.0
 	 */
-	public function getDisplayNames($search = '', $limit = null, $offset = null) {
+	public function getDisplayNames($search = '', $limit = null, $offset = null): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('uid', 'displayname')
-			->from($this->dbName)
-			->where(
-				$qb->expr()->iLike('uid', $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($search) . '%'))
-			)
-			->orWhere(
-				$qb->expr()->iLike('displayname', $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($search) . '%'))
-			)
-			->setMaxResults($limit);
+		   ->from($this->dbName)
+		   ->where(
+		   	$qb->expr()->iLike(
+		   		'uid', $qb->createNamedParameter(
+		   			'%' . $this->db->escapeLikeParameter($search) . '%'
+		   		)
+		   	)
+		   )
+		   ->orWhere(
+		   	$qb->expr()->iLike(
+		   		'displayname', $qb->createNamedParameter(
+		   			'%' . $this->db->escapeLikeParameter($search) . '%'
+		   		)
+		   	)
+		   )
+		   ->setMaxResults($limit);
 		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
@@ -293,10 +297,11 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 	/**
 	 * Check if a user list is available or not
+	 *
 	 * @return boolean if users can be listed or not
 	 * @since 4.5.0
 	 */
-	public function hasUserListings() {
+	public function hasUserListings(): bool {
 		return true;
 	}
 
@@ -306,24 +311,23 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return boolean whether Apache reports a user as currently logged in.
 	 * @since 6.0.0
 	 */
-	public function isSessionActive() {
-		if ($this->getCurrentUserId() !== '') {
-			return true;
-		}
-		return false;
+	public function isSessionActive(): bool {
+		return ($this->getCurrentUserId() !== '');
 	}
 
 
 	/**
 	 * Return the id of the current user
+	 *
 	 * @return string
 	 * @since 6.0.0
 	 */
-	public function getCurrentUserId() {
+	public function getCurrentUserId(): string {
 		$uid = $this->session->get('globalScale.uid');
 
 		if (!empty($uid) && $this->userExists($uid)) {
 			$this->session->set('last-password-confirm', time());
+
 			return $uid;
 		}
 
@@ -333,13 +337,15 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 	/**
 	 * Check if the provided token is correct
+	 *
 	 * @param string $uid The username
 	 * @param string $password The password
+	 *
 	 * @return string
 	 *
 	 * There is no password, authentication happens on the global site selector master
 	 */
-	public function checkPassword($uid, $password) {
+	public function checkPassword(string $uid, string $password) {
 		// if the user was successfully authenticated by the global site selector
 		// master and forwarded to the client the uid is stored in the session.
 		// In this case we can trust the global site selector that the password was
@@ -356,9 +362,10 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * Gets the actual user backend of the user
 	 *
 	 * @param string $uid
+	 *
 	 * @return null|UserInterface
 	 */
-	public function getActualUserBackend($uid) {
+	public function getActualUserBackend(string $uid): ?UserInterface {
 		foreach (self::$backends as $backend) {
 			if ($backend->userExists($uid)) {
 				return $backend;
@@ -372,9 +379,9 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * Registers the used backends, used later to get the actual user backend
 	 * of the user.
 	 *
-	 * @param \OCP\UserInterface[] $backends
+	 * @param UserInterface[] $backends
 	 */
-	public function registerBackends(array $backends) {
+	public function registerBackends(array $backends): void {
 		foreach ($backends as $backend) {
 			if (!($backend instanceof UserBackend)) {
 				self::$backends[] = $backend;
@@ -383,7 +390,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	}
 
 
-	public function updateAttributes($uid, array $attributes) {
+	public function updateAttributes(string $uid, array $attributes): void {
 		$user = $this->userManager->get($uid);
 
 		$userData = $attributes['userData'];
@@ -402,7 +409,8 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			$currentDisplayName = (string)$this->getDisplayName($uid);
 			if ($newDisplayName !== null
 				&& $currentDisplayName !== $newDisplayName) {
-				\OC_Hook::emit('OC_User', 'changeUser',
+				\OC_Hook::emit(
+					'OC_User', 'changeUser',
 					[
 						'user' => $user,
 						'feature' => 'displayName',
@@ -442,15 +450,16 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * Whether $uid exists in the database
 	 *
 	 * @param string $uid
+	 *
 	 * @return bool
 	 */
-	protected function userExistsInDatabase($uid) {
+	protected function userExistsInDatabase(string $uid): bool {
 		/* @var $qb IQueryBuilder */
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('uid')
-			->from($this->dbName)
-			->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-			->setMaxResults(1);
+		   ->from($this->dbName)
+		   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+		   ->setMaxResults(1);
 		$result = $qb->execute();
 		$users = $result->fetchAll();
 		$result->closeCursor();

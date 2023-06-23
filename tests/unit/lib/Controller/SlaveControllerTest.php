@@ -23,7 +23,6 @@
 namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 
 use Firebase\JWT\JWT;
-use OC\Authentication\TwoFactorAuth\Manager;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -41,45 +40,18 @@ use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class SlaveControllerTest extends TestCase {
-	/** @var  IRequest|\PHPUnit_Framework_MockObject_MockObject */
-	private $request;
-
-	/** @var  GlobalSiteSelector|\PHPUnit_Framework_MockObject_MockObject */
-	private $gss;
-
-	/** @var  LoggerInterface|\PHPUnit_Framework_MockObject_MockObject */
-	private $logger;
-
-	/** @var  IUserSession|\PHPUnit_Framework_MockObject_MockObject */
-	private $userSession;
-
-	/** @var  IURLGenerator|\PHPUnit_Framework_MockObject_MockObject */
-	private $urlGenerator;
-
-	/** @var  ICrypto|\PHPUnit_Framework_MockObject_MockObject */
-	private $crypto;
-
-	/** @var  TokenHandler | \PHPUnit_Framework_MockObject_MockObject */
-	private $tokenHandler;
-
-	/** @var IUserManager | \PHPUnit_Framework_MockObject_MockObject */
-	private $userManager;
-
-	/** @var UserBackend | \PHPUnit_Framework_MockObject_MockObject */
-	private $userBackend;
-
-	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
-	private $session;
-
-	/** @var Manager | \PHPUnit_Framework_MockObject_MockObject */
-	private $twoFactorManager;
-
-	/** @var SlaveService | \PHPUnit_Framework_MockObject_MockObject */
-	private $slaveService;
-
-	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
-	private $config;
-
+	private IRequest $request;
+	private GlobalSiteSelector $gss;
+	private LoggerInterface $logger;
+	private IUserSession $userSession;
+	private IURLGenerator $urlGenerator;
+	private ICrypto $crypto;
+	private TokenHandler $tokenHandler;
+	private IUserManager $userManager;
+	private UserBackend $userBackend;
+	private ISession $session;
+	private SlaveService $slaveService;
+	private IConfig $config;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -97,7 +69,6 @@ class SlaveControllerTest extends TestCase {
 		$this->userBackend = $this->getMockBuilder(UserBackend::class)
 			->disableOriginalConstructor()->getMock();
 		$this->session = $this->createMock(ISession::class);
-		$this->twoFactorManager = $this->createMock(Manager::class);
 		$this->slaveService = $this->createMock(SlaveService::class);
 		$this->config = $this->createMock(IConfig::class);
 	}
@@ -114,13 +85,12 @@ class SlaveControllerTest extends TestCase {
 					$this->request,
 					$this->gss,
 					$this->userSession,
-					$this->session,
-					$this->twoFactorManager,
 					$this->urlGenerator,
 					$this->crypto,
 					$this->tokenHandler,
 					$this->userManager,
 					$this->userBackend,
+					$this->session,
 					$this->slaveService,
 					$this->config,
 					$this->logger

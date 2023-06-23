@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-
 /**
  * GlobalSiteSelector - Nextcloud Portal to redirect users to the right instance
  *
@@ -28,7 +27,6 @@ declare(strict_types=1);
  *
  */
 
-
 namespace OCA\GlobalSiteSelector\Listeners;
 
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -38,27 +36,14 @@ use OCP\EventDispatcher\IEventListener;
 use OCP\User\Events\UserCreatedEvent;
 
 /**
- * Class UserCreated
- *
- * @package OCA\GlobalSiteSelector\Listeners
+ * @template-implements IEventListener<UserCreatedEvent>
  */
 class UserCreated implements IEventListener {
-	/** @var GlobalSiteSelector */
-	private $globalSiteSelector;
 
-	/** @var Slave */
-	private $slave;
-
-
-	/**
-	 * UserCreated constructor.
-	 *
-	 * @param GlobalSiteSelector $globalSiteSelector
-	 * @param Slave $slave
-	 */
-	public function __construct(GlobalSiteSelector $globalSiteSelector, Slave $slave) {
-		$this->globalSiteSelector = $globalSiteSelector;
-		$this->slave = $slave;
+	public function __construct(
+		private GlobalSiteSelector $globalSiteSelector,
+		private Slave $slave,
+	) {
 	}
 
 
