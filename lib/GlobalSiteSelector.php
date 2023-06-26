@@ -27,7 +27,6 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector;
 
-use Firebase\JWT\Key;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCP\IConfig;
 
@@ -61,7 +60,7 @@ class GlobalSiteSelector {
 	 * @return string
 	 */
 	public function getMode(): string {
-		return strtolower($this->config->getSystemValue('gss.mode', self::SLAVE));
+		return strtolower($this->config->getSystemValueString('gss.mode', self::SLAVE));
 	}
 
 	/**
@@ -86,7 +85,7 @@ class GlobalSiteSelector {
 	 */
 	public function getJwtKey(): string {
 		// TODO: returns exception if non-existant
-		return $this->config->getSystemValue('gss.jwt.key', '');
+		return $this->config->getSystemValueString('gss.jwt.key', '');
 	}
 
 
@@ -97,7 +96,7 @@ class GlobalSiteSelector {
 	 * @throws MasterUrlException
 	 */
 	public function getMasterUrl(): string {
-		$masterUrl = $this->config->getSystemValue('gss.master.url', '');
+		$masterUrl = $this->config->getSystemValueString('gss.master.url', '');
 		if ($masterUrl === '') {
 			throw new MasterUrlException('missing gss.master.url in config');
 		}
@@ -113,6 +112,6 @@ class GlobalSiteSelector {
 	 */
 	public function getLookupServerUrl(): string {
 		// TODO: returns exception if non-existant
-		return $this->config->getSystemValue('lookup_server', '');
+		return $this->config->getSystemValueString('lookup_server', '');
 	}
 }

@@ -173,6 +173,7 @@ class Slave {
 			$offset = 0;
 			$usersData = [];
 			do {
+
 				$users = $backend->getUsers('', $limit, $offset);
 				foreach ($users as $uid) {
 					$user = $this->userManager->get($uid);
@@ -303,7 +304,7 @@ class Slave {
 		}
 
 		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
-		$location = $this->config->getSystemValue('gss.master.url', '');
+		$location = $this->config->getSystemValueString('gss.master.url', '');
 
 		if ($location === '') {
 			$this->logger->error(

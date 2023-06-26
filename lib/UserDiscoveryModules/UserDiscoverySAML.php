@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2018 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -35,16 +38,10 @@ use OCP\IConfig;
  * @package OCA\GlobalSiteSelector\UserDiscoveryModule
  */
 class UserDiscoverySAML implements IUserDiscoveryModule {
-	/** @var string */
-	private $idpParameter;
+	private string $idpParameter;
 
-	/**
-	 * UserDiscoverySAML constructor.
-	 *
-	 * @param IConfig $config
-	 */
 	public function __construct(IConfig $config) {
-		$this->idpParameter = $config->getSystemValue('gss.discovery.saml.slave.mapping', '');
+		$this->idpParameter = $config->getSystemValueString('gss.discovery.saml.slave.mapping', '');
 	}
 
 
@@ -52,9 +49,10 @@ class UserDiscoverySAML implements IUserDiscoveryModule {
 	 * read user location from SAML parameters
 	 *
 	 * @param array $data SAML Parameters to read the location from
+	 *
 	 * @return string
 	 */
-	public function getLocation($data) {
+	public function getLocation(array $data): string {
 		$location = '';
 		if (!empty($this->idpParameter) && isset($data['saml'][$this->idpParameter][0])) {
 			$location = $data['saml'][$this->idpParameter][0];

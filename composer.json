@@ -8,7 +8,7 @@
         "classmap-authoritative": true,
         "autoloader-suffix": "GlobalSiteSelector",
         "platform": {
-            "php": "7.4"
+            "php": "8.0"
         }
     },
     "authors": [
@@ -22,18 +22,10 @@
             "OCA\\GlobalSiteSelector\\": "lib/"
         }
     },
-    "require": {
-        "firebase/php-jwt": "^6.4.0"
-    },
-    "require-dev": {
-        "nextcloud/coding-standard": "^1.0.0",
-        "vimeo/psalm": "^4.22",
-        "phpunit/phpunit": "^9.5"
-    },
     "scripts": {
         "cs:check": "php-cs-fixer fix --dry-run --diff",
         "cs:fix": "php-cs-fixer fix",
-        "psalm": "psalm --threads=1 --update-baseline",
+        "psalm": "psalm",
         "psalm:update-baseline": "psalm --threads=1 --update-baseline",
         "psalm:clear": "psalm --clear-cache && psalm --clear-global-cache",
         "psalm:fix": "psalm --alter --issues=InvalidReturnType,InvalidNullableReturnType,MissingParamType,InvalidFalsableReturnType",
@@ -42,5 +34,19 @@
         ],
         "test:unit": "vendor/bin/phpunit -c tests/unit/phpunit.xml",
         "lint": "find . -name \\*.php -not -path './vendor/*' -print0 | xargs -0 -n1 php -l"
+    },
+    "require": {
+        "firebase/php-jwt": "^6.8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6.9",
+        "vimeo/psalm": "^4.22",
+        "nextcloud/coding-standard": "^1.1",
+        "nextcloud/ocp": "dev-master"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "OCP\\": "vendor/nextcloud/ocp/OCP"
+        }
     }
 }

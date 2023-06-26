@@ -22,7 +22,7 @@
 namespace OCA\GlobalSiteSelector\UserDiscoveryModules;
 
 use OCP\IConfig;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class ManualUserMapping
@@ -42,25 +42,17 @@ use OCP\ILogger;
  * @package OCA\GlobalSiteSelector\UserDiscoveryModules
  */
 class ManualUserMapping implements IUserDiscoveryModule {
-	/** @var string */
-	private $idpParameter;
-	/** @var string */
-	private $file;
-	/** @var bool */
-	private $useRegularExpressions;
-	/** @var ILogger */
-	private $logger;
+	private string $idpParameter;
+	private string $file;
+	private bool $useRegularExpressions;
 
-	/**
-	 * ManualUserMapping constructor.
-	 *
-	 * @param IConfig $config
-	 */
-	public function __construct(IConfig $config, ILogger $logger) {
-		$this->idpParameter = $config->getSystemValue('gss.discovery.manual.mapping.parameter', '');
-		$this->file = $config->getSystemValue('gss.discovery.manual.mapping.file', '');
-		$this->useRegularExpressions = $config->getSystemValue('gss.discovery.manual.mapping.regex', false);
-		$this->logger = $logger;
+	public function __construct(
+		IConfig $config,
+		private LoggerInterface $logger
+	) {
+		$this->idpParameter = $config->getSystemValueString('gss.discovery.manual.mapping.parameter', '');
+		$this->file = $config->getSystemValueString('gss.discovery.manual.mapping.file', '');
+		$this->useRegularExpressions = $config->getSystemValueBool('gss.discovery.manual.mapping.regex', false);
 
 		$this->logger->debug('Init ManualUserMapping');
 		$this->logger->debug('IdP Parameter: ' . $this->idpParameter);
@@ -73,9 +65,10 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 * get the initial user location
 	 *
 	 * @param array $data idp parameters
+	 *
 	 * @return string
 	 */
-	public function getLocation($data) {
+	public function getLocation(array $data): string {
 		$location = '';
 		$dictionary = $this->getDictionary();
 		$key = $this->getKey($data);
@@ -129,6 +122,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 * get key from IDP parameter
 	 *
 	 * @param array $data idp parameters
+	 *
 	 * @return string
 	 */
 	private function getKey($data) {
@@ -147,6 +141,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 * the keys are build like email addresses, we only need the "domain part"
 	 *
 	 * @param $key
+	 *
 	 * @return string
 	 */
 	private function normalizeKey($key) {
@@ -157,6 +152,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		}
 
 		$this->logger->debug('Normalized key: ' . $normalized);
+
 		return $normalized;
 	}
 }

@@ -23,14 +23,13 @@ declare(strict_types=1);
  *
  */
 
-
 namespace OCA\GlobalSiteSelector\AppInfo;
 
 use Closure;
 use Exception;
 use OC;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
-use OCA\GlobalSiteSelector\Listener\AddContentSecurityPolicyListener;
+use OCA\GlobalSiteSelector\Listeners\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Listeners\DeletingUser;
 use OCA\GlobalSiteSelector\Listeners\UserCreated;
 use OCA\GlobalSiteSelector\Listeners\UserDeleted;
@@ -77,8 +76,6 @@ class Application extends App implements IBootstrap {
 
 	public function __construct(array $urlParams = []) {
 		parent::__construct(self::APP_ID, $urlParams);
-
-		//TODO: Add proper CSP exception for NC://
 	}
 
 

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2018 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -25,8 +28,10 @@ interface IUserDiscoveryModule {
 	/**
 	 * get the initial user location
 	 *
-	 * @param array $data arbitrary data, whatever the module needs (for example for SAML we hand over the raw data)
+	 * @param array $data arbitrary data, whatever the module needs (for example for SAML we hand over the
+	 *     raw data)
+	 *
 	 * @return string
 	 */
-	public function getLocation($data);
+	public function getLocation(array $data): string;
 }

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -19,52 +22,24 @@
  *
  */
 
-
 namespace OCA\GlobalSiteSelector;
 
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 
-/**
- * Class Lookup
- *
- * query the lookup server to find the users location
- *
- * @package OCA\GlobalSiteSelector
- */
 class Lookup {
-	/** @var IClientService */
-	private $httpClientService;
 
-	/** @var  string */
-	private $lookupServerUrl;
+	private string $lookupServerUrl;
 
-	/** @var ILogger */
-	private $logger;
-
-	/** @var  ICloudIdManager */
-	private $cloudIdManager;
-
-	/**
-	 * Lookup constructor.
-	 *
-	 * @param IClientService $clientService
-	 * @param IConfig $config
-	 * @param ILogger $logger
-	 * @param ICloudIdManager $cloudIdManager
-	 */
 	public function __construct(
-		IClientService $clientService,
-		IConfig $config,
-		ILogger $logger,
-		ICloudIdManager $cloudIdManager
+		private IClientService $clientService,
+		private LoggerInterface $logger,
+		private ICloudIdManager $cloudIdManager,
+		IConfig $config
 	) {
-		$this->httpClientService = $clientService;
-		$this->lookupServerUrl = $config->getSystemValue('lookup_server', '');
-		$this->logger = $logger;
-		$this->cloudIdManager = $cloudIdManager;
+		$this->lookupServerUrl = $config->getSystemValueString('lookup_server', '');
 	}
 
 	/**
@@ -115,7 +90,7 @@ class Lookup {
 	 */
 	protected function queryLookupServer(string $uid, bool $matchUid = false) {
 		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid . ' (matchUid: ' . json_encode($matchUid) . ')');
-		$client = $this->httpClientService->newClient();
+		$client = $this->clientService->newClient();
 		$response = $client->get(
 			$this->lookupServerUrl . '/users',
 			$this->configureClient(
@@ -132,21 +107,14 @@ class Lookup {
 		return json_decode($response->getBody(), true);
 	}
 
-	/**
-	 * split user and remote from federated cloud id
-	 *
-	 * @param string $address federated share address
-	 * @return array [user, remoteURL]
-	 * @throws HintException
-	 */
-	protected function getUserLocation($address) {
+	protected function getUserLocation(string $address): string {
 		try {
 			$cloudId = $this->cloudIdManager->resolveCloudId($address);
 			$location = $cloudId->getRemote();
 			return rtrim($location, '/');
 		} catch (\InvalidArgumentException $e) {
-			$hint = $this->l->t('Invalid Federated Cloud ID');
-			throw new HintException('Invalid Federated Cloud ID', $hint, 0, $e);
+			$this->logger->notice('Invalid Federated Cloud ID');
+			throw new \Exception('Invalid Federated Cloud ID');
 		}
 	}
 

@@ -26,7 +26,6 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use OC\Authentication\Token\IToken;
-use OC\Authentication\TwoFactorAuth\Manager;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -56,48 +55,23 @@ use Psr\Log\LoggerInterface;
  * @package OCA\GlobalSiteSelector\Controller
  */
 class SlaveController extends OCSController {
-	private GlobalSiteSelector $gss;
-	private IUserSession $userSession;
-	private IURLGenerator $urlGenerator;
-	private ICrypto $crypto;
-	private TokenHandler $tokenHandler;
-	private IUserManager $userManager;
-	private UserBackend $userBackend;
-	private ISession $session;
-	private Manager $twoFactorManager;
-	private SlaveService $slaveService;
-	private IConfig $config;
-	private LoggerInterface $logger;
 
 	public function __construct(
 		$appName,
 		IRequest $request,
-		GlobalSiteSelector $gss,
-		IUserSession $userSession,
-		ISession $session,
-		Manager $twoFactorManager,
-		IURLGenerator $urlGenerator,
-		ICrypto $crypto,
-		TokenHandler $tokenHandler,
-		IUserManager $userManager,
-		UserBackend $userBackend,
-		SlaveService $slaveService,
-		IConfig $config,
-		LoggerInterface $logger
+		private GlobalSiteSelector $gss,
+		private IUserSession $userSession,
+		private IURLGenerator $urlGenerator,
+		private ICrypto $crypto,
+		private TokenHandler $tokenHandler,
+		private IUserManager $userManager,
+		private UserBackend $userBackend,
+		private ISession $session,
+		private SlaveService $slaveService,
+		private IConfig $config,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
-		$this->gss = $gss;
-		$this->userSession = $userSession;
-		$this->urlGenerator = $urlGenerator;
-		$this->twoFactorManager = $twoFactorManager;
-		$this->crypto = $crypto;
-		$this->tokenHandler = $tokenHandler;
-		$this->userManager = $userManager;
-		$this->userBackend = $userBackend;
-		$this->session = $session;
-		$this->slaveService = $slaveService;
-		$this->config = $config;
-		$this->logger = $logger;
 	}
 
 	/**
@@ -172,9 +146,6 @@ class SlaveController extends OCSController {
 
 		$this->logger->debug('all good. creating session');
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
-
-//		$user = $this->userManager->get($uid);
-//		$this->twoFactorManager->prepareTwoFactorLogin($user, false);
 
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
