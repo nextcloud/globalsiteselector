@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.4.2
+
+- add a settings to stay on slave if local account after logout
+- check instance type before updating user
+
 ## 2.4.1
 
 - passing idp to slave, back to master on logout.
