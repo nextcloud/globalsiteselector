@@ -56,7 +56,7 @@ class UserCreated implements IEventListener {
 		}
 
 		/** only used in slave mode */
-		if ($this->globalSiteSelector->getMode() !== GlobalSiteSelector::SLAVE) {
+		if (!$this->globalSiteSelector->isSlave()) {
 			return;
 		}
 
