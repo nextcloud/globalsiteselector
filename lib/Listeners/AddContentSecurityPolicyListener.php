@@ -50,7 +50,7 @@ class AddContentSecurityPolicyListener implements IEventListener {
 			return;
 		}
 
-		$gssMode = $this->config->getSystemValue('gss.mode', '');
+		$gssMode = $this->config->getSystemValueString('gss.mode', '');
 		$cspAllowList = $this->config->getSystemValue('gss.master.csp-allow', []);
 		if ($gssMode !== 'master') {
 			return;

@@ -304,7 +304,7 @@ class Slave {
 		}
 
 		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
-		$location = $this->config->getSystemValue('gss.master.url', '');
+		$location = $this->config->getSystemValueString('gss.master.url', '');
 
 		if ($location === '') {
 			$this->logger->error(

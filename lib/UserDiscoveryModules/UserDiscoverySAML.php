@@ -41,7 +41,7 @@ class UserDiscoverySAML implements IUserDiscoveryModule {
 	private string $idpParameter;
 
 	public function __construct(IConfig $config) {
-		$this->idpParameter = $config->getSystemValue('gss.discovery.saml.slave.mapping', '');
+		$this->idpParameter = $config->getSystemValueString('gss.discovery.saml.slave.mapping', '');
 	}
 
 

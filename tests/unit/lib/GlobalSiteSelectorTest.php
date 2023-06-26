@@ -41,7 +41,7 @@ class GlobalSiteSelectorTest extends TestCase {
 	}
 
 	public function testGetMode() {
-		$this->config->expects($this->once())->method('getSystemValue')
+		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('gss.mode', 'slave')->willReturn('result');
 
 		$result = $this->gss->getMode();
@@ -50,7 +50,7 @@ class GlobalSiteSelectorTest extends TestCase {
 	}
 
 	public function testGetJwtKey() {
-		$this->config->expects($this->once())->method('getSystemValue')
+		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('gss.jwt.key', '')->willReturn('result');
 
 		$result = $this->gss->getJwtKey();
@@ -59,7 +59,7 @@ class GlobalSiteSelectorTest extends TestCase {
 	}
 
 	public function testGetMasterUrl() {
-		$this->config->expects($this->once())->method('getSystemValue')
+		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('gss.master.url', '')->willReturn('result');
 
 		$result = $this->gss->getMasterUrl();
@@ -68,7 +68,7 @@ class GlobalSiteSelectorTest extends TestCase {
 	}
 
 	public function testGetLookupServerUrl() {
-		$this->config->expects($this->once())->method('getSystemValue')
+		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('lookup_server', '')->willReturn('result');
 
 		$result = $this->gss->getLookupServerUrl();

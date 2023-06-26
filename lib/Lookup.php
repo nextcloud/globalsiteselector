@@ -39,7 +39,7 @@ class Lookup {
 		private ICloudIdManager $cloudIdManager,
 		IConfig $config
 	) {
-		$this->lookupServerUrl = $config->getSystemValue('lookup_server', '') ?? '';
+		$this->lookupServerUrl = $config->getSystemValueString('lookup_server', '');
 	}
 
 	/**

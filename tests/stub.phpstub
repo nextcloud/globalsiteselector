@@ -102,89 +102,9 @@ namespace OC\DB {
     }
 }
 
-namespace OC {
-    class SystemConfig {}
-}
-
 namespace Doctrine\DBAL\Query {
     class QueryBuilder {
         public const SELECT = 'select';
-    }
-}
-
-namespace OC\DB\QueryBuilder {
-	use OC\DB\ConnectionAdapter;
-	use OC\SystemConfig;
-    use OCP\DB\IResult;
-    use OCP\DB\QueryBuilder\ICompositeExpression;
-    use OCP\DB\QueryBuilder\ILiteral;
-    use OCP\DB\QueryBuilder\IParameter;
-    use OCP\DB\QueryBuilder\IQueryBuilder;
-    use OCP\DB\QueryBuilder\IQueryFunction;
-    use Psr\Log\LoggerInterface;
-
-    class QueryBuilder implements IQueryBuilder {
-        public function __construct(ConnectionAdapter $connection, SystemConfig $systemConfig, LoggerInterface $logger) {
-        }
-        public function automaticTablePrefix($enabled) { }
-        public function expr() { }
-        public function func() { }
-        public function getType() { }
-        public function getConnection() { }
-        public function getState() { }
-        public function execute() { }
-        public function executeQuery(): IResult { }
-        public function executeUpdate(): int { }
-        public function executeStatement(): int { }
-        public function getSQL() { }
-        public function setParameter($key, $value, $type = null) { }
-        public function setParameters(array $params, array $types = []) { }
-        public function getParameters() { }
-        public function getParameter($key) { }
-        public function getParameterTypes() { }
-        public function getParameterType($key) { }
-        public function setFirstResult($firstResult) { }
-        public function getFirstResult() { }
-        public function setMaxResults($maxResults) { }
-        public function getMaxResults() { }
-        public function select(...$selects) { }
-        public function selectAlias($select, $alias) { }
-        public function selectDistinct($select) { }
-        public function addSelect(...$selects) { }
-        public function delete($delete = null, $alias = null) { }
-        public function update($update = null, $alias = null) { }
-        public function insert($insert = null) { }
-        public function from($from, $alias = null) { }
-        public function join($fromAlias, $join, $alias, $condition = null) { }
-        public function innerJoin($fromAlias, $join, $alias, $condition = null) { }
-        public function leftJoin($fromAlias, $join, $alias, $condition = null) { }
-        public function rightJoin($fromAlias, $join, $alias, $condition = null) { }
-        public function set($key, $value) { }
-        public function where(...$predicates) { }
-        public function andWhere(...$where) { }
-        public function orWhere(...$where) { }
-        public function groupBy(...$groupBys) { }
-        public function addGroupBy(...$groupBys) { }
-        public function setValue($column, $value) { }
-        public function values(array $values) { }
-        public function having(...$having) { }
-        public function andHaving(...$having) { }
-        public function orHaving(...$having) { }
-        public function orderBy($sort, $order = null) { }
-        public function addOrderBy($sort, $order = null) { }
-        public function getQueryPart($queryPartName) { }
-        public function getQueryParts() { }
-        public function resetQueryParts($queryPartNames = null) { }
-        public function resetQueryPart($queryPartName) { }
-        public function createNamedParameter($value, $type = IQueryBuilder::PARAM_STR, $placeHolder = null) { }
-        public function createPositionalParameter($value, $type = IQueryBuilder::PARAM_STR) { }
-        public function createParameter($name) { }
-        public function createFunction($call) { }
-        public function getLastInsertId(): int { }
-        public function getTableName($table) { }
-        protected function prefixTableName($table) { }
-        public function getColumnName($column, $tableAlias = '') { }
-        public function quoteAlias($alias) { }
     }
 }
 

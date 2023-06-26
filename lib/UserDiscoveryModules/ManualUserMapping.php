@@ -50,9 +50,9 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		IConfig $config,
 		private LoggerInterface $logger
 	) {
-		$this->idpParameter = $config->getSystemValue('gss.discovery.manual.mapping.parameter', '');
-		$this->file = $config->getSystemValue('gss.discovery.manual.mapping.file', '');
-		$this->useRegularExpressions = $config->getSystemValue('gss.discovery.manual.mapping.regex', false);
+		$this->idpParameter = $config->getSystemValueString('gss.discovery.manual.mapping.parameter', '');
+		$this->file = $config->getSystemValueString('gss.discovery.manual.mapping.file', '');
+		$this->useRegularExpressions = $config->getSystemValueBool('gss.discovery.manual.mapping.regex', false);
 
 		$this->logger->debug('Init ManualUserMapping');
 		$this->logger->debug('IdP Parameter: ' . $this->idpParameter);

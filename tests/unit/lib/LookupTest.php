@@ -72,7 +72,7 @@ class LookupTest extends TestCase {
 	 * @dataProvider dataTestSearch
 	 */
 	public function testSearch($lookupServerUrl, $lookupServerResult, $userLocation, $expected) {
-		$this->config->expects($this->any())->method('getSystemValue')
+		$this->config->expects($this->any())->method('getSystemValueString')
 			->with('lookup_server', '')->willReturn($lookupServerUrl);
 
 		$lookup = $this->getInstance(['queryLookupServer', 'getUserLocation']);

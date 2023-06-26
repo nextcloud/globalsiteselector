@@ -116,7 +116,7 @@ class Master {
 		$options = ['target' => $target];
 		$discoveryData = [];
 
-		$userDiscoveryModule = $this->config->getSystemValue('gss.user.discovery.module', '');
+		$userDiscoveryModule = $this->config->getSystemValueString('gss.user.discovery.module', '');
 		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
 		$isSaml = false;
