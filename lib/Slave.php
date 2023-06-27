@@ -72,7 +72,7 @@ class Slave {
 	}
 
 	public function createUser(array $params): void {
-		if ($this->checkConfiguration() === false) {
+		if (!$this->checkConfiguration()) {
 			return;
 		}
 
@@ -100,7 +100,7 @@ class Slave {
 	 * @param IUser $user
 	 */
 	public function updateUser(IUser $user): void {
-		if ($this->checkConfiguration() === false) {
+		if (!$this->checkConfiguration()) {
 			return;
 		}
 
@@ -138,7 +138,7 @@ class Slave {
 	 * @param array $params
 	 */
 	public function deleteUser(array $params): void {
-		if ($this->checkConfiguration() === false) {
+		if (!$this->checkConfiguration()) {
 			return;
 		}
 
@@ -163,7 +163,7 @@ class Slave {
 	 * is triggered by a cronjob
 	 */
 	public function batchUpdate(): void {
-		if ($this->checkConfiguration() === false) {
+		if (!$this->checkConfiguration()) {
 			return;
 		}
 
@@ -253,6 +253,10 @@ class Slave {
 	}
 
 	protected function checkConfiguration(): bool {
+		if (!$this->gss->isSlave()) {
+			return false;
+		}
+
 		if (empty($this->lookupServer)
 			|| empty($this->operationMode)
 			|| empty($this->authKey)
