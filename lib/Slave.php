@@ -23,9 +23,9 @@
 namespace OCA\GlobalSiteSelector;
 
 use Exception;
-use Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Service\SlaveService;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\IUser;

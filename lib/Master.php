@@ -25,10 +25,10 @@ declare(strict_types=1);
 namespace OCA\GlobalSiteSelector;
 
 use Exception;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\Authentication\IApacheBackend;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
