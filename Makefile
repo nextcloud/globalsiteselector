@@ -13,6 +13,11 @@ release: appstore
 
 clean:
 	rm -rf $(build_dir)
+	rm -fr vendor/
+	rm -fr vendor-bin/csfixer/vendor/
+	rm -fr vendor-bin/mozart/vendor/
+	rm -fr vendor-bin/phpunit/vendor/
+	rm -fr vendor-bin/psalm/vendor/
 
 cs-check: composer-dev
 	composer cs:check
@@ -44,6 +49,8 @@ appstore: clean composer
 	--exclude=.gitattributes \
 	--exclude=.gitignore \
 	--exclude=.scrutinizer.yml \
+	--exclude=vendor \
+	--exclude=vendor-bin \
 	--exclude=.travis.yml \
 	--exclude=/Makefile \
 	--exclude=.drone.yml \

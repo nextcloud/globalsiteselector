@@ -16,12 +16,13 @@
 		<directory name="lib"/>
 		<ignoreFiles>
 			<directory name="vendor"/>
+			<directory name="lib/Vendor"/>
 		</ignoreFiles>
 	</projectFiles>
 	<extraFiles>
 		<directory name="vendor"/>
 		<ignoreFiles>
-			<directory name="vendor/phpunit/php-code-coverage"/>
+			<directory name="vendor-bin/phpunit/vendor/phpunit/php-code-coverage"/>
 		</ignoreFiles>
 	</extraFiles>
 	<issueHandlers>
