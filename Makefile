@@ -40,6 +40,13 @@ appstore: clean composer
 	--exclude=/docs \
 	--exclude=/translationfiles \
 	--exclude=.tx \
+	--exclude=.idea \
+	--exclude=.php-cs-fixer.dist.php \
+	--exclude=CHANGELOG.md \
+	--exclude=composer.json \
+	--exclude=composer.lock \
+	--exclude=psalm.xml \
+	--exclude=README.md \
 	--exclude=/tests \
 	--exclude=.git \
 	--exclude=.github \
