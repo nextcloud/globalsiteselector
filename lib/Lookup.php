@@ -97,8 +97,7 @@ class Lookup {
 				$this->logger->debug('search: federationId not set for ' . $uid);
 			}
 		} catch (\Exception $e) {
-			// Nothing to do, we just return a empty string below as a indicator
-			// that nothing was found
+			$this->logger->debug('search: federationId not found');
 		}
 
 		$this->logger->debug('search: location for ' . $uid . ' is ' . $location);
@@ -121,7 +120,7 @@ class Lookup {
 			$this->configureClient(
 				[
 					'query' => [
-						'search' => $uid,
+						'search' => urlencode($uid),
 						'exact' => '1',
 						'keys' => ($matchUid) ? ['userid'] : []
 					]
@@ -136,18 +135,13 @@ class Lookup {
 	 * split user and remote from federated cloud id
 	 *
 	 * @param string $address federated share address
-	 * @return array [user, remoteURL]
-	 * @throws HintException
+	 * @return string
 	 */
 	protected function getUserLocation($address) {
-		try {
-			$cloudId = $this->cloudIdManager->resolveCloudId($address);
-			$location = $cloudId->getRemote();
-			return rtrim($location, '/');
-		} catch (\InvalidArgumentException $e) {
-			$hint = $this->l->t('Invalid Federated Cloud ID');
-			throw new HintException('Invalid Federated Cloud ID', $hint, 0, $e);
-		}
+		$cloudId = $this->cloudIdManager->resolveCloudId($address);
+		$location = $cloudId->getRemote();
+
+		return rtrim($location, '/');
 	}
 
 
