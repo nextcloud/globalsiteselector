@@ -96,7 +96,7 @@ class Lookup {
 			$this->configureClient(
 				[
 					'query' => [
-						'search' => $uid,
+						'search' => urlencode($uid),
 						'exact' => '1',
 						'keys' => ($matchUid) ? ['userid'] : []
 					]
