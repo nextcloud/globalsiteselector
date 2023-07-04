@@ -22,9 +22,9 @@
 
 namespace OCA\GlobalSiteSelector\BackgroundJobs;
 
-use OC\BackgroundJob\Job;
 use OCA\GlobalSiteSelector\Slave;
 use OCP\BackgroundJob\IJobList;
+use OCP\BackgroundJob\Job;
 use OCP\ILogger;
 
 class UpdateLookupServer extends Job {

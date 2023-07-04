@@ -22,9 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\Controller;
 
-use Firebase\JWT\ExpiredException;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use OC\Authentication\Token\IToken;
 use OC\Authentication\TwoFactorAuth\Manager;
 use OCA\GlobalSiteSelector\AppInfo\Application;
@@ -34,6 +31,9 @@ use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\ExpiredException;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
@@ -172,9 +172,6 @@ class SlaveController extends OCSController {
 
 		$this->logger->debug('all good. creating session');
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
-
-//		$user = $this->userManager->get($uid);
-//		$this->twoFactorManager->prepareTwoFactorLogin($user, false);
 
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');

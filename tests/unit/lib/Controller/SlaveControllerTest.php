@@ -22,14 +22,13 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 
-use Firebase\JWT\JWT;
-use OC\Authentication\TwoFactorAuth\Manager;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;

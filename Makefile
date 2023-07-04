@@ -9,10 +9,13 @@ version+=2.4.2
 
 all: appstore
 
-release: appstore
-
 clean:
 	rm -rf $(build_dir)
+	rm -fr vendor/
+	rm -fr vendor-bin/csfixer/vendor/
+	rm -fr vendor-bin/mozart/vendor/
+	rm -fr vendor-bin/phpunit/vendor/
+	rm -fr vendor-bin/psalm/vendor/
 
 cs-check: composer-dev
 	composer cs:check
@@ -21,20 +24,29 @@ cs-fix: composer-dev
 	composer cs:fix
 
 composer:
-	composer install --prefer-dist --no-dev
-	composer upgrade --prefer-dist --no-dev
+	composer install
+	composer upgrade
 
 composer-dev:
-	composer install --prefer-dist --dev
-	composer upgrade --prefer-dist --dev
+	composer install --dev
+	composer upgrade --dev
 
-appstore: clean composer
+appstore: clean composer release
+
+release:
 	mkdir -p $(sign_dir)
 	rsync -a \
 	--exclude=/build \
 	--exclude=/docs \
 	--exclude=/translationfiles \
 	--exclude=.tx \
+	--exclude=.idea \
+	--exclude=.php-cs-fixer.dist.php \
+	--exclude=CHANGELOG.md \
+	--exclude=composer.json \
+	--exclude=composer.lock \
+	--exclude=psalm.xml \
+	--exclude=README.md \
 	--exclude=/tests \
 	--exclude=.git \
 	--exclude=.github \
@@ -44,6 +56,8 @@ appstore: clean composer
 	--exclude=.gitattributes \
 	--exclude=.gitignore \
 	--exclude=.scrutinizer.yml \
+	--exclude=vendor \
+	--exclude=vendor-bin \
 	--exclude=.travis.yml \
 	--exclude=/Makefile \
 	--exclude=.drone.yml \

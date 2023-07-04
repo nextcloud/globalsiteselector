@@ -23,8 +23,8 @@ namespace OCA\GlobalSiteSelector\Migration;
 
 use OCP\DB\ISchemaWrapper;
 use OCP\DB\Types;
-use OCP\Migration\SimpleMigrationStep;
 use OCP\Migration\IOutput;
+use OCP\Migration\SimpleMigrationStep;
 
 class Version0110Date20180925143400 extends SimpleMigrationStep {
 	/**
