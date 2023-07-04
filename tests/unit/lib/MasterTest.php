@@ -22,12 +22,12 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\IAppContainer;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;

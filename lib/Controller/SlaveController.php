@@ -22,9 +22,6 @@
 
 namespace OCA\GlobalSiteSelector\Controller;
 
-use Firebase\JWT\ExpiredException;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
@@ -33,6 +30,9 @@ use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\ExpiredException;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
