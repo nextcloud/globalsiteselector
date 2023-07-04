@@ -60,9 +60,9 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @param IUserManager $userManager
 	 */
 	public function __construct(IDBConnection $db,
-								ISession $session,
-								IGroupManager $groupManager,
-								IUserManager $userManager
+		ISession $session,
+		IGroupManager $groupManager,
+		IUserManager $userManager
 	) {
 		$this->db = $db;
 		$this->session = $session;

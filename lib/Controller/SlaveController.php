@@ -173,9 +173,6 @@ class SlaveController extends OCSController {
 		$this->logger->debug('all good. creating session');
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
 
-//		$user = $this->userManager->get($uid);
-//		$this->twoFactorManager->prepareTwoFactorLogin($user, false);
-
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
 

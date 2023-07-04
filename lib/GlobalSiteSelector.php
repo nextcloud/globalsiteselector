@@ -27,7 +27,6 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector;
 
-use Firebase\JWT\Key;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCP\IConfig;
 
