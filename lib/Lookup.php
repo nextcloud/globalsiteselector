@@ -37,9 +37,9 @@ class Lookup {
 		private IClientService $clientService,
 		private LoggerInterface $logger,
 		private ICloudIdManager $cloudIdManager,
-		IConfig $config
+		private IConfig $config
 	) {
-		$this->lookupServerUrl = $config->getSystemValueString('lookup_server', '');
+		$this->lookupServerUrl = $this->config->getSystemValueString('lookup_server', '');
 	}
 
 	/**
@@ -64,16 +64,14 @@ class Lookup {
 
 		try {
 			$body = $this->queryLookupServer($uid, $matchUid);
-
-			if (isset($body['federationId'])) {
-				$location = $this->getUserLocation($body['federationId']);
+			if (($body['federationId'] ?? '') !== '') {
 				$uid = $body['userid']['value'] ?? $uid;
+				$location = $this->getUserLocation($body['federationId'], $uid);
 			} else {
-				$this->logger->debug('search: federationId not set for ' . $uid);
+				$this->logger->debug('search: federationId not set for ' . $uid . ' ' . json_encode($body));
 			}
-		} catch (\Exception $e) {
-			// Nothing to do, we just return a empty string below as a indicator
-			// that nothing was found
+		} catch (\InvalidArgumentException $e) {
+			// Nothing to do, assuming we have not found anything
 		}
 
 		$this->logger->debug('search: location for ' . $uid . ' is ' . $location);
@@ -107,15 +105,80 @@ class Lookup {
 		return json_decode($response->getBody(), true);
 	}
 
-	protected function getUserLocation(string $address): string {
+	protected function getUserLocation(string $address, string &$uid = ''): string {
+		try {
+			return match ($this->config->getSystemValue('gss.username_format', 'validate')) {
+				'ignore' => $this->getUserLocation_Ignore($address),
+				'sanitize' => $this->getUserLocation_Sanitize($address, $uid),
+				'validate' => $this->getUserLocation_Validate($address)
+			};
+		} catch (\UnhandledMatchError $e) {
+			throw new \UnhandledMatchError('gss.username_format in config.php is not valid');
+		}
+	}
+
+
+	private function getUserLocation_Validate(string $address): string {
 		try {
 			$cloudId = $this->cloudIdManager->resolveCloudId($address);
 			$location = $cloudId->getRemote();
+
 			return rtrim($location, '/');
 		} catch (\InvalidArgumentException $e) {
-			$this->logger->notice('Invalid Federated Cloud ID');
-			throw new \Exception('Invalid Federated Cloud ID');
+			$this->logger->notice('(CloudIdManager) Invalid Federated Cloud ID ' . $address);
+			throw new \InvalidArgumentException('Invalid Federated Cloud ID');
 		}
+	}
+
+	private function getUserLocation_Ignore(string $address, ?string &$uid = ''): string {
+		$atPos = strrpos($address, '@');
+		if (!$atPos) {
+			$this->logger->notice('(Local) Invalid Federated Cloud ID ' . $address);
+			throw new \InvalidArgumentException('Invalid Federated Cloud ID');
+		}
+
+		$uid = substr($address, 0, $atPos);
+		$url = substr($address, $atPos + 1);
+		$url = (str_starts_with($url, 'https://')) ? substr($url, 8) : $url;
+		$url = (str_starts_with($url, 'http://')) ? substr($url, 7) : $url;
+
+		return rtrim($url, '/');
+	}
+
+
+	/**
+	 * based on the sanitizeUsername() method from apps/user_ldap/lib/Access.php
+	 *
+	 * @param string $address
+	 * @param string $uid
+	 *
+	 * @return string
+	 */
+	private function getUserLocation_Sanitize(string $address, string &$uid): string {
+		$address = $this->getUserLocation_Ignore($address, $extractedUid);
+		$extractedUid = htmlentities($extractedUid, ENT_NOQUOTES, 'UTF-8');
+
+		$extractedUid = preg_replace(
+			'#&([A-Za-z])(?:acute|cedil|caron|circ|grave|orn|ring|slash|th|tilde|uml);#', '\1', $extractedUid
+		);
+		$extractedUid = preg_replace('#&([A-Za-z]{2})(?:lig);#', '\1', $extractedUid);
+		$extractedUid = preg_replace('#&[^;]+;#', '', $extractedUid);
+		$extractedUid = str_replace(' ', '_', $extractedUid);
+		$extractedUid = preg_replace('/[^a-zA-Z0-9_.@-]/u', '', $extractedUid);
+
+		if (strlen($extractedUid) > 64) {
+			$extractedUid = hash('sha256', $extractedUid, false);
+		}
+
+		if ($extractedUid === '') {
+			throw new \InvalidArgumentException(
+				'provided name template for username does not contain any allowed characters'
+			);
+		}
+
+		$uid = $extractedUid;
+
+		return $address;
 	}
 
 
