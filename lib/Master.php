@@ -143,10 +143,14 @@ class Master {
 
 		$this->logger->debug('handleLoginRequest: uid is: ' . $uid);
 
-		// let the admin of the master node login, everyone else will redirected to a client
-		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);
-		if (is_array($masterAdmins) && in_array($uid, $masterAdmins, true)) {
-			$this->logger->debug('handleLoginRequest: this user is a local admin so ignore');
+		// let local account login, everyone else will redirected to a client
+		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);     // old syntax
+		$localAccounts = $this->config->getSystemValue('gss.master.accounts', []); // new one
+		$masterAdmins = (is_array($masterAdmins)) ? $masterAdmins : [];
+		$localAccounts = (is_array($localAccounts)) ? $localAccounts : [];
+
+		if (in_array($uid, array_merge($masterAdmins, $localAccounts), true)) {
+			$this->logger->debug('handleLoginRequest: this user is a local account so ignore');
 
 			return;
 		}
