@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.4.3
+
+- sanitize uid while getting its location
+- encode uid on search on LUS
+- wrap JWT with mozart
+
 ## 2.4.2
 
 - add a settings to stay on slave if local account after logout
