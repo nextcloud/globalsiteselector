@@ -25,7 +25,7 @@ namespace OCA\GlobalSiteSelector;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Lookup
@@ -35,26 +35,9 @@ use OCP\ILogger;
  * @package OCA\GlobalSiteSelector
  */
 class Lookup {
-	/** @var IClientService */
-	private $httpClientService;
 
-	/** @var  string */
-	private $lookupServerUrl;
+	private string $lookupServerUrl;
 
-	/** @var ILogger */
-	private $logger;
-
-	/** @var  ICloudIdManager */
-	private $cloudIdManager;
-
-	/**
-	 * Lookup constructor.
-	 *
-	 * @param IClientService $clientService
-	 * @param IConfig $config
-	 * @param ILogger $logger
-	 * @param ICloudIdManager $cloudIdManager
-	 */
 	public function __construct(
 		private IClientService $clientService,
 		private LoggerInterface $logger,
@@ -110,7 +93,7 @@ class Lookup {
 	 */
 	protected function queryLookupServer(string $uid, bool $matchUid = false) {
 		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid . ' (matchUid: ' . json_encode($matchUid) . ')');
-		$client = $this->httpClientService->newClient();
+		$client = $this->clientService->newClient();
 		$response = $client->get(
 			$this->lookupServerUrl . '/users',
 			$this->configureClient(
