@@ -9,8 +9,6 @@ version+=2.3.1
 
 all: appstore
 
-release: appstore
-
 clean:
 	rm -rf $(build_dir)
 	rm -fr vendor/
@@ -26,14 +24,16 @@ cs-fix: composer-dev
 	composer cs:fix
 
 composer:
-	composer install --prefer-dist --no-dev
-	composer upgrade --prefer-dist --no-dev
+	composer install
+	composer upgrade
 
 composer-dev:
-	composer install --prefer-dist --dev
-	composer upgrade --prefer-dist --dev
+	composer install --dev
+	composer upgrade --dev
 
-appstore: clean composer
+appstore: clean composer release
+
+release:
 	mkdir -p $(sign_dir)
 	rsync -a \
 	--exclude=/build \
