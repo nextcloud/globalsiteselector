@@ -60,8 +60,6 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Throwable;
 
-require_once __DIR__ . '/../../vendor/autoload.php';
-
 /**
  * Class Application
  *
