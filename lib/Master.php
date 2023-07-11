@@ -168,6 +168,7 @@ class Master {
 				/** @var IUserDiscoveryModule $module */
 				$module = Server::get($userDiscoveryModule);
 				$location = $module->getLocation($discoveryData);
+				$this->lookup->sanitizeUid($uid);
 
 				$this->logger->debug(
 					'handleLoginRequest: location according to discovery module: ' . $location
