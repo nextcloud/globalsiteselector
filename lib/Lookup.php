@@ -87,6 +87,7 @@ class Lookup {
 	 * @throws \Exception
 	 */
 	protected function queryLookupServer(string $uid, bool $matchUid = false) {
+		$this->sanitizeUid($uid);
 		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid . ' (matchUid: ' . json_encode($matchUid) . ')');
 		$client = $this->clientService->newClient();
 		$response = $client->get(
@@ -105,7 +106,7 @@ class Lookup {
 		return json_decode($response->getBody(), true);
 	}
 
-	protected function getUserLocation(string $address, string &$uid = ''): string {
+	public function getUserLocation(string $address, string &$uid = ''): string {
 		try {
 			return match ($this->config->getSystemValueString('gss.username_format', 'validate')) {
 				'ignore' => $this->getUserLocation_Ignore($address),
@@ -156,31 +157,38 @@ class Lookup {
 	 */
 	private function getUserLocation_Sanitize(string $address, string &$uid): string {
 		$address = $this->getUserLocation_Ignore($address, $extractedUid);
-		$extractedUid = htmlentities($extractedUid, ENT_NOQUOTES, 'UTF-8');
-
-		$extractedUid = preg_replace(
-			'#&([A-Za-z])(?:acute|cedil|caron|circ|grave|orn|ring|slash|th|tilde|uml);#', '\1', $extractedUid
-		);
-		$extractedUid = preg_replace('#&([A-Za-z]{2})(?:lig);#', '\1', $extractedUid);
-		$extractedUid = preg_replace('#&[^;]+;#', '', $extractedUid);
-		$extractedUid = str_replace(' ', '_', $extractedUid);
-		$extractedUid = preg_replace('/[^a-zA-Z0-9_.@-]/u', '', $extractedUid);
-
-		if (strlen($extractedUid) > 64) {
-			$extractedUid = hash('sha256', $extractedUid, false);
-		}
-
-		if ($extractedUid === '') {
-			throw new \InvalidArgumentException(
-				'provided name template for username does not contain any allowed characters'
-			);
-		}
-
+		$this->sanitizeUid($extractedUid);
 		$uid = $extractedUid;
 
 		return $address;
 	}
 
+
+	public function sanitizeUid(string &$uid = ''): void {
+		if ($this->config->getSystemValueString('gss.username_format', '') !== 'sanitize') {
+			return;
+		}
+
+		$uid = htmlentities($uid, ENT_NOQUOTES, 'UTF-8');
+
+		$uid = preg_replace(
+			'#&([A-Za-z])(?:acute|cedil|caron|circ|grave|orn|ring|slash|th|tilde|uml);#', '\1', $uid
+		);
+		$uid = preg_replace('#&([A-Za-z]{2})(?:lig);#', '\1', $uid);
+		$uid = preg_replace('#&[^;]+;#', '', $uid);
+		$uid = str_replace(' ', '_', $uid);
+		$uid = preg_replace('/[^a-zA-Z0-9_.@-]/u', '', $uid);
+
+		if (strlen($uid) > 64) {
+			$uid = hash('sha256', $uid, false);
+		}
+
+		if ($uid === '') {
+			throw new \InvalidArgumentException(
+				'provided name template for username does not contain any allowed characters'
+			);
+		}
+	}
 
 	/**
 	 * @param array $options
