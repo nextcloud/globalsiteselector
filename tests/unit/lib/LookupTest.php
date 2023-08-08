@@ -23,11 +23,10 @@
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
 use OCA\GlobalSiteSelector\Lookup;
-use OCP\Federation\ICloudId;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
-use OCP\ILogger;
+use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class LookupTest extends TestCase {
@@ -37,7 +36,7 @@ class LookupTest extends TestCase {
 	/** @var  IConfig|\PHPUnit_Framework_MockObject_MockObject */
 	private $config;
 
-	/** @var  ILogger|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var  LoggerInterface|\PHPUnit_Framework_MockObject_MockObject */
 	private $logger;
 
 	/** @var  ICloudIdManager | \PHPUnit_Framework_MockObject_MockObject */
@@ -48,7 +47,7 @@ class LookupTest extends TestCase {
 
 		$this->httpClientService = $this->createMock(IClientService::class);
 		$this->config = $this->createMock(IConfig::class);
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->cloudIdManager = $this->createMock(ICloudIdManager::class);
 	}
 
@@ -63,9 +62,9 @@ class LookupTest extends TestCase {
 			->setConstructorArgs(
 				[
 					$this->httpClientService,
-					$this->config,
 					$this->logger,
-					$this->cloudIdManager
+					$this->cloudIdManager,
+					$this->config
 				]
 			)->setMethods($mockMethods)->getMock();
 	}
@@ -79,7 +78,7 @@ class LookupTest extends TestCase {
 	 * @dataProvider dataTestSearch
 	 */
 	public function testSearch($lookupServerUrl, $lookupServerResult, $userLocation, $expected) {
-		$this->config->expects($this->any())->method('getSystemValue')
+		$this->config->expects($this->any())->method('getSystemValueString')
 			->with('lookup_server', '')->willReturn($lookupServerUrl);
 
 		$lookup = $this->getInstance(['queryLookupServer', 'getUserLocation']);

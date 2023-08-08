@@ -70,9 +70,6 @@ class SlaveControllerTest extends TestCase {
 	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
 	private $session;
 
-	/** @var Manager | \PHPUnit_Framework_MockObject_MockObject */
-	private $twoFactorManager;
-
 	/** @var SlaveService | \PHPUnit_Framework_MockObject_MockObject */
 	private $slaveService;
 
@@ -96,7 +93,6 @@ class SlaveControllerTest extends TestCase {
 		$this->userBackend = $this->getMockBuilder(UserBackend::class)
 			->disableOriginalConstructor()->getMock();
 		$this->session = $this->createMock(ISession::class);
-		$this->twoFactorManager = $this->createMock(Manager::class);
 		$this->slaveService = $this->createMock(SlaveService::class);
 		$this->config = $this->createMock(IConfig::class);
 	}
@@ -114,7 +110,6 @@ class SlaveControllerTest extends TestCase {
 					$this->gss,
 					$this->userSession,
 					$this->session,
-					$this->twoFactorManager,
 					$this->urlGenerator,
 					$this->crypto,
 					$this->tokenHandler,

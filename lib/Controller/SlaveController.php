@@ -23,7 +23,6 @@
 namespace OCA\GlobalSiteSelector\Controller;
 
 use OC\Authentication\Token\IToken;
-use OC\Authentication\TwoFactorAuth\Manager;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -64,7 +63,6 @@ class SlaveController extends OCSController {
 	private IUserManager $userManager;
 	private UserBackend $userBackend;
 	private ISession $session;
-	private Manager $twoFactorManager;
 	private SlaveService $slaveService;
 	private IConfig $config;
 	private LoggerInterface $logger;
@@ -75,7 +73,6 @@ class SlaveController extends OCSController {
 		GlobalSiteSelector $gss,
 		IUserSession $userSession,
 		ISession $session,
-		Manager $twoFactorManager,
 		IURLGenerator $urlGenerator,
 		ICrypto $crypto,
 		TokenHandler $tokenHandler,
@@ -89,7 +86,6 @@ class SlaveController extends OCSController {
 		$this->gss = $gss;
 		$this->userSession = $userSession;
 		$this->urlGenerator = $urlGenerator;
-		$this->twoFactorManager = $twoFactorManager;
 		$this->crypto = $crypto;
 		$this->tokenHandler = $tokenHandler;
 		$this->userManager = $userManager;
