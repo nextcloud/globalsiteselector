@@ -198,7 +198,7 @@ class Application extends App implements IBootstrap {
 			}
 
 			if (isset($params['redirect_url'])) {
-				$masterUrl .= '?redirect_url=' . $params['redirect_url'];
+				$masterUrl = rtrim($masterUrl, '/') . '/index.php/login?redirect_url=' . $params['redirect_url'];
 			}
 
 			$this->logger->debug('Redirecting client to ' . $masterUrl, ['app' => self::APP_ID]);
