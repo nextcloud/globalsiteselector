@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.4.5
+
+- fix an issue in auth process on slave
+
 ## 2.4.4
 
 - fix a path lost during the redirection of a not logged account to master  
