@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.3.4
+
+- fix an issue in auth process on slave
+
 ## 2.3.3
 
 - passing idp to slave, back to master on logout.
