@@ -200,17 +200,18 @@ class SlaveController extends OCSController {
 
 		try {
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
-
+			$saml = false;
 			if (is_array($options) && isset($options['backend']) && $options['backend'] === 'saml') {
+				$saml = true;
 				$this->autoprovisionIfNeeded($uid, $options);
 			}
 
 			if ($this->userManager->userExists($uid)) {
-				// if we have a password, we verify it
-				if (!empty($password)) {
-					$result = $this->userSession->login($uid, $password);
+				// if we have a password, we verify it; if not it means we should be using saml.
+				if ($password === '') {
+					$result = $saml;
 				} else {
-					$result = true;
+					$result = $this->userSession->login($uid, $password);
 				}
 				if ($result) {
 					$token = $this->tokenHandler->generateAppToken($uid);
