@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -54,7 +55,8 @@ use Psr\Log\LoggerInterface;
  *
  * @package OCA\GlobalSiteSelector\Controller
  */
-class SlaveController extends OCSController {
+class SlaveController extends OCSController
+{
 
 	public function __construct(
 		$appName,
@@ -83,7 +85,8 @@ class SlaveController extends OCSController {
 	 *
 	 * @return RedirectResponse
 	 */
-	public function autoLogin(string $jwt): RedirectResponse {
+	public function autoLogin(string $jwt): RedirectResponse
+	{
 		$this->logger->debug('autologin incoming request with ' . $jwt);
 
 		try {
@@ -150,10 +153,49 @@ class SlaveController extends OCSController {
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
 
-		$home = $this->urlGenerator->getAbsoluteURL($target);
-		$this->logger->debug('redirecting to ' . $home);
+		$redirectUrl = $this->urlGenerator->getAbsoluteURL($target);
 
-		return new RedirectResponse($home);
+		/* see if we need to handle client login */
+		$clientFeatureEnabled = filter_var($this->config->getAppValue('globalsiteselector', 'client_feature_enabled', 'false'), FILTER_VALIDATE_BOOLEAN);
+		if ($clientFeatureEnabled) {
+			$this->logger->debug('Client redirect feature enabled');
+
+			$isClient = $this->request->isUserAgent(
+				[
+					IRequest::USER_AGENT_CLIENT_IOS,
+					IRequest::USER_AGENT_CLIENT_ANDROID,
+					IRequest::USER_AGENT_CLIENT_DESKTOP,
+					'/^.*\(Android\)$/'
+				]
+			);
+
+			$requestUri = $this->request->getRequestUri();
+			// check for both possible direct webdav end-points
+			$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
+			$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
+			// direct webdav access with old client or general purpose webdav clients
+			if ($isClient && $isDirectWebDavAccess) {
+				$this->logger->debug('redirectUser: client direct webdav request');
+				$redirectUrl = $target . '/remote.php/webdav/';
+			} elseif ($isClient && !$isDirectWebDavAccess) {
+				$this->logger->debug('redirectUser: client request generating apptoken');
+				$data = $this->createAppToken($jwt)->getData();
+				if (!isset($data['token'])) {
+					$info = 'getAppToken - data doesn\'t contain token: ' . json_encode($data);
+					throw new \Exception($info);
+				}
+				$appToken = $data['token'];
+
+				$redirectUrl =
+					'nc://login/server:' . $requestUri . '&user:' . urlencode($uid) . '&password:' . urlencode(
+						$appToken
+					);
+			}
+		}
+
+		$this->logger->debug('redirecting to ' . $redirectUrl);
+
+		return new RedirectResponse($redirectUrl);
 	}
 
 	/**
@@ -164,7 +206,8 @@ class SlaveController extends OCSController {
 	 *
 	 * @return DataResponse
 	 */
-	public function createAppToken($jwt) {
+	public function createAppToken($jwt)
+	{
 		if ($this->gss->getMode() === 'master' || empty($jwt)) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
@@ -202,7 +245,8 @@ class SlaveController extends OCSController {
 	 * @return array
 	 * @throws \Exception
 	 */
-	protected function decodeJwt($jwt) {
+	protected function decodeJwt($jwt)
+	{
 		$key = $this->gss->getJwtKey();
 		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
 
@@ -228,7 +272,8 @@ class SlaveController extends OCSController {
 	 * @param string $uid
 	 * @param array $options
 	 */
-	protected function autoprovisionIfNeeded($uid, $options) {
+	protected function autoprovisionIfNeeded($uid, $options)
+	{
 		// make sure that a valid UID is given
 		if (empty($uid)) {
 			$this->logger->error('Uid "{uid}" is not valid.', ['app' => $this->appName, 'uid' => $uid]);
