@@ -28,8 +28,10 @@ namespace OCA\GlobalSiteSelector\Events;
 use OCP\EventDispatcher\Event;
 use OCP\IUser;
 
-class AfterLoginOnSlaveEvent extends Event
-{
+/**
+ * This event is triggered after GSS login is finalized on the slave.
+ **/
+class AfterLoginOnSlaveEvent extends Event {
   public function __construct(private IUser $user)
   {
     parent::__construct();

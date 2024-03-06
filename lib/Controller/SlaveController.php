@@ -57,8 +57,7 @@ use Psr\Log\LoggerInterface;
  *
  * @package OCA\GlobalSiteSelector\Controller
  */
-class SlaveController extends OCSController
-{
+class SlaveController extends OCSController {
 
 	public function __construct(
 		$appName,
@@ -88,8 +87,7 @@ class SlaveController extends OCSController
 	 *
 	 * @return RedirectResponse
 	 */
-	public function autoLogin(string $jwt): RedirectResponse
-	{
+	public function autoLogin(string $jwt): RedirectResponse {
 		$this->logger->debug('autologin incoming request with ' . $jwt);
 
 		try {
@@ -216,8 +214,7 @@ class SlaveController extends OCSController
 	 *
 	 * @return DataResponse
 	 */
-	public function createAppToken($jwt)
-	{
+	public function createAppToken($jwt) {
 		if ($this->gss->getMode() === 'master' || empty($jwt)) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}
@@ -255,8 +252,7 @@ class SlaveController extends OCSController
 	 * @return array
 	 * @throws \Exception
 	 */
-	protected function decodeJwt($jwt)
-	{
+	protected function decodeJwt($jwt) {
 		$key = $this->gss->getJwtKey();
 		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
 
@@ -282,8 +278,7 @@ class SlaveController extends OCSController
 	 * @param string $uid
 	 * @param array $options
 	 */
-	protected function autoprovisionIfNeeded($uid, $options)
-	{
+	protected function autoprovisionIfNeeded($uid, $options) {
 		// make sure that a valid UID is given
 		if (empty($uid)) {
 			$this->logger->error('Uid "{uid}" is not valid.', ['app' => $this->appName, 'uid' => $uid]);
