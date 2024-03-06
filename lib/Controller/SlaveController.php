@@ -78,6 +78,32 @@ class SlaveController extends OCSController {
 		parent::__construct($appName, $request);
 	}
 
+	private function modifyRedirectUriForClient() {
+
+			$requestUri = $this->request->getRequestUri();
+			// check for both possible direct webdav end-points
+			$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false || strpos($requestUri, 'remote.php/dav') !== false;
+			// direct webdav access with old client or general purpose webdav clients
+			if ($isDirectWebDavAccess) {
+				$this->logger->debug('redirectUser: client direct webdav request');
+				$redirectUrl = $target . '/remote.php/webdav/';
+			} else {
+				$this->logger->debug('redirectUser: client request generating apptoken');
+				$data = $this->createAppToken($jwt)->getData();
+				if (!isset($data['token'])) {
+					$info = 'getAppToken - data doesn\'t contain token: ' . json_encode($data);
+					throw new \Exception($info);
+				}
+				$appToken = $data['token'];
+
+				$redirectUrl =
+					'nc://login/server:' . $requestUri . '&user:' . urlencode($uid) . '&password:' . urlencode(
+						$appToken
+					);
+			}
+		return $redirectUrl;
+	}
+
 	/**
 	 * @PublicPage
 	 * @NoCSRFRequired
@@ -176,28 +202,10 @@ class SlaveController extends OCSController {
 					'/^.*\(Android\)$/'
 				]
 			);
+		}
 
-			$requestUri = $this->request->getRequestUri();
-			// check for both possible direct webdav end-points
-			$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false || strpos($requestUri, 'remote.php/dav') !== false;
-			// direct webdav access with old client or general purpose webdav clients
-			if ($isClient && $isDirectWebDavAccess) {
-				$this->logger->debug('redirectUser: client direct webdav request');
-				$redirectUrl = $target . '/remote.php/webdav/';
-			} elseif ($isClient && !$isDirectWebDavAccess) {
-				$this->logger->debug('redirectUser: client request generating apptoken');
-				$data = $this->createAppToken($jwt)->getData();
-				if (!isset($data['token'])) {
-					$info = 'getAppToken - data doesn\'t contain token: ' . json_encode($data);
-					throw new \Exception($info);
-				}
-				$appToken = $data['token'];
-
-				$redirectUrl =
-					'nc://login/server:' . $requestUri . '&user:' . urlencode($uid) . '&password:' . urlencode(
-						$appToken
-					);
-			}
+		if ($isClient) {
+			$redirectUrl = $this->modifyRedirectUriForClient();
 		}
 
 		$this->logger->debug('redirecting to ' . $redirectUrl);
