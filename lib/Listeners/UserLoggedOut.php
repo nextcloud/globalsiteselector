@@ -54,11 +54,13 @@ class UserLoggedOut implements IEventListener {
 			return;
 		}
 
+		$user = $event->getUser();
+
 		/** only used in slave mode */
-		if ($this->globalSiteSelector->getMode() !== GlobalSiteSelector::SLAVE) {
+		if ($user === null || $this->globalSiteSelector->getMode() !== GlobalSiteSelector::SLAVE) {
 			return;
 		}
 
-		$this->slave->handleLogoutRequest($event->getUser());
+		$this->slave->handleLogoutRequest($user);
 	}
 }
