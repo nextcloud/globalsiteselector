@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
  *
@@ -24,6 +25,7 @@ namespace OCA\GlobalSiteSelector\Controller;
 
 use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Events\AfterLoginOnSlaveEvent;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
@@ -37,6 +39,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
@@ -63,6 +66,7 @@ class SlaveController extends OCSController {
 		private IUserSession $userSession,
 		private IURLGenerator $urlGenerator,
 		private ICrypto $crypto,
+		private IEventDispatcher $eventDispatcher,
 		private TokenHandler $tokenHandler,
 		private IUserManager $userManager,
 		private UserBackend $userBackend,
@@ -72,6 +76,32 @@ class SlaveController extends OCSController {
 		private LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
+	}
+
+	private function modifyRedirectUriForClient() {
+
+			$requestUri = $this->request->getRequestUri();
+			// check for both possible direct webdav end-points
+			$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false || strpos($requestUri, 'remote.php/dav') !== false;
+			// direct webdav access with old client or general purpose webdav clients
+			if ($isDirectWebDavAccess) {
+				$this->logger->debug('redirectUser: client direct webdav request');
+				$redirectUrl = $target . '/remote.php/webdav/';
+			} else {
+				$this->logger->debug('redirectUser: client request generating apptoken');
+				$data = $this->createAppToken($jwt)->getData();
+				if (!isset($data['token'])) {
+					$info = 'getAppToken - data doesn\'t contain token: ' . json_encode($data);
+					throw new \Exception($info);
+				}
+				$appToken = $data['token'];
+
+				$redirectUrl =
+					'nc://login/server:' . $requestUri . '&user:' . urlencode($uid) . '&password:' . urlencode(
+						$appToken
+					);
+			}
+		return $redirectUrl;
 	}
 
 	/**
@@ -150,10 +180,37 @@ class SlaveController extends OCSController {
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
 
-		$home = $this->urlGenerator->getAbsoluteURL($target);
-		$this->logger->debug('redirecting to ' . $home);
+		$user = $this->userManager->get($uid);
+		if ($user instanceof IUser) {
+			$this->logger->debug('emiting AfterLoginOnSlaveEvent event');
+			$this->eventDispatcher->dispatchTyped(
+				new AfterLoginOnSlaveEvent($user)
+			);
+		}
+		$redirectUrl = $this->urlGenerator->getAbsoluteURL($target);
 
-		return new RedirectResponse($home);
+		/* see if we need to handle client login */
+		$clientFeatureEnabled = filter_var($this->config->getAppValue('globalsiteselector', 'client_feature_enabled', 'false'), FILTER_VALIDATE_BOOLEAN);
+		if ($clientFeatureEnabled) {
+			$this->logger->debug('Client redirect feature enabled');
+
+			$isClient = $this->request->isUserAgent(
+				[
+					IRequest::USER_AGENT_CLIENT_IOS,
+					IRequest::USER_AGENT_CLIENT_ANDROID,
+					IRequest::USER_AGENT_CLIENT_DESKTOP,
+					'/^.*\(Android\)$/'
+				]
+			);
+		}
+
+		if ($isClient) {
+			$redirectUrl = $this->modifyRedirectUriForClient();
+		}
+
+		$this->logger->debug('redirecting to ' . $redirectUrl);
+
+		return new RedirectResponse($redirectUrl);
 	}
 
 	/**
