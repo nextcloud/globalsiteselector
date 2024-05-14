@@ -234,33 +234,31 @@ class Master {
 		$this->logger->debug('redirectUser: direct login so forward to target node');
 		$jwt = $this->createJwt($uid, $password, $options);
 		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
-		
-		$clientFeatureEnabled = filter_var($this->config->getAppValue('globalsiteselector', 'client_feature_enabled', 'false'), FILTER_VALIDATE_BOOLEAN);
-		if (!$clientFeatureEnabled) {
-			$isClient = $this->request->isUserAgent(
-				[
-					IRequest::USER_AGENT_CLIENT_IOS,
-					IRequest::USER_AGENT_CLIENT_ANDROID,
-					IRequest::USER_AGENT_CLIENT_DESKTOP,
-					'/^.*\(Android\)$/'
-				]
-			);
 
+		$clientFeatureEnabled = ($this->config->getAppValue(Application::APP_ID, 'client_feature_enabled', 'false') === 'true');
+		$isClient = $this->request->isUserAgent(
+			[
+				IRequest::USER_AGENT_CLIENT_IOS,
+				IRequest::USER_AGENT_CLIENT_ANDROID,
+				IRequest::USER_AGENT_CLIENT_DESKTOP,
+				'/^.*\(Android\)$/'
+			]
+		);
+
+		$this->logger->debug('redirectUser client checks: ' . json_encode(['enabled' => $clientFeatureEnabled, 'isClient' => $isClient]));
+		if (!$clientFeatureEnabled && $isClient) {
 			$requestUri = $this->request->getRequestUri();
 			// check for both possible direct webdav end-points
 			$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
 			$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
 			// direct webdav access with old client or general purpose webdav clients
-			if ($isClient && $isDirectWebDavAccess) {
+			if ($isDirectWebDavAccess) {
 				$this->logger->debug('redirectUser: client direct webdav request');
 				$redirectUrl = $location . '/remote.php/webdav/';
-			} elseif ($isClient && !$isDirectWebDavAccess) {
+			} else {
 				$this->logger->debug('redirectUser: client request generating apptoken');
 				$appToken = $this->getAppToken($location, $uid, $password, $options);
-				$redirectUrl =
-					'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode(
-						$appToken
-					);
+				$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
 			}
 		}
 
