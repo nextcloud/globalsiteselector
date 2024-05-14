@@ -32,12 +32,11 @@ use OCP\IUser;
  * This event is triggered after GSS login is finalized on the slave.
  **/
 class AfterLoginOnSlaveEvent extends Event {
-  public function __construct(private IUser $user)
-  {
-    parent::__construct();
-  }
-  public function getUser(): IUser
-  {
-    return $this->user;
-  }
+	public function __construct(private IUser $user) {
+		parent::__construct();
+	}
+
+	public function getUser(): IUser {
+		return $this->user;
+	}
 }
