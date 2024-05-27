@@ -5,7 +5,6 @@ build_dir=$(CURDIR)/build/artifacts
 source_dir=$(build_dir)/source
 sign_dir=$(build_dir)/sign
 package_name=$(app_name)
-version+=2.3.1
 
 all: appstore
 
@@ -62,5 +61,5 @@ release:
 	--exclude=/Makefile \
 	--exclude=.drone.yml \
 	$(project_dir)/ $(sign_dir)/$(app_name)
-	tar -czf $(build_dir)/$(app_name)-$(version).tar.gz \
+	tar -czf $(build_dir)/$(app_name).tar.gz \
 		-C $(sign_dir) $(app_name)
