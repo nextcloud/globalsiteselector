@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.5.1
+
+- ignore null user on logout
+- compat nc29
+
+## 2.5.0
+
+- compat nc28
+
 ## 2.3.0
 
 - new session is now generated on slave when using user_saml
