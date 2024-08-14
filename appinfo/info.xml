@@ -4,7 +4,7 @@
 	<name>Global Site Selector</name>
 	<summary>Nextcloud Portal to redirect users to the right instance</summary>
 	<description>The Global Site Selector allows you to run multiple small Nextcloud instances and redirect users to the right server</description>
-	<version>2.5.0-beta1</version>
+	<version>3.0.0-dev.0</version>
 	<licence>agpl</licence>
 	<author>Bjoern Schiessle</author>
 	<author>Maxence Lange</author>
@@ -17,7 +17,7 @@
 	<bugs>https://github.com/nextcloud/globalsiteselector/issues</bugs>
 	<repository>https://github.com/nextcloud/globalsiteselector</repository>
 	<dependencies>
-		<nextcloud min-version="28" max-version="28"/>
+		<nextcloud min-version="31" max-version="31"/>
 	</dependencies>
 	<background-jobs>
 		<job>OCA\GlobalSiteSelector\BackgroundJobs\UpdateLookupServer</job>
