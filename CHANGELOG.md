@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.5.2
+
+- get rid of getEventDispatcher()
+- compat nc30
+
 ## 2.5.1
 
 - ignore null user on logout
@@ -9,6 +14,42 @@ All notable changes to this project will be documented in this file.
 ## 2.5.0
 
 - compat nc28
+
+## 2.4.5
+
+- fix an issue in auth process on slave
+
+## 2.4.4
+
+- fix a path lost during the redirection of a not logged account to master
+
+## 2.4.3
+
+- sanitize uid while getting its location
+- encode uid on search on LUS
+- wrap JWT with mozart
+
+## 2.4.2
+
+- add a settings to stay on slave if local account after logout
+- check instance type before updating user
+
+## 2.4.1
+
+- passing idp to slave, back to master on logout.
+- storing idp in user preferences.
+
+## 2.4.0
+
+- compat nc26
+
+## 2.3.2
+
+- new app type extended_authentication
+
+## 2.3.1
+
+- get full account data on login
 
 ## 2.3.0
 
