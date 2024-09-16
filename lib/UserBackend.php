@@ -23,6 +23,7 @@ namespace OCA\GlobalSiteSelector;
 
 use OC\User\Backend;
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\NotPermittedException;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
@@ -43,6 +44,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	public function __construct(
 		private IDBConnection $db,
 		private ISession $session,
+		private IEventDispatcher $eventDispatcher,
 		private IGroupManager $groupManager,
 		private IUserManager $userManager
 	) {
@@ -107,9 +109,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			}
 			// trigger any other initialization
 			$user = $this->userManager->get($uid);
-			\OC::$server->getEventDispatcher()->dispatch(
-				IUser::class . '::firstLogin', new GenericEvent($user)
-			);
+			$this->eventDispatcher->dispatch(IUser::class . '::firstLogin', new GenericEvent($user));
 		}
 	}
 
