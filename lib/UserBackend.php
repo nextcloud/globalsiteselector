@@ -23,6 +23,7 @@ namespace OCA\GlobalSiteSelector;
 
 use OC\User\Backend;
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\EventDispatcher\GenericEvent;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\NotPermittedException;
 use OCP\IDBConnection;
@@ -33,7 +34,6 @@ use OCP\IUserBackend;
 use OCP\IUserManager;
 use OCP\User\Backend\ICountUsersBackend;
 use OCP\UserInterface;
-use Symfony\Component\EventDispatcher\GenericEvent;
 
 class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	private string $dbName = 'global_scale_users';
