@@ -231,6 +231,11 @@ class Master {
 	 * @throws Exception
 	 */
 	protected function redirectUser($uid, $password, $location, array $options = []) {
+		$this->logger->debug('redirectUser: direct login so forward to target node');
+		$jwt = $this->createJwt($uid, $password, $options);
+		$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
+
+		$clientFeatureEnabled = ($this->config->getAppValue(Application::APP_ID, 'client_feature_enabled', 'false') === 'true');
 		$isClient = $this->request->isUserAgent(
 			[
 				IRequest::USER_AGENT_CLIENT_IOS,
@@ -240,25 +245,21 @@ class Master {
 			]
 		);
 
-		$requestUri = $this->request->getRequestUri();
-		// check for both possible direct webdav end-points
-		$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
-		$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
-		// direct webdav access with old client or general purpose webdav clients
-		if ($isClient && $isDirectWebDavAccess) {
-			$this->logger->debug('redirectUser: client direct webdav request');
-			$redirectUrl = $location . '/remote.php/webdav/';
-		} elseif ($isClient && !$isDirectWebDavAccess) {
-			$this->logger->debug('redirectUser: client request generating apptoken');
-			$appToken = $this->getAppToken($location, $uid, $password, $options);
-			$redirectUrl =
-				'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode(
-					$appToken
-				);
-		} else {
-			$this->logger->debug('redirectUser: direct login so forward to target node');
-			$jwt = $this->createJwt($uid, $password, $options);
-			$redirectUrl = $location . '/index.php/apps/globalsiteselector/autologin?jwt=' . $jwt;
+		$this->logger->debug('redirectUser client checks: ' . json_encode(['enabled' => $clientFeatureEnabled, 'isClient' => $isClient]));
+		if (!$clientFeatureEnabled && $isClient) {
+			$requestUri = $this->request->getRequestUri();
+			// check for both possible direct webdav end-points
+			$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
+			$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
+			// direct webdav access with old client or general purpose webdav clients
+			if ($isDirectWebDavAccess) {
+				$this->logger->debug('redirectUser: client direct webdav request');
+				$redirectUrl = $location . '/remote.php/webdav/';
+			} else {
+				$this->logger->debug('redirectUser: client request generating apptoken');
+				$appToken = $this->getAppToken($location, $uid, $password, $options);
+				$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
+			}
 		}
 
 		$this->logger->debug('redirectUser: redirecting to: ' . $redirectUrl);
@@ -288,17 +289,6 @@ class Master {
 		return $jwt;
 	}
 
-	/**
-	 * get app token from the server the user is located
-	 *
-	 * @param string $location
-	 * @param string $uid
-	 * @param string $password
-	 * @param array $options
-	 *
-	 * @return string
-	 * @throws Exception
-	 */
 	protected function getAppToken($location, $uid, $password, $options) {
 		$client = $this->clientService->newClient();
 		$jwt = $this->createJwt($uid, $password, $options);

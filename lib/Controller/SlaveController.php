@@ -24,6 +24,7 @@ namespace OCA\GlobalSiteSelector\Controller;
 
 use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Events\AfterLoginOnSlaveEvent;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\SlaveService;
@@ -37,6 +38,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
@@ -63,6 +65,7 @@ class SlaveController extends OCSController {
 		private IUserSession $userSession,
 		private IURLGenerator $urlGenerator,
 		private ICrypto $crypto,
+		private IEventDispatcher $eventDispatcher,
 		private TokenHandler $tokenHandler,
 		private IUserManager $userManager,
 		private UserBackend $userBackend,
@@ -104,7 +107,7 @@ class SlaveController extends OCSController {
 			list($uid, $password, $options) = $this->decodeJwt($jwt);
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
 
-			$target = $options['target'];
+			$target = (string) $options['target'];
 			if (($options['backend'] ?? '') === 'saml') {
 				$this->logger->debug('saml enabled');
 				$this->autoprovisionIfNeeded($uid, $options);
@@ -140,7 +143,6 @@ class SlaveController extends OCSController {
 			return new RedirectResponse($masterUrl);
 		} catch (\Exception $e) {
 			$this->logger->warning('issue during login process', ['exception' => $e]);
-
 			return new RedirectResponse($masterUrl);
 		}
 
@@ -150,10 +152,32 @@ class SlaveController extends OCSController {
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
 
-		$home = $this->urlGenerator->getAbsoluteURL($target);
-		$this->logger->debug('redirecting to ' . $home);
+		$user = $this->userManager->get($uid);
+		if ($user instanceof IUser) {
+			$this->logger->debug('emitting AfterLoginOnSlaveEvent event');
+			$this->eventDispatcher->dispatchTyped(new AfterLoginOnSlaveEvent($user));
+		}
 
-		return new RedirectResponse($home);
+		/* see if we need to handle client login */
+		$clientFeatureEnabled = ($this->config->getAppValue(Application::APP_ID, 'client_feature_enabled', 'false') === 'true');
+		if ($clientFeatureEnabled
+			&& $this->request->isUserAgent(
+				[
+					IRequest::USER_AGENT_CLIENT_IOS,
+					IRequest::USER_AGENT_CLIENT_ANDROID,
+					IRequest::USER_AGENT_CLIENT_DESKTOP,
+					'/^.*\(Android\)$/'
+				]
+			)) {
+			$this->logger->debug('managing request as emerging from client');
+			$redirectUrl = $this->modifyRedirectUriForClient($uid, $target, $jwt);
+		} else {
+			$redirectUrl = $this->urlGenerator->getAbsoluteURL($target);
+		}
+
+		$this->logger->debug('redirecting to ' . $redirectUrl);
+
+		return new RedirectResponse($redirectUrl);
 	}
 
 	/**
@@ -237,5 +261,33 @@ class SlaveController extends OCSController {
 
 		$this->userBackend->createUserIfNotExists($uid);
 		$this->userBackend->updateAttributes($uid, $options);
+	}
+
+
+	private function modifyRedirectUriForClient(
+		string $uid,
+		string $target,
+		string $jwt
+	): string {
+		$requestUri = $this->request->getRequestUri();
+		$isDirectWebDavAccess = str_contains($requestUri, 'remote.php/webdav') || str_contains($requestUri, 'remote.php/dav');
+
+		// direct webdav access with old client or general purpose webdav clients
+		if ($isDirectWebDavAccess) {
+			$this->logger->debug('redirectUser: client direct webdav request to ' . $target);
+			$redirectUrl = $target . '/remote.php/webdav/';
+		} else {
+			$this->logger->debug('redirectUser: client request generating apptoken');
+			$data = $this->createAppToken($jwt)->getData();
+			if (!isset($data['token'])) {
+				throw new \Exception('getAppToken - data missing token: ' . json_encode($data));
+			}
+			$appToken = $data['token'];
+
+			$redirectUrl = 'nc://login/server:' . $requestUri . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
+		}
+
+		$this->logger->debug('generated client redirect url: ' . $redirectUrl);
+		return $redirectUrl;
 	}
 }
