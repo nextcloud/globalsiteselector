@@ -29,18 +29,20 @@ use OCA\GlobalSiteSelector\Slave;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJob;
 use OCP\BackgroundJob\TimedJob;
+use OCP\IConfig;
 
 class UpdateLookupServer extends TimedJob {
 
 
 	public function __construct(
 		ITimeFactory $time,
+		IConfig $config,
 		private GlobalSiteSelector $globalSiteSelector,
 		private Slave $slave
 	) {
 		parent::__construct($time);
 
-		$this->setInterval(86400);
+		$this->setInterval($config->getSystemValueInt('gss.updatels.interval', 86400));
 		$this->setTimeSensitivity(IJob::TIME_SENSITIVE);
 	}
 
