@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
 
 /**
  * @copyright Copyright (c) 2018 Bjoern Schiessle <bjoern@schiessle.org>
  *
  * @license GNU AGPL version 3 or any later version
+ *
+ * @author Maxence Lange <maxence@artificial-owl.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,18 +24,17 @@
  *
  */
 
-
 namespace OCA\GlobalSiteSelector\Controller;
 
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Events\GlobalScaleMasterLogoutEvent;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
-use OCA\GlobalSiteSelector\Master;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IRequest;
-use OCP\ISession;
 use OCP\IURLGenerator;
 use Psr\Log\LoggerInterface;
 
@@ -44,28 +46,16 @@ use Psr\Log\LoggerInterface;
  * @package OCA\GlobalSiteSelector\Controller
  */
 class MasterController extends OCSController {
-	private IURLGenerator $urlGenerator;
-	private ISession $session;
-	private GlobalSiteSelector $gss;
-	private Master $master;
-	private LoggerInterface $logger;
 
 	public function __construct(
-		$appName,
+		string $appName,
 		IRequest $request,
-		IURLGenerator $urlGenerator,
-		ISession $session,
-		GlobalSiteSelector $globalSiteSelector,
-		Master $master,
-		LoggerInterface $logger
+		private IURLGenerator $urlGenerator,
+		private IEventDispatcher $eventDispatcher,
+		private GlobalSiteSelector $gss,
+		private LoggerInterface $logger
 	) {
 		parent::__construct($appName, $request);
-
-		$this->urlGenerator = $urlGenerator;
-		$this->session = $session;
-		$this->gss = $globalSiteSelector;
-		$this->master = $master;
-		$this->logger = $logger;
 	}
 
 	/**
@@ -82,20 +72,23 @@ class MasterController extends OCSController {
 			if ($jwt !== null) {
 				$key = $this->gss->getJwtKey();
 				$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
-				$idp = $decoded['saml.idp'] ?? null;
 
-				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
-				if (!empty($logoutUrl)) {
-					$token = [
-						'logout' => 'logout',
-						'idp' => $idp,
-						'exp' => time() + 300, // expires after 5 minutes
-					];
+				$event = new GlobalScaleMasterLogoutEvent();
+				$event->setIdp($decoded['saml.idp'] ?? '');
+				$this->eventDispatcher->dispatchTyped($event);
 
-					$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
-
-					return new RedirectResponse($logoutUrl . '?jwt=' . $jwt);
-				}
+//				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
+//				if (!empty($logoutUrl)) {
+//					$token = [
+//						'logout' => 'logout',
+//						'idp' => $idp,
+//						'exp' => time() + 300, // expires after 5 minutes
+//					];
+//
+//					$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
+//
+//					return new RedirectResponse($logoutUrl . '?jwt=' . $jwt);
+//				}
 			}
 		} catch (\Exception $e) {
 			$this->logger->warning('remote logout request failed', ['exception' => $e]);
