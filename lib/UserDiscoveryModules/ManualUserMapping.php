@@ -45,6 +45,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	private string $idpParameter;
 	private string $file;
 	private bool $useRegularExpressions;
+	private bool $normalizedKey;
 
 	public function __construct(
 		IConfig $config,
@@ -53,6 +54,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$this->idpParameter = $config->getSystemValueString('gss.discovery.manual.mapping.parameter', '');
 		$this->file = $config->getSystemValueString('gss.discovery.manual.mapping.file', '');
 		$this->useRegularExpressions = $config->getSystemValueBool('gss.discovery.manual.mapping.regex', false);
+		$this->normalizedKey = $config->getSystemValueBool('gss.discovery.manual.mapping.regex.normalized', true);
 
 		$this->logger->debug('Init ManualUserMapping');
 		$this->logger->debug('IdP Parameter: ' . $this->idpParameter);
@@ -83,7 +85,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		// dictionary contains regular expressions
 		if (!empty($key) && is_array($dictionary) && $this->useRegularExpressions) {
 			foreach ($dictionary as $regex => $nextcloudNode) {
-				$this->logger->debug('Testing regex: "' . $regex . '"');
+				$this->logger->debug('Testing regex="' . $regex . '", key="' . $key . '"');
 				if (preg_match($regex, $key) === 1) {
 					$this->logger->debug('Regex matched');
 					$location = $nextcloudNode;
@@ -132,6 +134,10 @@ class ManualUserMapping implements IUserDiscoveryModule {
 			$this->logger->debug('Found idpPrameter ' . $this->idpParameter . ' with value "' . $key . '"');
 		} else {
 			$this->logger->debug('Could not find idpParamter: ' . $this->idpParameter);
+		}
+
+		if (!$this->normalizedKey) {
+			return $key;
 		}
 
 		return $this->normalizeKey($key);
