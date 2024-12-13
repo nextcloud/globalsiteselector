@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+version = 1
+SPDX-PackageName = "globalsiteselector"
+SPDX-PackageSupplier = "Nextcloud <info@nextcloud.com>"
+SPDX-PackageDownloadLocation = "https://github.com/nextcloud/globalsiteselector"
+
+[[annotations]]
+path = ["composer.json", "composer.lock"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2017 Nextcloud GmbH and Nextcloud contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = ["vendor-bin/csfixer/composer.json", "vendor-bin/csfixer/composer.lock", "vendor-bin/mozart/composer.json", "vendor-bin/mozart/composer.lock", "vendor-bin/phpunit/composer.json", "vendor-bin/phpunit/composer.lock", "vendor-bin/psalm/composer.json", "vendor-bin/psalm/composer.lock", "composer.lock"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Nextcloud GmbH and Nextcloud contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = "lib/Vendor/Firebase/JWT/**.php"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 PHP-JWT contributors"
+SPDX-License-Identifier = "BSD-3-Clause"
