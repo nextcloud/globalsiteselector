@@ -4,6 +4,8 @@
 -->
 # Global Site Selector
 
+[![REUSE status](https://api.reuse.software/badge/github.com/nextcloud/globalsiteselector)](https://api.reuse.software/info/github.com/nextcloud/globalsiteselector)
+
 The Global Site Selector allows you to run multiple small Nextcloud instances and redirect users to the right server.
 
 It can run in two modes. In "master" mode the server will query the lookup-server for the users location and redirect the user to the right Nextcloud server. In "slave" mode the server will be able to receive and handle the redirects of the master.
