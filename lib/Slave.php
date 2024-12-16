@@ -19,6 +19,7 @@ use Psr\Log\LoggerInterface;
 
 class Slave {
 	public const SAML_IDP = 'saml_idp';
+	public const OIDC_PROVIDER_ID = 'oidc_provider_id';
 
 	private IUserManager $userManager;
 	private IClientService $clientService;
@@ -279,6 +280,11 @@ class Slave {
 				$user->getUID(),
 				Application::APP_ID,
 				self::SAML_IDP,
+				null),
+			'oidc.providerId' => $this->config->getUserValue(
+				$user->getUID(),
+				Application::APP_ID,
+				self::OIDC_PROVIDER_ID,
 				null),
 			'exp' => time() + 300 // expires after 5 minute
 		];
