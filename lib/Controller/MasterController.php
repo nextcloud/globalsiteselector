@@ -67,13 +67,22 @@ class MasterController extends OCSController {
 			if ($jwt !== null) {
 				$key = $this->gss->getJwtKey();
 				$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
-				$idp = $decoded['saml.idp'] ?? null;
 
-				$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
+				// saml idp ID
+				$samlIdp = $decoded['saml.idp'] ?? null;
+				// oidc provider ID
+				$oidcProviderId = $decoded['oidc.providerId'] ?? '';
+
+				if (class_exists('\OCA\User_SAML\UserBackend')) {
+					$logoutUrl = $this->urlGenerator->linkToRoute('user_saml.SAML.singleLogoutService');
+				} elseif (class_exists('\OCA\UserOIDC\User\Backend')) {
+					$logoutUrl = $this->urlGenerator->linkToRoute('user_oidc.login.singleLogoutService');
+				}
 				if (!empty($logoutUrl)) {
 					$token = [
 						'logout' => 'logout',
-						'idp' => $idp,
+						'idp' => $samlIdp,
+						'oidcProviderId' => $oidcProviderId,
 						'exp' => time() + 300, // expires after 5 minutes
 					];
 

@@ -104,10 +104,10 @@ class Master {
 		$userDiscoveryModule = $this->config->getSystemValueString('gss.user.discovery.module', '');
 		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
-		$isSaml = false;
+		$isSamlOrOidc = false;
 		if (class_exists('\OCA\User_SAML\UserBackend')
 			&& $backend instanceof \OCA\User_SAML\UserBackend) {
-			$isSaml = true;
+			$isSamlOrOidc = true;
 			$this->logger->debug('handleLoginRequest: backend is SAML');
 
 			$options['backend'] = 'saml';
@@ -122,8 +122,29 @@ class Master {
 			];
 
 			$this->logger->debug('handleLoginRequest: backend is SAML.', ['options' => $options]);
+		} elseif (class_exists('\OCA\UserOIDC\Controller\LoginController')
+			&& class_exists('\OCA\UserOIDC\User\Backend')
+			&& $backend instanceof \OCA\UserOIDC\User\Backend
+			&& method_exists($backend, 'getUserData')
+		) {
+			// TODO double check if we need to behave the same when saml or oidc is used
+			$isSamlOrOidc = true;
+			$this->logger->debug('handleLoginRequest: backend is OIDC');
+
+			$options['backend'] = 'oidc';
+			$options['userData'] = $backend->getUserData();
+			$uid = $options['userData']['formatted']['uid'];
+			$password = '';
+			$discoveryData['oidc'] = $options['userData']['raw'];
+			// we only send the formatted user data to the slave
+			$options['userData'] = $options['userData']['formatted'];
+			$options['oidc'] = [
+				'providerId' => $this->session->get(\OCA\UserOIDC\Controller\LoginController::PROVIDERID)
+			];
+
+			$this->logger->debug('handleLoginRequest: backend is OIDC.', ['options' => $options]);
 		} else {
-			$this->logger->debug('handleLoginRequest: backend is not SAML');
+			$this->logger->debug('handleLoginRequest: backend is not SAML or OIDC');
 		}
 
 		$this->logger->debug('handleLoginRequest: uid is: ' . $uid);
@@ -141,8 +162,8 @@ class Master {
 		}
 
 		// first ask the lookup server if we already know the user
-		// is from SAML, only search on userId, ignore email.
-		$location = $this->queryLookupServer($uid, $isSaml);
+		// is from SAML or OIDC, only search on userId, ignore email.
+		$location = $this->queryLookupServer($uid, $isSamlOrOidc);
 		$this->logger->debug('handleLoginRequest: location according to lookup server: ' . $location);
 
 		// if not we fall-back to a initial user deployment method, if configured

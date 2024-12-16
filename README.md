@@ -39,6 +39,7 @@ Config.php parameters to operate the server in master mode:
 //       The user disovery module might require additional config paramters you can find in
 //       the documentation of the module
 'gss.user.discovery.module' => '\OCA\GlobalSiteSelector\UserDiscoveryModules\UserDiscoverySAML',
+// or 'gss.user.discovery.module' => '\OCA\GlobalSiteSelector\UserDiscoveryModules\UserDiscoveryOIDC'
 
 // define a allow list for automatic login to other instance to let browsers handle the redirect properly
 'gss.master.csp-allow' => ['*.myorg.com', 'node3.otherorg.com'],
@@ -80,11 +81,21 @@ specific use case:
 
 #### UserDiscoverySAML
 
-This modules reads the location directly from a parameter of the IDP which contain
-the exact URL to the server. The name of the parameter can be defined this way:
+This modules reads the location directly from a parameter of the IDP which contains
+the exact URL to the slave target server. The name of the parameter can be defined this way:
 
 ````
 'gss.discovery.saml.slave.mapping' => 'idp-parameter'
+````
+
+#### UserDiscoveryOIDC
+
+This module is similar to UserDiscoverySAML.
+It reads the location from an OIDC token attribute which contains
+the exact URL to the slave target server. The attribute can be defined this way:
+
+````
+'gss.discovery.oidc.slave.mapping' => 'token-attribute'
 ````
 
 #### ManualUserMapping
