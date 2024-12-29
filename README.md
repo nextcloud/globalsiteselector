@@ -1,4 +1,10 @@
+<!--
+  - SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
 # Global Site Selector
+
+[![REUSE status](https://api.reuse.software/badge/github.com/nextcloud/globalsiteselector)](https://api.reuse.software/info/github.com/nextcloud/globalsiteselector)
 
 The Global Site Selector allows you to run multiple small Nextcloud instances and redirect users to the right server.
 
