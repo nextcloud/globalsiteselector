@@ -90,8 +90,9 @@ class SlaveController extends OCSController {
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
 
 			$target = $options['target'];
-			if (($options['backend'] ?? '') === 'saml') {
-				$this->logger->debug('saml enabled');
+			$backend = $options['backend'] ?? '';
+			if ($backend === 'saml' || $backend === 'oidc') {
+				$this->logger->debug('saml or oidc enabled: ' . $backend);
 				$this->autoprovisionIfNeeded($uid, $options);
 
 				$user = $this->userManager->get($uid);
@@ -107,6 +108,12 @@ class SlaveController extends OCSController {
 					Application::APP_ID,
 					Slave::SAML_IDP,
 					$options['saml']['idp'] ?? null
+				);
+				$this->config->setUserValue(
+					$user->getUID(),
+					Application::APP_ID,
+					Slave::OIDC_PROVIDER_ID,
+					$options['oidc']['providerId'] ?? ''
 				);
 
 				$result = true;
