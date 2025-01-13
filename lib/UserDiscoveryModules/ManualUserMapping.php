@@ -56,8 +56,8 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	public function getLocation(array $data): string {
 		$location = '';
 		$dictionary = $this->getDictionary();
-		$key = $this->getKey($data);
 
+		$key = $this->getKey($data['saml'] ?? $data['oidc']);
 		$this->logger->debug('Lookup key is: "' . $key . '"');
 
 		// regular lookup
@@ -112,8 +112,12 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 */
 	private function getKey($data) {
 		$key = '';
-		if (!empty($this->idpParameter) && isset($data['saml'][$this->idpParameter][0])) {
-			$key = $data['saml'][$this->idpParameter][0];
+		if (!empty($this->idpParameter) && array_key_exists($this->idpParameter, $data)) {
+			$keys = $data[$this->idpParameter];
+			if (!is_array($keys)) {
+				$keys = [$keys];
+			}
+			$key = $keys[0];
 			$this->logger->debug('Found idpPrameter ' . $this->idpParameter . ' with value "' . $key . '"');
 		} else {
 			$this->logger->debug('Could not find idpParamter: ' . $this->idpParameter);
