@@ -141,6 +141,8 @@ class Master {
 			$options['oidc'] = [
 				'providerId' => $this->session->get(\OCA\UserOIDC\Controller\LoginController::PROVIDERID)
 			];
+			// 	TODO: switch 'oidc.redirect' to \OCA\UserOIDC\Controller\LoginController::REDIRECT_AFTER_LOGIN once switched to public
+			$options['target'] = $this->forceRelativeUrl($this->session->get('oidc.redirect') ?? '/');
 
 			$this->logger->debug('handleLoginRequest: backend is OIDC.', ['options' => $options]);
 		} else {
@@ -157,7 +159,6 @@ class Master {
 
 		if (in_array($uid, array_merge($masterAdmins, $localAccounts), true)) {
 			$this->logger->debug('handleLoginRequest: this user is a local account so ignore');
-
 			return;
 		}
 
@@ -169,7 +170,7 @@ class Master {
 		// if not we fall-back to a initial user deployment method, if configured
 		if (empty($location) && !empty($userDiscoveryModule)) {
 			try {
-				$this->logger->debug('handleLoginRequest: obtaining location from discovery module');
+				$this->logger->debug('handleLoginRequest: obtaining location from discovery module ' . $userDiscoveryModule);
 
 				/** @var IUserDiscoveryModule $module */
 				$module = Server::get($userDiscoveryModule);
@@ -382,5 +383,18 @@ class Master {
 		}
 
 		return false;
+	}
+
+	private function forceRelativeUrl(string $url): string {
+		if (str_starts_with($url, '/')) {
+			return $url;
+		}
+
+		$parsed = parse_url($url);
+		$url = $parsed['path'];
+		$url .= (!array_key_exists('query', $parsed)) ? '' : '?' . $parsed['query'];
+		$url .= (!array_key_exists('fragment', $parsed)) ? '' : '#' . $parsed['fragment'];
+
+		return $url;
 	}
 }

@@ -107,7 +107,7 @@ class SlaveController extends OCSController {
 					$user->getUID(),
 					Application::APP_ID,
 					Slave::SAML_IDP,
-					$options['saml']['idp'] ?? null
+					$options['saml']['idp'] ?? ''
 				);
 				$this->config->setUserValue(
 					$user->getUID(),
