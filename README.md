@@ -126,3 +126,13 @@ parameter has to be set:
 'gss.discovery.manual.mapping.regex' => true
 
 ````
+
+
+#### RemoteUserMapping
+
+Get user location from an external remote discovery service.
+The request is POST, contains data from the SSO, and must return the hostname of the destination (nextcloud instance)
+
+````
+    'gss.discovery.remote.endpoint' => 'https://example.net/discovery.php',
+````
