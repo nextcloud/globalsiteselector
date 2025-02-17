@@ -59,6 +59,9 @@ Config parameters to operate the server in slave mode:
 
 // url of the master, so we can redirect the user back in case of an error
 'gss.master.url' => 'http://localhost/nextcloud2',
+
+// interval (in seconds) between lookup-server updates
+'gss.updatels.interval' => 86400,
 ````
 
 The Slave will always redirect not logged in user to the master to perform the login.
