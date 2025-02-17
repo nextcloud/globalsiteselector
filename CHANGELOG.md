@@ -5,6 +5,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.6.0
+
+- support for OIDC (using app user_oidc v6.2.1 or superior)
+- new user discovery mapping 'RemoteUserDiscovery' to obtain instance from external service
+- new config 'gss.updatels.interval' to change update internal to lookup server
+- upgrade composer and clean code
+- compat nc31
+
 ## 2.5.2
 
 - get rid of getEventDispatcher()
