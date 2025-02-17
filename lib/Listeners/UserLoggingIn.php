@@ -24,7 +24,7 @@ class UserLoggingIn implements IEventListener {
 	public function __construct(
 		private GlobalSiteSelector $globalSiteSelector,
 		private Master $master,
-		private LoggerInterface $logger
+		private LoggerInterface $logger,
 	) {
 	}
 

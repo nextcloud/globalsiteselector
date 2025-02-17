@@ -30,7 +30,7 @@ class UsersUpdate extends Base {
 	protected function configure() {
 		parent::configure();
 		$this->setName('globalsiteselector:users:update')
-			 ->setDescription('update known users data to Lookup Server');
+			->setDescription('update known users data to Lookup Server');
 	}
 
 

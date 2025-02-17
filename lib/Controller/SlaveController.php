@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -86,7 +87,7 @@ class SlaveController extends OCSController {
 		}
 
 		try {
-			list($uid, $password, $options) = $this->decodeJwt($jwt);
+			[$uid, $password, $options] = $this->decodeJwt($jwt);
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
 
 			$target = $options['target'];
@@ -162,7 +163,7 @@ class SlaveController extends OCSController {
 		}
 
 		try {
-			list($uid, $password, $options) = $this->decodeJwt($jwt);
+			[$uid, $password, $options] = $this->decodeJwt($jwt);
 			$saml = (($options['backend'] ?? '') === 'saml');
 			if ($saml) {
 				$this->autoprovisionIfNeeded($uid, $options);
@@ -170,7 +171,7 @@ class SlaveController extends OCSController {
 
 			if ($this->userManager->userExists($uid)) {
 				// if we have a password, we verify it; if not it means we should be using saml.
-				$result = ('' === $password) ? $saml : $this->userSession->login($uid, $password);
+				$result = ($password === '') ? $saml : $this->userSession->login($uid, $password);
 				if ($result) {
 					$token = $this->tokenHandler->generateAppToken($uid);
 

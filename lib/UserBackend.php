@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2018 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -31,7 +32,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		private ISession $session,
 		private IEventDispatcher $eventDispatcher,
 		private IGroupManager $groupManager,
-		private IUserManager $userManager
+		private IUserManager $userManager,
 	) {
 	}
 
@@ -111,8 +112,8 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			/* @var $qb IQueryBuilder */
 			$qb = $this->db->getQueryBuilder();
 			$qb->delete($this->dbName)
-			   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-			   ->execute();
+				->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+				->execute();
 
 			return true;
 		}
@@ -134,15 +135,15 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		/* @var $qb IQueryBuilder */
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('uid', 'displayname')
-		   ->from($this->dbName)
-		   ->where(
-		   	$qb->expr()->iLike(
-		   		'uid', $qb->createNamedParameter(
-		   			'%' . $this->db->escapeLikeParameter($search) . '%'
-		   		)
-		   	)
-		   )
-		   ->setMaxResults($limit);
+			->from($this->dbName)
+			->where(
+				$qb->expr()->iLike(
+					'uid', $qb->createNamedParameter(
+						'%' . $this->db->escapeLikeParameter($search) . '%'
+					)
+				)
+			)
+			->setMaxResults($limit);
 		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
@@ -167,7 +168,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	public function countUsers(): int {
 		$query = $this->db->getQueryBuilder();
 		$query->select($query->func()->count('uid'))
-			  ->from($this->dbName);
+			->from($this->dbName);
 		$result = $query->execute();
 
 		return $result->fetchColumn();
@@ -197,9 +198,9 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		if ($this->userExistsInDatabase($uid)) {
 			$qb = $this->db->getQueryBuilder();
 			$qb->update($this->dbName)
-			   ->set('displayname', $qb->createNamedParameter($displayName))
-			   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-			   ->execute();
+				->set('displayname', $qb->createNamedParameter($displayName))
+				->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+				->execute();
 
 			return true;
 		}
@@ -222,9 +223,9 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			if ($this->userExistsInDatabase($uid)) {
 				$qb = $this->db->getQueryBuilder();
 				$qb->select('displayname')
-				   ->from($this->dbName)
-				   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-				   ->setMaxResults(1);
+					->from($this->dbName)
+					->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+					->setMaxResults(1);
 				$result = $qb->execute();
 				$users = $result->fetchAll();
 				if (isset($users[0]['displayname'])) {
@@ -249,22 +250,22 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	public function getDisplayNames($search = '', $limit = null, $offset = null): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('uid', 'displayname')
-		   ->from($this->dbName)
-		   ->where(
-		   	$qb->expr()->iLike(
-		   		'uid', $qb->createNamedParameter(
-		   			'%' . $this->db->escapeLikeParameter($search) . '%'
-		   		)
-		   	)
-		   )
-		   ->orWhere(
-		   	$qb->expr()->iLike(
-		   		'displayname', $qb->createNamedParameter(
-		   			'%' . $this->db->escapeLikeParameter($search) . '%'
-		   		)
-		   	)
-		   )
-		   ->setMaxResults($limit);
+			->from($this->dbName)
+			->where(
+				$qb->expr()->iLike(
+					'uid', $qb->createNamedParameter(
+						'%' . $this->db->escapeLikeParameter($search) . '%'
+					)
+				)
+			)
+			->orWhere(
+				$qb->expr()->iLike(
+					'displayname', $qb->createNamedParameter(
+						'%' . $this->db->escapeLikeParameter($search) . '%'
+					)
+				)
+			)
+			->setMaxResults($limit);
 		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
@@ -442,9 +443,9 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		/* @var $qb IQueryBuilder */
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('uid')
-		   ->from($this->dbName)
-		   ->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-		   ->setMaxResults(1);
+			->from($this->dbName)
+			->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+			->setMaxResults(1);
 		$result = $qb->execute();
 		$users = $result->fetchAll();
 		$result->closeCursor();

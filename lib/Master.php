@@ -51,7 +51,7 @@ class Master {
 		IRequest $request,
 		IClientService $clientService,
 		IConfig $config,
-		LoggerInterface $logger
+		LoggerInterface $logger,
 	) {
 		$this->session = $session;
 		$this->gss = $gss;
@@ -78,7 +78,7 @@ class Master {
 	public function handleLoginRequest(
 		string $uid,
 		?string $password,
-		?IApacheBackend $backend = null
+		?IApacheBackend $backend = null,
 	): void {
 		$this->logger->debug(
 			'start handle login request',

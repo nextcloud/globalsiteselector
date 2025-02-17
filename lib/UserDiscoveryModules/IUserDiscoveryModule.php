@@ -14,7 +14,7 @@ interface IUserDiscoveryModule {
 	 * get the initial user location
 	 *
 	 * @param array $data arbitrary data, whatever the module needs (for example for SAML we hand over the
-	 *     raw data)
+	 *                    raw data)
 	 *
 	 * @return string
 	 */

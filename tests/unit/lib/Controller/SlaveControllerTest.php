@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -102,7 +103,7 @@ class SlaveControllerTest extends TestCase {
 		$this->crypto->expects($this->once())->method('decrypt')->with($encryptedPassword, $jwtKey)
 			->willReturn($plainPassword);
 
-		list($uid, $password, $options) = $this->invokePrivate($controller, 'decodeJwt', [$jwt]);
+		[$uid, $password, $options] = $this->invokePrivate($controller, 'decodeJwt', [$jwt]);
 
 		$this->assertSame('user', $uid);
 		$this->assertSame($plainPassword, $password);

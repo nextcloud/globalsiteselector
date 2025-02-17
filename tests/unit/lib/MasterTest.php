@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -24,19 +25,19 @@ use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class MasterTest extends TestCase {
-	/** @var  GlobalSiteSelector|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var GlobalSiteSelector|\PHPUnit_Framework_MockObject_MockObject */
 	private $gss;
 
-	/** @var  ICrypto|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ICrypto|\PHPUnit_Framework_MockObject_MockObject */
 	private $crypto;
 
-	/** @var  Lookup|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var Lookup|\PHPUnit_Framework_MockObject_MockObject */
 	private $lookup;
 
-	/** @var  IRequest|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IRequest|\PHPUnit_Framework_MockObject_MockObject */
 	private $request;
 
-	/** @var  IClientService | \PHPUnit_Framework_MockObject_MockObject */
+	/** @var IClientService | \PHPUnit_Framework_MockObject_MockObject */
 	private $clientService;
 
 	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
