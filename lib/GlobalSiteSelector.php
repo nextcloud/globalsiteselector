@@ -24,7 +24,7 @@ class GlobalSiteSelector {
 	public const SLAVE = 'slave';
 
 
-	/** @var  IConfig */
+	/** @var IConfig */
 	private $config;
 
 	/**

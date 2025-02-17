@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -21,7 +22,7 @@ class TokenHandler {
 
 	public function __construct(
 		private IProvider $tokenProvider,
-		private ISecureRandom $random
+		private ISecureRandom $random,
 	) {
 	}
 
@@ -34,7 +35,7 @@ class TokenHandler {
 	 */
 	public function generateAppToken($uid) {
 		// generate random token
-		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
+		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER . ISecureRandom::CHAR_LOWER . ISecureRandom::CHAR_DIGITS);
 		$deviceToken = $this->tokenProvider->generateToken($token, $uid, $uid, null, 'Client login', IToken::PERMANENT_TOKEN);
 		$tokenData = $deviceToken->jsonSerialize();
 

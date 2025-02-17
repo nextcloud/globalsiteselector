@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -12,10 +13,10 @@ use OCP\IConfig;
 use Test\TestCase;
 
 class GlobalSiteSelectorTest extends TestCase {
-	/** @var  IConfig|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IConfig|\PHPUnit_Framework_MockObject_MockObject */
 	private $config;
 
-	/** @var  GlobalSiteSelector */
+	/** @var GlobalSiteSelector */
 	private $gss;
 
 	public function setUp(): void {

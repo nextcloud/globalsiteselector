@@ -22,7 +22,8 @@ class DeletingUser implements IEventListener {
 
 	public function __construct(
 		private GlobalSiteSelector $globalSiteSelector,
-		private Slave $slave) {
+		private Slave $slave,
+	) {
 	}
 
 	/**

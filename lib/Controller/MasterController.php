@@ -42,7 +42,7 @@ class MasterController extends OCSController {
 		ISession $session,
 		GlobalSiteSelector $globalSiteSelector,
 		Master $master,
-		LoggerInterface $logger
+		LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
 

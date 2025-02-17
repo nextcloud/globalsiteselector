@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -45,7 +46,7 @@ class SlaveService {
 		IConfig $config,
 		Lookup $lookup,
 		GlobalSiteSelector $gss,
-		ICacheFactory $cacheFactory
+		ICacheFactory $cacheFactory,
 	) {
 		$this->logger = $logger;
 		$this->clientService = $clientService;

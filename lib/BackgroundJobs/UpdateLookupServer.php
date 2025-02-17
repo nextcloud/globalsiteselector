@@ -23,7 +23,7 @@ class UpdateLookupServer extends TimedJob {
 		ITimeFactory $time,
 		IConfig $config,
 		private GlobalSiteSelector $globalSiteSelector,
-		private Slave $slave
+		private Slave $slave,
 	) {
 		parent::__construct($time);
 

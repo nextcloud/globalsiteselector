@@ -25,7 +25,7 @@ class AddContentSecurityPolicyListener implements IEventListener {
 	public function __construct(
 		private IConfig $config,
 		private IUserSession $userSession,
-		private IRequest $request
+		private IRequest $request,
 	) {
 	}
 

@@ -22,7 +22,7 @@ class Lookup {
 		private IClientService $clientService,
 		private LoggerInterface $logger,
 		private ICloudIdManager $cloudIdManager,
-		private IConfig $config
+		private IConfig $config,
 	) {
 		$this->lookupServerUrl = $this->config->getSystemValueString('lookup_server', '');
 	}

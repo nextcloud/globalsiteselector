@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2018 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -33,7 +34,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 
 	public function __construct(
 		IConfig $config,
-		private LoggerInterface $logger
+		private LoggerInterface $logger,
 	) {
 		$this->idpParameter = $config->getSystemValueString('gss.discovery.manual.mapping.parameter', '');
 		$this->file = $config->getSystemValueString('gss.discovery.manual.mapping.file', '');
