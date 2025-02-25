@@ -134,8 +134,19 @@ parameter has to be set:
 #### RemoteUserMapping
 
 Get user location from an external remote discovery service.
+The request is POST, contains data from the sso, and should return a JSON of an array including the entry 'location' with the hostname of the destination (nextcloud instance) as value:
+
+```
+$ curl -X POST https://discovery.example.net/mapping.php
+{"location":"https://node12.example.net"}
+```
+
 The request is POST, contains data from the SSO, and must return the hostname of the destination (nextcloud instance)
 
-````
-    'gss.discovery.remote.endpoint' => 'https://example.net/discovery.php',
-````
+```
+ 'gss.user.discovery.module' => '\\OCA\\GlobalSiteSelector\\UserDiscoveryModules\\RemoteUserMapping',
+ 'gss.discovery.remote.endpoint' => 'https://discovery.example.net/mapping.php',
+ 'gss.discovery.remote.secret' => 'myVeryOwnLittleSecret',
+```
+
+If added, the Secret Key will be sent within the POST data as `'gsSecretKey'`
