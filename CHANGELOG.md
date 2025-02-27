@@ -5,6 +5,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.6.1
+
+- expecting a JSON as a result from POST request made to the Remote User Discovery endpoint
+- fixing an issue during app token creation with OIDC
+- adding a secret key to data sent to Remote User Discovery endpoint
+
 ## 2.6.0
 
 - support for OIDC (using app user_oidc v6.2.1 or superior)
