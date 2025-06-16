@@ -9,6 +9,8 @@
 return [
 	'ocs' => [
 		['name' => 'Slave#createAppToken', 'url' => '/v1/createapptoken', 'verb' => 'GET'],
+		['name' => 'Slave#discovery', 'url' => '/discovery', 'verb' => 'GET'],
+		['name' => 'Slave#sharedFile', 'url' => '/sharedfile', 'verb' => 'GET'],
 	],
 	'routes' => [
 		[
@@ -20,6 +22,12 @@ return [
 			'name' => 'Master#autoLogout',
 			'url' => '/autologout',
 			'verb' => 'GET'
+		],
+		[
+			'name' => 'Slave#findFile',
+			'url' => '/gf/{token}/{fileId}',
+			'verb' => 'GET',
+			'root' => '',
 		],
 	],
 ];
