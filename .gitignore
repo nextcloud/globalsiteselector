@@ -40,9 +40,6 @@ nbproject
 .well-known
 /.buildpath
 
-# Tests
-/tests/phpunit.xml
-
 # composer
 /vendor
 /vendor-bin/*/vendor

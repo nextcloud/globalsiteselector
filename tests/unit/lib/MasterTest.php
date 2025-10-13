@@ -85,7 +85,7 @@ class MasterTest extends TestCase {
 					$this->config,
 					$this->logger
 				]
-			)->setMethods($mockMethods)->getMock();
+			)->onlyMethods($mockMethods)->getMock();
 	}
 
 	public function testHandleLoginRequest() {
