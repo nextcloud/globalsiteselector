@@ -11,6 +11,7 @@ use OC\User\Backend;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\EventDispatcher\GenericEvent;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\IRootFolder;
 use OCP\Files\NotPermittedException;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
@@ -19,6 +20,7 @@ use OCP\IUser;
 use OCP\IUserBackend;
 use OCP\IUserManager;
 use OCP\User\Backend\ICountUsersBackend;
+use OCP\User\Events\UserFirstTimeLoggedInEvent;
 use OCP\UserInterface;
 
 class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
@@ -33,6 +35,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		private IEventDispatcher $eventDispatcher,
 		private IGroupManager $groupManager,
 		private IUserManager $userManager,
+		private IRootFolder $rootFolder,
 	) {
 	}
 
@@ -66,7 +69,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	}
 
 	/**
-	 * Creates an user if it does not exists
+	 * Creates a user if it does not exist.
 	 *
 	 * @param string $uid
 	 */
@@ -76,17 +79,16 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 				'uid' => $uid,
 			];
 
-			/* @var $qb IQueryBuilder */
 			$qb = $this->db->getQueryBuilder();
 			$qb->insert($this->dbName);
 			foreach ($values as $column => $value) {
 				$qb->setValue($column, $qb->createNamedParameter($value));
 			}
-			$qb->execute();
+			$qb->executeStatement();
 
 			### Code taken from lib/private/User/Session.php - function prepareUserLogin() ###
 			//trigger creation of user home and /files folder
-			$userFolder = \OC::$server->getUserFolder($uid);
+			$userFolder = $this->rootFolder->getUserFolder($uid);
 			try {
 				// copy skeleton
 				\OC_Util::copySkeleton($uid, $userFolder);
@@ -96,6 +98,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			// trigger any other initialization
 			$user = $this->userManager->get($uid);
 			$this->eventDispatcher->dispatch(IUser::class . '::firstLogin', new GenericEvent($user));
+			$this->eventDispatcher->dispatchTyped(new UserFirstTimeLoggedInEvent($user));
 		}
 	}
 
@@ -113,7 +116,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			$qb = $this->db->getQueryBuilder();
 			$qb->delete($this->dbName)
 				->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-				->execute();
+				->executeStatement();
 
 			return true;
 		}
@@ -147,7 +150,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
-		$result = $qb->execute();
+		$result = $qb->executeQuery();
 		$users = $result->fetchAll();
 		$result->closeCursor();
 
@@ -169,7 +172,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		$query = $this->db->getQueryBuilder();
 		$query->select($query->func()->count('uid'))
 			->from($this->dbName);
-		$result = $query->execute();
+		$result = $query->executeQuery();
 
 		return $result->fetchColumn();
 	}
@@ -200,7 +203,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			$qb->update($this->dbName)
 				->set('displayname', $qb->createNamedParameter($displayName))
 				->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-				->execute();
+				->executeStatement();
 
 			return true;
 		}
@@ -226,7 +229,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 					->from($this->dbName)
 					->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
 					->setMaxResults(1);
-				$result = $qb->execute();
+				$result = $qb->executeQuery();
 				$users = $result->fetchAll();
 				if (isset($users[0]['displayname'])) {
 					return $users[0]['displayname'];
@@ -269,7 +272,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		if ($offset !== null) {
 			$qb->setFirstResult($offset);
 		}
-		$result = $qb->execute();
+		$result = $qb->executeQuery();
 		$users = $result->fetchAll();
 		$result->closeCursor();
 
@@ -446,7 +449,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			->from($this->dbName)
 			->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
 			->setMaxResults(1);
-		$result = $qb->execute();
+		$result = $qb->executeQuery();
 		$users = $result->fetchAll();
 		$result->closeCursor();
 
