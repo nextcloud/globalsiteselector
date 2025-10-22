@@ -15,9 +15,9 @@ use OCA\GlobalSiteSelector\Model\FederatedShare;
 class LocalFederatedShareException extends Exception {
 	public function __construct(
 		private readonly ?FederatedShare $federatedShare = null,
-		string $message = "",
+		string $message = '',
 		int $code = 0,
-		Exception $previous = null,
+		?Exception $previous = null,
 	) {
 		parent::__construct($message, $code, $previous);
 	}

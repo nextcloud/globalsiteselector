@@ -87,8 +87,8 @@ class SlaveController extends OCSController {
 	}
 
 	/**
-     * return sharing details about a file.
-     * request must contain encoded jwt.
+	 * return sharing details about a file.
+	 * request must contain encoded jwt.
 	 */
 	#[PublicPage]
 	#[NoCSRFRequired]

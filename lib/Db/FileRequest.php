@@ -29,8 +29,8 @@ class FileRequest {
 	public function getFileDetails(int $fileId): ?LocalFile {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('parent', 'name', 'storage')
-		   ->from('filecache')
-		   ->where($qb->expr()->eq('fileid', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)));
+			->from('filecache')
+			->where($qb->expr()->eq('fileid', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)));
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
@@ -39,9 +39,9 @@ class FileRequest {
 		}
 		$details = new LocalFile();
 		$details->setId($fileId)
-				->setName($row['name'] ?? '')
-				->setStorageId($row['storage'] ?? -1)
-				->setParent($row['parent'] ?? -1);
+			->setName($row['name'] ?? '')
+			->setStorageId($row['storage'] ?? -1)
+			->setParent($row['parent'] ?? -1);
 		$result->closeCursor();
 
 		return $details;
@@ -53,13 +53,13 @@ class FileRequest {
 	public function getMountFromTarget(LocalFile $target): ?LocalMount {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('mount_provider_class', 'mount_point', 'user_id')
-		   ->from('mounts')
-		   ->where(
-			   $qb->expr()->andX(
-				   $qb->expr()->eq('storage_id', $qb->createNamedParameter($target->getStorageId(), IQueryBuilder::PARAM_INT)),
-				   $qb->expr()->eq('root_id', $qb->createNamedParameter($target->getId(), IQueryBuilder::PARAM_INT)),
-			   )
-		   );
+			->from('mounts')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->eq('storage_id', $qb->createNamedParameter($target->getStorageId(), IQueryBuilder::PARAM_INT)),
+					$qb->expr()->eq('root_id', $qb->createNamedParameter($target->getId(), IQueryBuilder::PARAM_INT)),
+				)
+			);
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
@@ -69,8 +69,8 @@ class FileRequest {
 
 		$mount = new LocalMount();
 		$mount->setProviderClass($row['mount_provider_class'])
-			  ->setMountPoint(rtrim(explode('/files', $row['mount_point'], 2)[1] ?? '', '/'))
-			  ->setUserId($row['user_id']);
+			->setMountPoint(rtrim(explode('/files', $row['mount_point'], 2)[1] ?? '', '/'))
+			->setUserId($row['user_id']);
 
 		$result->closeCursor();
 
@@ -83,11 +83,11 @@ class FileRequest {
 	public function getFederatedTeamMount(LocalMount $mount, array $teamIds): ?FederatedShare {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('remote', 'remote_id')
-		   ->from('circles_mount')
-		   ->where(
-			   $qb->expr()->eq('mountpoint_hash', $qb->createNamedParameter(md5($mount->getMountPoint()))),
-			   $qb->expr()->in('circle_id', $qb->createNamedParameter($teamIds, IQueryBuilder::PARAM_STR_ARRAY)),
-		   );
+			->from('circles_mount')
+			->where(
+				$qb->expr()->eq('mountpoint_hash', $qb->createNamedParameter(md5($mount->getMountPoint()))),
+				$qb->expr()->in('circle_id', $qb->createNamedParameter($teamIds, IQueryBuilder::PARAM_STR_ARRAY)),
+			);
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
@@ -97,8 +97,8 @@ class FileRequest {
 
 		$federatedShare = new FederatedShare();
 		$federatedShare->setRemote($row['remote'])
-					   ->setRemoteId($row['remote_id'])
-					   ->setBounce(true);
+			->setRemoteId($row['remote_id'])
+			->setBounce(true);
 
 		$result->closeCursor();
 
@@ -111,15 +111,15 @@ class FileRequest {
 	public function getFilesFromExternalShareStorage(string $storageKey): int {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('c.fileid')
-		   ->from('filecache', 'c')
-		   ->from('storages', 's')
-		   ->where(
-			   $qb->expr()->andX(
-				   $qb->expr()->eq('s.numeric_id', 'c.storage'),
-				   $qb->expr()->eq('s.id', $qb->createNamedParameter($storageKey)),
-				   $qb->expr()->eq('c.parent', $qb->createNamedParameter(-1, IQueryBuilder::PARAM_INT)),
-			   )
-		   );
+			->from('filecache', 'c')
+			->from('storages', 's')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->eq('s.numeric_id', 'c.storage'),
+					$qb->expr()->eq('s.id', $qb->createNamedParameter($storageKey)),
+					$qb->expr()->eq('c.parent', $qb->createNamedParameter(-1, IQueryBuilder::PARAM_INT)),
+				)
+			);
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
@@ -137,14 +137,14 @@ class FileRequest {
 	public function getFederatedShareStorageKey(FederatedShare $federatedShare, string $instance): ?string {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('share_token', 'owner', 'remote')
-		   ->from('share_external')
-		   ->where(
-			   $qb->expr()->andX(
-				   $qb->expr()->like('remote', $qb->createNamedParameter('%://' . $instance . '/')),
-				   $qb->expr()->eq('remote_id', $qb->createNamedParameter($federatedShare->getId(), IQueryBuilder::PARAM_INT)),
-				   $qb->expr()->eq('user', $qb->createNamedParameter($federatedShare->getShareWith()))
-			   )
-		   );
+			->from('share_external')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->like('remote', $qb->createNamedParameter('%://' . $instance . '/')),
+					$qb->expr()->eq('remote_id', $qb->createNamedParameter($federatedShare->getId(), IQueryBuilder::PARAM_INT)),
+					$qb->expr()->eq('user', $qb->createNamedParameter($federatedShare->getShareWith()))
+				)
+			);
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
@@ -164,14 +164,14 @@ class FileRequest {
 	public function getTeamStorages(FederatedShare $federatedShare, string $instance): ?string {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('token', 'remote')
-		   ->from('circles_mount')
-		   ->where(
-			   $qb->expr()->andX(
-				   $qb->expr()->eq('remote', $qb->createNamedParameter($instance)),
-				   $qb->expr()->eq('remote_id', $qb->createNamedParameter($federatedShare->getId(), IQueryBuilder::PARAM_INT)),
-				   $qb->expr()->eq('circle_id', $qb->createNamedParameter($federatedShare->getShareWith()))
-			   )
-		   );
+			->from('circles_mount')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->eq('remote', $qb->createNamedParameter($instance)),
+					$qb->expr()->eq('remote_id', $qb->createNamedParameter($federatedShare->getId(), IQueryBuilder::PARAM_INT)),
+					$qb->expr()->eq('circle_id', $qb->createNamedParameter($federatedShare->getShareWith()))
+				)
+			);
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();

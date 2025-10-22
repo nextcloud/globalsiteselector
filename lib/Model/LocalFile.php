@@ -79,10 +79,10 @@ class LocalFile implements JsonSerializable {
 	 */
 	public function import(array $data): self {
 		$this->setId($data['id'] ?? 0)
-			 ->setName($data['name'] ?? '')
-			 ->setStorageId($data['storageId'] ?? -1)
-			 ->setParent($data['parent'] ?? -1)
-			 ->setPath($data['path'] ?? []);
+			->setName($data['name'] ?? '')
+			->setStorageId($data['storageId'] ?? -1)
+			->setParent($data['parent'] ?? -1)
+			->setPath($data['path'] ?? []);
 
 		return $this;
 	}

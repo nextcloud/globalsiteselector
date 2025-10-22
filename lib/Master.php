@@ -328,7 +328,7 @@ class Master {
 		$data = json_decode($body, true);
 		$jsonErrorCode = json_last_error();
 		if ($jsonErrorCode !== JSON_ERROR_NONE) {
-			$info = 'getAppToken - Decoding the JSON failed ' . $jsonErrorCode . ' '. json_last_error_msg();
+			$info = 'getAppToken - Decoding the JSON failed ' . $jsonErrorCode . ' ' . json_last_error_msg();
 			throw new Exception($info);
 		}
 		if (!isset($data['ocs']['data']['token'])) {

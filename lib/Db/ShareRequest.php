@@ -39,19 +39,19 @@ class ShareRequest {
 
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('s.id', 's.file_source', 's.share_type', 's.share_with', 's.permissions')
-		   ->from('share', 's')
-		   ->where(
-			   $qb->expr()->andX(
-				   $qb->expr()->in('file_source', $qb->createNamedParameter($ids, IQueryBuilder::PARAM_INT_ARRAY)),
-				   $qb->expr()->orX(
-					   $qb->expr()->andX(
-						   $qb->expr()->in('share_type', $qb->createNamedParameter([IShare::TYPE_REMOTE, IShare::TYPE_REMOTE_GROUP], IQueryBuilder::PARAM_INT_ARRAY)),
-						   $qb->expr()->like('share_with', $qb->createNamedParameter('%@' . $instance)),
-					   ),
-					   $qb->expr()->in('share_type', $qb->createNamedParameter([IShare::TYPE_CIRCLE], IQueryBuilder::PARAM_INT_ARRAY)),
-				   )
-			   )
-		   );
+			->from('share', 's')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->in('file_source', $qb->createNamedParameter($ids, IQueryBuilder::PARAM_INT_ARRAY)),
+					$qb->expr()->orX(
+						$qb->expr()->andX(
+							$qb->expr()->in('share_type', $qb->createNamedParameter([IShare::TYPE_REMOTE, IShare::TYPE_REMOTE_GROUP], IQueryBuilder::PARAM_INT_ARRAY)),
+							$qb->expr()->like('share_with', $qb->createNamedParameter('%@' . $instance)),
+						),
+						$qb->expr()->in('share_type', $qb->createNamedParameter([IShare::TYPE_CIRCLE], IQueryBuilder::PARAM_INT_ARRAY)),
+					)
+				)
+			);
 
 		$result = $qb->executeQuery();
 		$shares = [];
@@ -63,11 +63,11 @@ class ShareRequest {
 
 			$federatedShare = new FederatedShare();
 			$federatedShare->setId($row['id'])
-						->setFileId($row['file_source'])
-						->setShareType($row['share_type'])
-						->setShareWith($shareWith)
-						->setPermissions($row['permissions'])
-						->setTarget($indexedFiles[$row['file_source']]);
+				->setFileId($row['file_source'])
+				->setShareType($row['share_type'])
+				->setShareWith($shareWith)
+				->setPermissions($row['permissions'])
+				->setTarget($indexedFiles[$row['file_source']]);
 			$shares[] = $federatedShare;
 		}
 		$result->closeCursor();
@@ -83,8 +83,8 @@ class ShareRequest {
 	public function getFileOwnerFromShareId(int $shareId): array {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('uid_owner', 'file_source')
-		   ->from('share', 's')
-		   ->where($qb->expr()->eq('id', $qb->createNamedParameter($shareId, IQueryBuilder::PARAM_INT)));
+			->from('share', 's')
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($shareId, IQueryBuilder::PARAM_INT)));
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
@@ -105,13 +105,13 @@ class ShareRequest {
 	public function getBouncedShareFromLocalMount(LocalMount $mount): ?FederatedShare {
 		$qb = $this->connection->getQueryBuilder();
 		$qb->select('remote', 'remote_id')
-		   ->from('share_external')
-		   ->where(
-			   $qb->expr()->andX(
-				   $qb->expr()->eq('user', $qb->createNamedParameter($mount->getUserId())),
-				   $qb->expr()->eq('mountpoint_hash', $qb->createNamedParameter(md5($mount->getMountPoint()))),
-			   )
-		   );
+			->from('share_external')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->eq('user', $qb->createNamedParameter($mount->getUserId())),
+					$qb->expr()->eq('mountpoint_hash', $qb->createNamedParameter(md5($mount->getMountPoint()))),
+				)
+			);
 
 		$result = $qb->executeQuery();
 		$row = $result->fetch();
@@ -120,8 +120,8 @@ class ShareRequest {
 		}
 		$bouncedShare = new FederatedShare();
 		$bouncedShare->setBounce(true)
-					 ->setRemote($row['remote'])
-					 ->setRemoteId((int)$row['remote_id']);
+			->setRemote($row['remote'])
+			->setRemoteId((int)$row['remote_id']);
 		$result->closeCursor();
 
 		return $bouncedShare;

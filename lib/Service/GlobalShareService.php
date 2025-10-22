@@ -8,7 +8,7 @@ declare(strict_types=1);
  */
 namespace OCA\GlobalSiteSelector\Service;
 
-use OC\User\NoUserException;
+use Exception;
 use OCA\Circles\CirclesManager;
 use OCA\Circles\Model\Circle;
 use OCA\Files_Sharing\External\MountProvider;
@@ -39,8 +39,8 @@ class GlobalShareService {
 	public function __construct(
 		private readonly IRootFolder $rootFolder,
 		private readonly IUserSession $userSession,
-        private readonly FileRequest $fileRequest,
-        private readonly ShareRequest $shareRequest,
+		private readonly FileRequest $fileRequest,
+		private readonly ShareRequest $shareRequest,
 		private readonly GlobalSiteSelector $gss,
 		private readonly GlobalScaleService $globalScaleService,
 		private readonly IUserManager $userManager,
@@ -58,7 +58,7 @@ class GlobalShareService {
 		$currentUser = $this->userSession->getUser()?->getUID();
 		// There is no valid reason for getUser() to be null,
 		if ($currentUser === null) {
-			$this->logger->warning('internal link request', ['exception' => new \Exception('could not assign current user')]);
+			$this->logger->warning('internal link request', ['exception' => new Exception('could not assign current user')]);
 			return null;
 		}
 
@@ -142,15 +142,15 @@ class GlobalShareService {
 	}
 
 
-    /**
-     * get details about a shared remote file based on the address of the remote
-     * instance and the id of the file as stored on that remote instance
-     *
-     * @param string $remote address of the remote instance
-     * @param int $remoteFileId id of the file as stored on the remote instance
-     * @return int local file id, 1 if not found
-     */
-    private function getSharedFileRemoteDetails(string $remote, int $remoteFileId): int {
+	/**
+	 * get details about a shared remote file based on the address of the remote
+	 * instance and the id of the file as stored on that remote instance
+	 *
+	 * @param string $remote address of the remote instance
+	 * @param int $remoteFileId id of the file as stored on the remote instance
+	 * @return int local file id, 1 if not found
+	 */
+	private function getSharedFileRemoteDetails(string $remote, int $remoteFileId): int {
 		$currentUser = $this->userSession->getUser()?->getUID();
 		if ($currentUser === null || $this->globalScaleService->getLocalAddress() === null) {
 			return 1;
@@ -174,11 +174,11 @@ class GlobalShareService {
 		return $this->getLastFileIdFromShares($currentUser, $federatedShares, $remote);
 	}
 
-    /**
-     * returns details about a local file and (recursively) about all parent folders
-     *
-     * @return LocalFile[]
-     */
+	/**
+	 * returns details about a local file and (recursively) about all parent folders
+	 *
+	 * @return LocalFile[]
+	 */
 	private function getRelatedFiles(int $fileId): array {
 		if ($fileId === 0) {
 			return [];
@@ -307,16 +307,16 @@ class GlobalShareService {
 		return false;
 	}
 
-    /**
-     * Return the id of a local file based on the node id of the top
+	/**
+	 * Return the id of a local file based on the node id of the top
 	 * folder / mount point and the path to reach the file
 	 *
 	 * @return int 1 if file not found
-     */
+	 */
 	private function getFinalFileId(string $user, int $nodeId, LocalFile $target): int {
 		try {
 			$userFolder = $this->rootFolder->getUserFolder($user);
-		} catch (NotPermittedException|NoUserException $e) {
+		} catch (Exception $e) {
 			$this->logger->debug('could not get final file id', ['exception' => $e]);
 			return 1;
 		}
@@ -345,23 +345,23 @@ class GlobalShareService {
 	 * @return FederatedShare[]
 	 * @throws LocalFederatedShareException if the federated share is not remote
 	 */
-    private function requestRemoteFederatedShares(string &$remote, array $search, bool $redirected = false): array {
-        if (str_contains($remote, '://')) {
-            $remote = parse_url($remote, PHP_URL_HOST);
-        }
+	private function requestRemoteFederatedShares(string &$remote, array $search, bool $redirected = false): array {
+		if (str_contains($remote, '://')) {
+			$remote = parse_url($remote, PHP_URL_HOST);
+		}
 
 		// this should not happen, but we keep a trace
 		if ($this->globalScaleService->isLocalAddress($remote)) {
-			$this->logger->warning('remote is local', ['exception' => new \Exception(), "remote" => $remote]);
+			$this->logger->warning('remote is local', ['exception' => new Exception(), 'remote' => $remote]);
 			return [];
 		}
 
 		$responseCode = 0;
-        $result = $this->globalScaleService->requestGssOcs(
-            $remote,
-            'Slave.sharedFile',
-            ['jwt' => JWT::encode(array_merge($search, ['instance' => $this->globalScaleService->getLocalAddress()]), $this->gss->getJwtKey(), Application::JWT_ALGORITHM)],
-            $responseCode);
+		$result = $this->globalScaleService->requestGssOcs(
+			$remote,
+			'Slave.sharedFile',
+			['jwt' => JWT::encode(array_merge($search, ['instance' => $this->globalScaleService->getLocalAddress()]), $this->gss->getJwtKey(), Application::JWT_ALGORITHM)],
+			$responseCode);
 
 		$this->logger->warning('result from remote gss ocs', ['remote' => $remote, 'search' => $search, 'data' => $result, 'responseCode' => $responseCode]);
 
@@ -394,7 +394,7 @@ class GlobalShareService {
 		}
 
 		$federatedShares = [];
-		foreach($result as $entry) {
+		foreach ($result as $entry) {
 			$federatedShare = new FederatedShare();
 			$federatedShare->import($entry);
 			if (!$federatedShare->isBounce()) {
@@ -403,11 +403,11 @@ class GlobalShareService {
 		}
 
 		return $federatedShares;
-    }
+	}
 
-    /**
-     * cache and returns list of current groups a userId belongs to
-     */
+	/**
+	 * cache and returns list of current groups a userId belongs to
+	 */
 	private function getCurrentGroups(string $userId): array {
 		if (!array_key_exists($userId, $this->currentGroups)) {
 			$user = $this->userManager->get($userId);
@@ -420,13 +420,13 @@ class GlobalShareService {
 		return $this->currentGroups[$userId];
 	}
 
-    /**
-     * cache and returns list of current teams a userId belongs to
-     */
+	/**
+	 * cache and returns list of current teams a userId belongs to
+	 */
 	private function getCurrentTeams(string $userId): array {
 		if (!array_key_exists($userId, $this->currentTeams)) {
 			$this->circlesManager->startSession($this->circlesManager->getLocalFederatedUser($userId));
-			$teams = array_map(fn(Circle $team): string => $team->getSingleId(), $this->circlesManager->probeCircles());
+			$teams = array_map(fn (Circle $team): string => $team->getSingleId(), $this->circlesManager->probeCircles());
 
 			$this->currentTeams[$userId] = $teams;
 		}

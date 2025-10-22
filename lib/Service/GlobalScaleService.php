@@ -34,10 +34,10 @@ class GlobalScaleService {
 	) {
 	}
 
-    /**
-     * return local global scale identity token
-     * if none set yet, generate it
-     */
+	/**
+	 * return local global scale identity token
+	 * if none set yet, generate it
+	 */
 	public function getLocalToken(): string {
 		if (!$this->appConfig->hasKey(Application::APP_ID, ConfigLexicon::LOCAL_TOKEN)) {
 			$this->appConfig->setValueString(Application::APP_ID, ConfigLexicon::LOCAL_TOKEN, $this->secureRandom->generate(5, 'abcdefghijklmnopqrstuvwxyz0123456789'));
@@ -46,23 +46,23 @@ class GlobalScaleService {
 		return $this->appConfig->getValueString(Application::APP_ID, ConfigLexicon::LOCAL_TOKEN);
 	}
 
-    /**
-     * return local address as known by lus
-     */
+	/**
+	 * return local address as known by lus
+	 */
 	public function getLocalAddress(): ?string {
 		return $this->getAddressFromToken($this->getLocalToken());
 	}
 
-    /**
-     * confirm a specific global scale token identify local instance
-     */
+	/**
+	 * confirm a specific global scale token identify local instance
+	 */
 	public function isLocalToken(string $token): bool {
 		return ($this->appConfig->getValueString(Application::APP_ID, ConfigLexicon::LOCAL_TOKEN) === $token);
 	}
 
-    /**
-     * confirm that a url (or a host) is related to local instance
-     */
+	/**
+	 * confirm that a url (or a host) is related to local instance
+	 */
 	public function isLocalAddress(string $address): bool {
 		if (str_contains($address, '://')) {
 			$address = parse_url($address, PHP_URL_HOST);
@@ -84,7 +84,7 @@ class GlobalScaleService {
 	}
 
 	/**
-     * request global scale token from a remote instance using public discovery and store it in local cache
+	 * request global scale token from a remote instance using public discovery and store it in local cache
 	 */
 	public function refreshTokenFromAddress(string $address): void {
 		if (!$this->gss->isSlave()) {
@@ -105,9 +105,9 @@ class GlobalScaleService {
 		$this->appConfig->setValueArray(Application::APP_ID, ConfigLexicon::GS_TOKENS, $tokens);
 	}
 
-    /**
-     * get address from a global scale token
-     */
+	/**
+	 * get address from a global scale token
+	 */
 	public function getAddressFromToken(string $token): ?string {
 		$tokens = $this->appConfig->getValueArray(Application::APP_ID, ConfigLexicon::GS_TOKENS);
 		$address = array_search($token, $tokens, true);
@@ -117,32 +117,32 @@ class GlobalScaleService {
 		return $address;
 	}
 
-    /**
-     * returns global scale token from a specific address
-     */
+	/**
+	 * returns global scale token from a specific address
+	 */
 	public function getTokenFromAddress(string $address): ?string {
 		$tokens = $this->appConfig->getValueArray(Application::APP_ID, ConfigLexicon::GS_TOKENS);
 		return $tokens[$address] ?? null;
 	}
 
-    /**
-     * returns discovery data from a remote address
-     */
+	/**
+	 * returns discovery data from a remote address
+	 */
 	public function getRemotePublicDiscovery(string $address): array {
-     return $this->requestGssOcs($address, 'Slave.discovery');
-    }
+		return $this->requestGssOcs($address, 'Slave.discovery');
+	}
 
-    /**
-     * get data from a remote globalsiteselector ocs endpoint.
-     *
-     * @param string $address remote global scale instance
-     * @param string $route route name to the ocs endpoint
-     * @param array $data added to the request
-     * @param int $responseCode contains the response code from the request
-     *
-     * @return array decoded version of the json response
-     */
-    public function requestGssOcs(string $address, string $route, array $data = [], int &$responseCode = 0): array {
+	/**
+	 * get data from a remote globalsiteselector ocs endpoint.
+	 *
+	 * @param string $address remote global scale instance
+	 * @param string $route route name to the ocs endpoint
+	 * @param array $data added to the request
+	 * @param int $responseCode contains the response code from the request
+	 *
+	 * @return array decoded version of the json response
+	 */
+	public function requestGssOcs(string $address, string $route, array $data = [], int &$responseCode = 0): array {
 		$client = $this->clientService->newClient();
 		try {
 			$response = $client->get(
@@ -159,7 +159,7 @@ class GlobalScaleService {
 		}
 
 		try {
-            $responseCode = $response->getStatusCode();
+			$responseCode = $response->getStatusCode();
 			return json_decode($response->getBody(), true, flags: JSON_THROW_ON_ERROR)['ocs']['data'] ?? [];
 		} catch (JsonException $e) {
 			$this->logger->warning('could not decode json', ['exception' => $e]);

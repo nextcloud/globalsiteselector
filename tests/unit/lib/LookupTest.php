@@ -8,6 +8,7 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
+use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCP\Federation\ICloudId;
 use OCP\Federation\ICloudIdManager;
@@ -21,6 +22,7 @@ class LookupTest extends TestCase {
 	private IConfig $config;
 	private LoggerInterface $logger;
 	private ICloudIdManager $cloudIdManager;
+	private GlobalSiteSelector $gss;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -28,6 +30,7 @@ class LookupTest extends TestCase {
 		$this->httpClientService = $this->createMock(IClientService::class);
 		$this->config = $this->createMock(IConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
+		$this->gss = $this->createMock(GlobalSiteSelector::class);
 		$this->cloudIdManager = $this->createMock(ICloudIdManager::class);
 	}
 
@@ -44,6 +47,7 @@ class LookupTest extends TestCase {
 					$this->httpClientService,
 					$this->logger,
 					$this->cloudIdManager,
+					$this->gss,
 					$this->config
 				]
 			)->onlyMethods($mockMethods)->getMock();

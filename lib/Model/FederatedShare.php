@@ -114,13 +114,13 @@ class FederatedShare implements JsonSerializable {
 		$this->setBounce($data['bounce'] ?? false);
 		if ($this->isBounce()) {
 			$this->setRemoteId($data['remoteId'] ?? 0)
-				 ->setRemote($data['remote'] ?? '');
+				->setRemote($data['remote'] ?? '');
 		} else {
 			$this->setId($data['id'] ?? 0)
-				 ->setFileId($data['fileId'] ?? 0)
-				 ->setShareType($data['shareType'] ?? 0)
-				 ->setShareWith($data['shareWith'] ?? '')
-				 ->setPermissions($data['permissions'] ?? 0);
+				->setFileId($data['fileId'] ?? 0)
+				->setShareType($data['shareType'] ?? 0)
+				->setShareWith($data['shareWith'] ?? '')
+				->setPermissions($data['permissions'] ?? 0);
 		}
 
 		if (array_key_exists('target', $data)) {

@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace OCA\GlobalSiteSelector\Exceptions;
 
 use Exception;
-use OCA\GlobalSiteSelector\Model\FederatedShare;
 
 class SharedFileException extends Exception {
 }
