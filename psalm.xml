@@ -15,6 +15,7 @@
 		phpVersion="8.1">
 	<stubs>
 		<file name="tests/stub.phpstub" preloadClasses="true"/>
+		<file name="tests/stubs/oc_hooks_emitter.php" />
 	</stubs>
 	<projectFiles>
 		<directory name="lib"/>
