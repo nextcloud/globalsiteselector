@@ -29,7 +29,7 @@
     "scripts": {
         "cs:fix": "./vendor-bin/csfixer/vendor/bin/php-cs-fixer fix",
         "cs:check": "./vendor-bin/csfixer/vendor/bin/php-cs-fixer fix --dry-run --diff",
-        "lint": "find . -name \\*.php -not -path './vendor/*' -print0 | xargs -0 -n1 php -l",
+        "lint": "find . -name \\*.php -not -path './vendor/*' -not -path './tests/stubs/*' -print0 | xargs -0 -n1 php -l",
         "psalm": "./vendor-bin/psalm/vendor/bin/psalm --threads=1",
         "psalm:clear": "./vendor-bin/psalm/vendor/bin/psalm --clear-cache && ./vendor-bin/psalm/vendor/bin/psalm --clear-global-cache",
         "psalm:fix": "./vendor-bin/psalm/vendor/bin/psalm --alter --issues=InvalidReturnType,InvalidNullableReturnType,MissingParamType,InvalidFalsableReturnType",

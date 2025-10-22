@@ -12,6 +12,7 @@
 		>
 	<testsuite name='Nextcloud - Global Site Selector'>
 		<directory suffix='Test.php'>.</directory>
+		<exclude>./stubs/</exclude>
 	</testsuite>
 
 	<!-- filters for code coverage -->
