@@ -46,7 +46,7 @@ class LookupTest extends TestCase {
 					$this->cloudIdManager,
 					$this->config
 				]
-			)->setMethods($mockMethods)->getMock();
+			)->onlyMethods($mockMethods)->getMock();
 	}
 
 	/**

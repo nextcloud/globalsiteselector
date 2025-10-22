@@ -81,7 +81,7 @@ class SlaveControllerTest extends TestCase {
 					$this->config,
 					$this->logger
 				]
-			)->setMethods($mockMathods)->getMock();
+			)->onlyMethods($mockMathods)->getMock();
 	}
 
 	public function testDecodeJwt() {

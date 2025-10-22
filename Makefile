@@ -7,7 +7,7 @@ build_dir=$(CURDIR)/build/artifacts
 source_dir=$(build_dir)/source
 sign_dir=$(build_dir)/sign
 package_name=$(app_name)
-version+=2.6.1
+version+=2.7.0
 
 all: appstore
 
@@ -44,6 +44,7 @@ release:
 	--exclude=.tx \
 	--exclude=.idea \
 	--exclude=.php-cs-fixer.dist.php \
+	--exclude=.php-cs-fixer.cache \
 	--exclude=CHANGELOG.md \
 	--exclude=composer.json \
 	--exclude=composer.lock \

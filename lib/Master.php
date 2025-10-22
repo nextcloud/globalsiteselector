@@ -258,10 +258,7 @@ class Master {
 		} elseif ($isClient && !$isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client request generating apptoken');
 			$appToken = $this->getAppToken($location, $uid, $password, $options);
-			$redirectUrl =
-				'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode(
-					$appToken
-				);
+			$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
 		} else {
 			$this->logger->debug('redirectUser: direct login so forward to target node');
 			$jwt = $this->createJwt($uid, $password, $options);
@@ -331,9 +328,9 @@ class Master {
 		$data = json_decode($body, true);
 		$jsonErrorCode = json_last_error();
 		if ($jsonErrorCode !== JSON_ERROR_NONE) {
-			$info = 'getAppToken - Decoding the JSON failed ' .
-					$jsonErrorCode . ' ' .
-					json_last_error_msg();
+			$info = 'getAppToken - Decoding the JSON failed '
+					. $jsonErrorCode . ' '
+					. json_last_error_msg();
 			throw new Exception($info);
 		}
 		if (!isset($data['ocs']['data']['token'])) {
