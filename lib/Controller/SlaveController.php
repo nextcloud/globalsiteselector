@@ -10,8 +10,13 @@ namespace OCA\GlobalSiteSelector\Controller;
 
 use OC\Authentication\Token\IToken;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Exceptions\LocalFederatedShareException;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
+use OCA\GlobalSiteSelector\Exceptions\SharedFileException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Model\LocalFile;
+use OCA\GlobalSiteSelector\Service\GlobalScaleService;
+use OCA\GlobalSiteSelector\Service\GlobalShareService;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\TokenHandler;
@@ -20,6 +25,9 @@ use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\ExpiredException;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
@@ -41,24 +49,76 @@ use Psr\Log\LoggerInterface;
  * @package OCA\GlobalSiteSelector\Controller
  */
 class SlaveController extends OCSController {
-
 	public function __construct(
 		$appName,
 		IRequest $request,
-		private GlobalSiteSelector $gss,
-		private IUserSession $userSession,
-		private IURLGenerator $urlGenerator,
-		private ICrypto $crypto,
-		private TokenHandler $tokenHandler,
-		private IUserManager $userManager,
-		private UserBackend $userBackend,
-		private ISession $session,
-		private SlaveService $slaveService,
-		private IConfig $config,
-		private LoggerInterface $logger,
+		private readonly GlobalSiteSelector $gss,
+		private readonly IUserSession $userSession,
+		private readonly IURLGenerator $urlGenerator,
+		private readonly ICrypto $crypto,
+		private readonly TokenHandler $tokenHandler,
+		private readonly IUserManager $userManager,
+		private readonly UserBackend $userBackend,
+		private readonly ISession $session,
+		private readonly SlaveService $slaveService,
+		private readonly GlobalScaleService $globalScaleService,
+		private readonly GlobalShareService $globalShareService,
+		private readonly IConfig $config,
+		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
 	}
+
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function discovery(): DataResponse {
+		// public data, reachable from outside.
+		return new DataResponse(['token' => $this->globalScaleService->getLocalToken()]);
+	}
+
+	/**
+	 * return sharing details about a file.
+	 * request must contain encoded jwt.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function findFile(string $token, int $fileId): RedirectResponse {
+		return new RedirectResponse($this->urlGenerator->linkToRouteAbsolute('files.viewcontroller.showFile', ['fileid' => $this->globalShareService->getNewFileId($token, $fileId) ?? 1]));
+	}
+
+	/**
+	 * return sharing details about a file.
+	 * request must contain encoded jwt.
+	 */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function sharedFile(string $jwt): DataResponse {
+		$key = $this->gss->getJwtKey();
+		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
+		// JWT store data as stdClass, not array
+		$decoded = json_decode(json_encode($decoded), true);
+
+		$this->logger->debug('decoded request', ['data' => $decoded]);
+
+		$fileId = (int)($decoded['fileId'] ?? 0);
+		$shareId = (int)($decoded['shareId'] ?? 0);
+		$instance = $decoded['instance'] ?? '';
+
+		$target = new LocalFile();
+		$target->import($decoded['target'] ?? []);
+
+		try {
+			// the file is local and returns shares related to it
+			return new DataResponse($this->globalShareService->getSharedFiles($fileId, $shareId, $instance, $target));
+		} catch (SharedFileException $e) {
+			// file not found
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_NOT_FOUND);
+		} catch (LocalFederatedShareException $e) {
+			// the file is not local and returns the shared folder and the path to the file
+			return new DataResponse($e->getFederatedShare(), Http::STATUS_MOVED_PERMANENTLY);
+		}
+	}
+
 
 	/**
 	 * @PublicPage

@@ -28,6 +28,7 @@
 	</background-jobs>
 
 	<commands>
+		<command>OCA\GlobalSiteSelector\Command\GlobalScaleDiscovery</command>
 		<command>OCA\GlobalSiteSelector\Command\UsersUpdate</command>
 	</commands>
 </info>
