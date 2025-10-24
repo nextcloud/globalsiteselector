@@ -15,6 +15,7 @@ $config = new Config();
 $config
 	->getFinder()
 	->notPath('build')
+	->notPath('tests/stubs')
 	->notPath('l10n')
 	->notPath('src')
 	->notPath('vendor')
