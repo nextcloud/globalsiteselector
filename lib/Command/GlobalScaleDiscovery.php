@@ -25,31 +25,21 @@ class GlobalScaleDiscovery extends Base {
 		parent::__construct();
 	}
 
-
-	/**
-	 *
-	 */
-	protected function configure() {
+	protected function configure(): void {
 		parent::configure();
 		$this->setName('globalsiteselector:discovery')
 			->addOption('current', '', InputOption::VALUE_NONE, 'display current data')
 			->setDescription('run a discovery request over Global Scale to get details about each instances');
 	}
 
-	/**
-	 * @param InputInterface $input
-	 * @param OutputInterface $output
-	 *
-	 * @return int
-	 */
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		if ($input->getOption('current')) {
 			$output->writeln(json_encode($this->appConfig->getValueArray(Application::APP_ID, ConfigLexicon::GS_TOKENS), JSON_PRETTY_PRINT));
-			return 0;
+			return self::SUCCESS;
 		}
 
 		// currently, the only available data is a unique token that helps identify each instance
 		$this->globalScaleService->refreshTokenFromGlobalScale();
-		return 0;
+		return self::SUCCESS;
 	}
 }

@@ -9,17 +9,25 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector\Db;
 
+use Exception;
 use OCA\GlobalSiteSelector\Model\FederatedShare;
 use OCA\GlobalSiteSelector\Model\LocalFile;
 use OCA\GlobalSiteSelector\Model\LocalMount;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Federation\ICloudIdManager;
+use OCP\Files\Config\ICachedMountFileInfo;
+use OCP\Files\Config\IUserMountCache;
+use OCP\Files\IRootFolder;
 use OCP\IDBConnection;
+use Psr\Log\LoggerInterface;
 
 class FileRequest {
 	public function __construct(
 		private readonly IDBConnection $connection,
+		private readonly IUserMountCache $userMountCache,
+		private readonly IRootFolder $rootFolder,
 		private readonly ICloudIdManager $cloudIdManager,
+		private readonly LoggerInterface $logger,
 	) {
 	}
 
@@ -27,22 +35,27 @@ class FileRequest {
 	 * return details from a local file id
 	 */
 	public function getFileDetails(int $fileId): ?LocalFile {
-		$qb = $this->connection->getQueryBuilder();
-		$qb->select('parent', 'name', 'storage')
-			->from('filecache')
-			->where($qb->expr()->eq('fileid', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)));
-
-		$result = $qb->executeQuery();
-		$row = $result->fetch();
-		if ($row === false) {
+		$cachedMount = $this->getCachedMountInfoFromNodeId($fileId);
+		if ($cachedMount === null) {
 			return null;
 		}
+
+		try {
+			$rootFolder = $this->rootFolder->getUserFolder($cachedMount->getUser()->getUID());
+		} catch (Exception $e) {
+			$this->logger->warning('could not get root folder for user ' . $cachedMount->getUser()->getUID(), ['exception' => $e, 'fileId' => $fileId, 'userId' => $cachedMount->getUser()->getUID()]);
+			return null;
+		}
+		$node = $rootFolder->getFirstNodeById($fileId);
+		if ($node === null) {
+			return null;
+		}
+
 		$details = new LocalFile();
 		$details->setId($fileId)
-			->setName($row['name'] ?? '')
-			->setStorageId($row['storage'] ?? -1)
-			->setParent($row['parent'] ?? -1);
-		$result->closeCursor();
+			->setName($node->getName())
+			->setStorageId($cachedMount->getStorageId())
+			->setParent($node->getParentId());
 
 		return $details;
 	}
@@ -51,28 +64,15 @@ class FileRequest {
 	 * return details about the mount point from a LocalFile
 	 */
 	public function getMountFromTarget(LocalFile $target): ?LocalMount {
-		$qb = $this->connection->getQueryBuilder();
-		$qb->select('mount_provider_class', 'mount_point', 'user_id')
-			->from('mounts')
-			->where(
-				$qb->expr()->andX(
-					$qb->expr()->eq('storage_id', $qb->createNamedParameter($target->getStorageId(), IQueryBuilder::PARAM_INT)),
-					$qb->expr()->eq('root_id', $qb->createNamedParameter($target->getId(), IQueryBuilder::PARAM_INT)),
-				)
-			);
-
-		$result = $qb->executeQuery();
-		$row = $result->fetch();
-		if ($row === false) {
+		$cachedMount = $this->getCachedMountInfoFromNodeId($target->getId());
+		if ($cachedMount === null) {
 			return null;
 		}
 
 		$mount = new LocalMount();
-		$mount->setProviderClass($row['mount_provider_class'])
-			->setMountPoint(rtrim(explode('/files', $row['mount_point'], 2)[1] ?? '', '/'))
-			->setUserId($row['user_id']);
-
-		$result->closeCursor();
+		$mount->setProviderClass($cachedMount->getMountProvider())
+			->setMountPoint(rtrim(explode('/files', $cachedMount->getMountPoint(), 2)[1] ?? '', '/'))
+			->setUserId($cachedMount->getUser()->getUID());
 
 		return $mount;
 	}
@@ -183,5 +183,18 @@ class FileRequest {
 		$result->closeCursor();
 
 		return $storage;
+	}
+
+	/**
+	 * returns the mount using the id of a node,
+	 * userid can then be extracted and used to retrieve the file's root folder
+	 */
+	private function getCachedMountInfoFromNodeId(int $nodeId): ?ICachedMountFileInfo {
+		$mounts = $this->userMountCache->getMountsForFileId($nodeId);
+		if (empty($mounts ?? [])) {
+			$this->logger->warning('mount not found for node id ' . $nodeId);
+		}
+
+		return reset($mounts);
 	}
 }
