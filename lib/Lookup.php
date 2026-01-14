@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector;
 
+use JsonException;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
@@ -22,6 +23,7 @@ class Lookup {
 		private IClientService $clientService,
 		private LoggerInterface $logger,
 		private ICloudIdManager $cloudIdManager,
+		private GlobalSiteSelector $gss,
 		private IConfig $config,
 	) {
 		$this->lookupServerUrl = $this->config->getSystemValueString('lookup_server', '');
@@ -148,6 +150,21 @@ class Lookup {
 		return $address;
 	}
 
+	/**
+	 * get addresses of each instance of the global scale from lus
+	 *
+	 * @return string[]
+	 */
+	public function getInstances(): array {
+		$client = $this->clientService->newClient();
+		$response = $client->get($this->lookupServerUrl . '/gs/instances', $this->configureClient(['body' => json_encode(['authKey' => $this->gss->getJwtKey()])]));
+
+		try {
+			return json_decode($response->getBody(), true, flags: JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			return [];
+		}
+	}
 
 	public function sanitizeUid(string &$uid = ''): void {
 		if ($this->config->getSystemValueString('gss.username_format', '') !== 'sanitize') {

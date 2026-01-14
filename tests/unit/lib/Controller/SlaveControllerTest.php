@@ -11,6 +11,8 @@ namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Service\GlobalScaleService;
+use OCA\GlobalSiteSelector\Service\GlobalShareService;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
@@ -36,6 +38,8 @@ class SlaveControllerTest extends TestCase {
 	private IUserManager $userManager;
 	private UserBackend $userBackend;
 	private ISession $session;
+	private GlobalScaleService $globalScaleService;
+	private GlobalShareService $globalShareService;
 	private SlaveService $slaveService;
 	private IConfig $config;
 
@@ -56,6 +60,8 @@ class SlaveControllerTest extends TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->session = $this->createMock(ISession::class);
 		$this->slaveService = $this->createMock(SlaveService::class);
+		$this->globalScaleService = $this->createMock(GlobalScaleService::class);
+		$this->globalShareService = $this->createMock(GlobalShareService::class);
 		$this->config = $this->createMock(IConfig::class);
 	}
 
@@ -78,6 +84,8 @@ class SlaveControllerTest extends TestCase {
 					$this->userBackend,
 					$this->session,
 					$this->slaveService,
+					$this->globalScaleService,
+					$this->globalShareService,
 					$this->config,
 					$this->logger
 				]

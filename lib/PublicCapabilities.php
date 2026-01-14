@@ -8,14 +8,21 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector;
 
+use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCP\Capabilities\IPublicCapability;
 
 class PublicCapabilities implements IPublicCapability {
+	public function __construct(
+		private readonly GlobalScaleService $globalScaleService,
+	) {
+
+	}
 	public function getCapabilities(): array {
 		return [
 			'globalscale' => [
 				'enabled' => true,
 				'desktoplogin' => 1,
+				'token' => $this->globalScaleService->getLocalToken(),
 			]
 		];
 	}
