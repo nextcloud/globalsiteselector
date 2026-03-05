@@ -21,7 +21,7 @@
 	<bugs>https://github.com/nextcloud/globalsiteselector/issues</bugs>
 	<repository>https://github.com/nextcloud/globalsiteselector</repository>
 	<dependencies>
-		<nextcloud min-version="32" max-version="32"/>
+		<nextcloud min-version="32" max-version="34"/>
 	</dependencies>
 	<background-jobs>
 		<job>OCA\GlobalSiteSelector\BackgroundJobs\UpdateLookupServer</job>
