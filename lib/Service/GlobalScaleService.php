@@ -91,6 +91,10 @@ class GlobalScaleService {
 			return;
 		}
 
+		if (str_contains($address, '://')) {
+			$address = parse_url($address, PHP_URL_HOST);
+		}
+
 		$token = $this->getRemotePublicDiscovery($address)['token'] ?? '';
 		if ($token === '' || strlen($token) < 5) {
 			return;
