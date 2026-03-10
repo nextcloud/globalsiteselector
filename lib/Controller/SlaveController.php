@@ -151,6 +151,7 @@ class SlaveController extends OCSController {
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
 
 			$target = $options['target'];
+			$params = $options['params'] ?? [];
 			$backend = $options['backend'] ?? '';
 			if ($backend === 'saml' || $backend === 'oidc') {
 				$this->logger->debug('saml or oidc enabled: ' . $backend);
@@ -204,6 +205,9 @@ class SlaveController extends OCSController {
 		$this->logger->debug('userdata updated on lus');
 
 		$home = $this->urlGenerator->getAbsoluteURL($target);
+		if (!empty($params)) {
+			$home .= '?' . http_build_query($params);
+		}
 		$this->logger->debug('redirecting to ' . $home);
 
 		return new RedirectResponse($home);
