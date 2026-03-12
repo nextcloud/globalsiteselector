@@ -280,6 +280,16 @@ class Master {
 	 * @return string
 	 */
 	protected function createJwt($uid, $password, $options) {
+		if (!$this->gss->isJwtKeyValid()) {
+			$this->logger->error(
+				'gss.jwt.key is too short: HS256 requires at least '
+				. GlobalSiteSelector::MIN_JWT_KEY_LENGTH . ' characters (per RFC 7518). '
+				. 'Current key length: ' . strlen($this->gss->getJwtKey()) . '. '
+				. 'Please update gss.jwt.key in config.php on all nodes.',
+				['app' => Application::APP_ID]
+			);
+		}
+
 		$token = [
 			'uid' => $uid,
 			'password' => $this->crypto->encrypt($password, $this->gss->getJwtKey()),
