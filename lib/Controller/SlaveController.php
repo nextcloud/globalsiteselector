@@ -8,7 +8,7 @@
 
 namespace OCA\GlobalSiteSelector\Controller;
 
-use OC\Authentication\Token\IToken;
+use OC\Authentication\Token\IProvider;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\LocalFederatedShareException;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
@@ -31,6 +31,7 @@ use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
+use OCP\Authentication\Token\IToken;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
@@ -64,6 +65,7 @@ class SlaveController extends OCSController {
 		private readonly GlobalScaleService $globalScaleService,
 		private readonly GlobalShareService $globalShareService,
 		private readonly IConfig $config,
+		private readonly IProvider $authTokenProvider,
 		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
@@ -199,6 +201,13 @@ class SlaveController extends OCSController {
 
 		$this->logger->debug('all good. creating session');
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
+
+		// ignore the need of password validation on slaves
+		$token = $this->authTokenProvider->getToken($this->session->getId());
+		$scope = $token->getScopeAsArray();
+		$scope[IToken::SCOPE_SKIP_PASSWORD_VALIDATION] = true;
+		$token->setScope($scope);
+		$this->authTokenProvider->updateToken($token);
 
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');

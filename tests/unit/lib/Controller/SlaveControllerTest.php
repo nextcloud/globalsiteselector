@@ -8,6 +8,7 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 
+use OC\Authentication\Token\IProvider;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -42,6 +43,7 @@ class SlaveControllerTest extends TestCase {
 	private GlobalShareService $globalShareService;
 	private SlaveService $slaveService;
 	private IConfig $config;
+	private IProvider $tokenProvider;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -63,6 +65,7 @@ class SlaveControllerTest extends TestCase {
 		$this->globalScaleService = $this->createMock(GlobalScaleService::class);
 		$this->globalShareService = $this->createMock(GlobalShareService::class);
 		$this->config = $this->createMock(IConfig::class);
+		$this->tokenProvider = $this->createMock(IProvider::class);
 	}
 
 	/**
@@ -87,6 +90,7 @@ class SlaveControllerTest extends TestCase {
 					$this->globalScaleService,
 					$this->globalShareService,
 					$this->config,
+					$this->tokenProvider,
 					$this->logger
 				]
 			)->onlyMethods($mockMathods)->getMock();
