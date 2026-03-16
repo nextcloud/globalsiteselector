@@ -203,7 +203,8 @@ class Lookup {
 			[
 				'timeout' => 10,
 				'connect_timeout' => 3,
-				'nextcloud' => ['allow_local_address' => true]
+				'nextcloud' => ['allow_local_address' => true],
+				'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
 			]
 		);
 	}
