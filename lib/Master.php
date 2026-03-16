@@ -98,7 +98,11 @@ class Master {
 		$target = (!$this->request->getPathInfo()) ? '/' : '/index.php' . $this->request->getPathInfo();
 		$this->logger->debug('handleLoginRequest: target is: ' . $target);
 
-		$options = ['target' => $target];
+		$options = [
+			'target' => $target,
+			'params' => $this->request->getParams(),
+		];
+
 		$discoveryData = [];
 
 		$userDiscoveryModule = $this->config->getSystemValueString('gss.user.discovery.module', '');
