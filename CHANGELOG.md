@@ -5,6 +5,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.7.1
+
+- fix: parse address to remove http:// when requesting a token
+- fix: accept self-signed certificates from lookup server if configured
+- fix: skip password confirmation on slave when using oidc
+
+## 2.7.0
+
+- new feature: internal link across global scale
+
 ## 2.6.1
 
 - expecting a JSON as a result from POST request made to the Remote User Discovery endpoint
