@@ -10,10 +10,13 @@ declare(strict_types=1);
 namespace OCA\GlobalSiteSelector;
 
 use Exception;
+use OC\Core\Controller\ClientFlowLoginV2Controller;
+use OC\Core\Service\LoginFlowV2Service;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
+use OCP\AppFramework\Http\StandaloneTemplateResponse;
 use OCP\Authentication\IApacheBackend;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
@@ -22,6 +25,8 @@ use OCP\IRequest;
 use OCP\ISession;
 use OCP\Security\ICrypto;
 use OCP\Server;
+use OCP\ServerVersion;
+use OCP\Util;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Log\LoggerInterface;
@@ -34,35 +39,19 @@ use Psr\Log\LoggerInterface;
  * @package OCA\GlobalSiteSelector
  */
 class Master {
-	private ISession $session;
-	private GlobalSiteSelector $gss;
-	private ICrypto $crypto;
-	private Lookup $lookup;
-	private IRequest $request;
-	private IClientService $clientService;
-	private IConfig $config;
-	private LoggerInterface $logger;
-
 	public function __construct(
-		ISession $session,
-		GlobalSiteSelector $gss,
-		ICrypto $crypto,
-		Lookup $lookup,
-		IRequest $request,
-		IClientService $clientService,
-		IConfig $config,
-		LoggerInterface $logger,
+		private readonly ISession $session,
+		private readonly GlobalSiteSelector $gss,
+		private readonly ICrypto $crypto,
+		private readonly LoginFlowV2Service $loginFlowV2Service,
+		private readonly ServerVersion $serverVersion,
+		private readonly Lookup $lookup,
+		private readonly IRequest $request,
+		private readonly IClientService $clientService,
+		private readonly IConfig $config,
+		private readonly LoggerInterface $logger,
 	) {
-		$this->session = $session;
-		$this->gss = $gss;
-		$this->crypto = $crypto;
-		$this->lookup = $lookup;
-		$this->request = $request;
-		$this->clientService = $clientService;
-		$this->config = $config;
-		$this->logger = $logger;
 	}
-
 
 	/**
 	 * find users location and redirect them to the right server
@@ -108,6 +97,8 @@ class Master {
 		$userDiscoveryModule = $this->config->getSystemValueString('gss.user.discovery.module', '');
 		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
 
+		$redirectUrl = $this->request->getParam('redirect_url', '');
+
 		$isSamlOrOidc = false;
 		if (class_exists('\OCA\User_SAML\UserBackend')
 			&& $backend instanceof \OCA\User_SAML\UserBackend) {
@@ -148,9 +139,31 @@ class Master {
 			// 	TODO: switch 'oidc.redirect' to \OCA\UserOIDC\Controller\LoginController::REDIRECT_AFTER_LOGIN once switched to public
 			$options['target'] = $this->forceRelativeUrl($this->session->get('oidc.redirect') ?? '/');
 
+			// Fix: restore the slave flow path into options.target after all backend blocks.
+			//
+			// Application.php passes the slave flow path as redirect_url in the /login
+			// query string, e.g. redirect_url=%2Findex.php%2Flogin%2Fv2%2Fflow%2FF
+			//
+			// By the time handleLoginRequest() fires, the current request is the OIDC
+			// callback (/apps/user_oidc/code?state=...&code=...) with no redirect_url.
+			// We recover it from oidc.redirect (stored in the session by UserOIDC before
+			// the OIDC redirect). oidc.redirect is the full pre-OIDC request URL:
+			//   https://master/index.php/login?redirect_url=%2Findex.php%2Flogin%2Fv2%2Fflow%2FF
+			// We parse its query string to extract redirect_url = /index.php/login/v2/flow/F
+			$oidcRedirect = (string)($this->session->get('oidc.redirect') ?? '');
+			if ($oidcRedirect !== '') {
+				parse_str(parse_url($oidcRedirect, PHP_URL_QUERY) ?? '', $oidcRedirectParams);
+				$redirectUrl = $oidcRedirectParams['redirect_url'] ?? $redirectUrl;
+			}
+
 			$this->logger->debug('handleLoginRequest: backend is OIDC.', ['options' => $options]);
 		} else {
 			$this->logger->debug('handleLoginRequest: backend is not SAML or OIDC');
+		}
+
+		if ($this->isPath(['/login/flow', '/login/v2/flow'], $redirectUrl ?? '')) {
+			$options['target'] = $redirectUrl;
+			$this->logger->debug('handleLoginRequest: overriding target with slave flow path: ' . $options['target']);
 		}
 
 		$this->logger->debug('handleLoginRequest: uid is: ' . $uid);
@@ -247,9 +260,10 @@ class Master {
 				IRequest::USER_AGENT_CLIENT_IOS,
 				IRequest::USER_AGENT_CLIENT_ANDROID,
 				IRequest::USER_AGENT_CLIENT_DESKTOP,
+				'/mirall|csyncoC/', // <-- Support also not compliant Desktop Clients
 				'/^.*\(Android\)$/'
 			]
-		);
+		) || $this->isPath(['/login/flow/grant', '/login/v2/grant'], $options['target'] ?? '');
 
 		$requestUri = $this->request->getRequestUri();
 		// check for both possible direct webdav end-points
@@ -262,7 +276,16 @@ class Master {
 		} elseif ($isClient && !$isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client request generating apptoken');
 			$appToken = $this->getAppToken($location, $uid, $password, $options);
-			$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
+
+			$loginV2Token = $this->session->get(ClientFlowLoginV2Controller::TOKEN_NAME);
+			if ($loginV2Token !== null && $location !== '') {
+				$result = $this->loginFlowV2Service->flowDoneWithAppPassword($loginV2Token, $location, $uid, $appToken);
+				echo $this->handleFlowDone($result)->render();
+				die();
+			} else {
+				// fallback to v1
+				$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
+			}
 		} else {
 			$this->logger->debug('redirectUser: direct login so forward to target node');
 			$jwt = $this->createJwt($uid, $password, $options);
@@ -395,5 +418,33 @@ class Master {
 		$url .= (!array_key_exists('fragment', $parsed)) ? '' : '#' . $parsed['fragment'];
 
 		return $url;
+	}
+
+	private function isPath(array $search, string $path): bool {
+		if ($path === '') {
+			return false;
+		}
+
+		foreach ($search as $entry) {
+			if (str_starts_with($path, $entry) || str_starts_with($path, '/index.php' . $entry)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private function handleFlowDone(bool $result): StandaloneTemplateResponse {
+		if ($result) {
+			// login flow v2 templates were moved in NC33
+			if ($this->serverVersion->getMajorVersion() >= 33) {
+				Util::addScript('core', 'login_flow');
+				return new StandaloneTemplateResponse('core', 'loginflow', renderAs: 'guest');
+			}
+
+			return new StandaloneTemplateResponse('core', 'loginflowv2/done', renderAs: 'guest');
+		}
+
+		return new StandaloneTemplateResponse('core', '403', ['message' => 'Could not complete login'], 'guest');
 	}
 }

@@ -213,7 +213,12 @@ class SlaveController extends OCSController {
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
 
-		$home = $this->urlGenerator->getAbsoluteURL($target);
+		if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
+			$home = $target;
+		} else {
+			$home = $this->urlGenerator->getAbsoluteURL($target);
+		}
+
 		if (!empty($params)) {
 			$home .= '?' . http_build_query($params);
 		}
