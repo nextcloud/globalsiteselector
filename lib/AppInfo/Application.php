@@ -20,6 +20,7 @@ use OCA\GlobalSiteSelector\Listeners\UserDeleted;
 use OCA\GlobalSiteSelector\Listeners\UserLoggedOut;
 use OCA\GlobalSiteSelector\Listeners\UserLoggingIn;
 use OCA\GlobalSiteSelector\PublicCapabilities;
+use OCA\GlobalSiteSelector\SetupChecks\LongJwtKeySetupCheck;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCP\AppFramework\App;
@@ -79,6 +80,8 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(BeforeUserDeletedEvent::class, DeletingUser::class);
 		$context->registerEventListener(UserDeletedEvent::class, UserDeleted::class);
 		$context->registerEventListener(UserLoggedOutEvent::class, UserLoggedOut::class);
+
+		$context->registerSetupCheck(LongJwtKeySetupCheck::class);
 
 		// It seems that AccountManager use deprecated dispatcher, let's use a deprecated listener
 		/** @var IEventDispatcher $eventDispatcher */
