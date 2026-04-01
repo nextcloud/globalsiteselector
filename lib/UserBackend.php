@@ -421,6 +421,10 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 				$groupsToRemove = array_diff($oldGroups, $newGroups);
 
 				foreach ($groupsToAdd as $group) {
+					if (strtolower($group) === 'admin') {
+						continue;
+					}
+
 					if (!($groupManager->groupExists($group))) {
 						$groupManager->createGroup($group);
 					}
