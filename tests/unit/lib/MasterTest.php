@@ -8,6 +8,7 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
+use OC\Core\Service\LoginFlowV2Service;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
@@ -21,6 +22,9 @@ use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\Security\ICrypto;
+use OCP\Server;
+use OCP\ServerVersion;
+use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
@@ -51,6 +55,8 @@ class MasterTest extends TestCase {
 
 	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
 	private $session;
+	private LoginFlowV2Service&MockObject $loginflow;
+	private ServerVersion $serverVersion;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -60,6 +66,8 @@ class MasterTest extends TestCase {
 		$this->crypto = $this->createMock(ICrypto::class);
 		$this->lookup = $this->getMockBuilder(Lookup::class)
 			->disableOriginalConstructor()->getMock();
+		$this->loginflow = $this->createMock(LoginFlowV2Service::class);
+		$this->serverVersion = Server::get(ServerVersion::class);
 		$this->request = $this->createMock(IRequest::class);
 		$this->clientService = $this->createMock(IClientService::class);
 		$this->config = $this->createMock(IConfig::class);
@@ -79,6 +87,8 @@ class MasterTest extends TestCase {
 					$this->session,
 					$this->gss,
 					$this->crypto,
+					$this->loginflow,
+					$this->serverVersion,
 					$this->lookup,
 					$this->request,
 					$this->clientService,

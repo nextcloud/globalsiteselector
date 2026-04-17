@@ -21,7 +21,7 @@ class PublicCapabilities implements IPublicCapability {
 		return [
 			'globalscale' => [
 				'enabled' => true,
-				'desktoplogin' => 1,
+				'desktoplogin' => 2,
 				'token' => $this->globalScaleService->getLocalToken(),
 			]
 		];

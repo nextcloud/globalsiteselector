@@ -161,32 +161,31 @@ class Application extends App implements IBootstrap {
 			$userSession = Server::get(IUserSession::class);
 			if ($userSession->isLoggedIn()) {
 				$this->logger->debug('already logged in, we stay on slave', ['app' => self::APP_ID]);
-
 				return;
 			}
 
 			/** @var IRequest $request */
 			$request = Server::get(IRequest::class);
-			if ($request->getPathInfo() !== '/login') {
+			$pathInfo = (string)$request->getPathInfo();
+			if (!in_array($pathInfo, ['/login', '/login/v2', '/login/flow', '/login/v2/flow'], true)) {
 				$this->logger->debug('login page not called, we stay on slave', ['app' => self::APP_ID]);
-
 				return;
 			}
 
 			$params = $request->getParams();
 			if (isset($params['direct'])) {
-				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]
-				);
-
+				$this->logger->debug('direct login page requested, we stay on slave', ['app' => self::APP_ID]);
 				return;
 			}
 
-			if (isset($params['redirect_url'])) {
-				$masterUrl = rtrim($masterUrl, '/') . '/index.php/login?redirect_url=' . urlencode($params['redirect_url']);
+			$redirectUrl = $params['redirect_url'] ?? null;
+			if ($redirectUrl === null) {
+				$masterUrl = rtrim($masterUrl, '/') . '/index.php' . $pathInfo;
+			} else {
+				$masterUrl = rtrim($masterUrl, '/') . '/index.php/login?redirect_url=' . urlencode($redirectUrl);
 			}
 
 			$this->logger->debug('Redirecting client to ' . $masterUrl, ['app' => self::APP_ID]);
-
 			header('Location: ' . $masterUrl);
 			exit();
 		} catch (Exception|ContainerExceptionInterface|NotFoundExceptionInterface $e) {
