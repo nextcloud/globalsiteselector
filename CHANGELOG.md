@@ -5,6 +5,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.7.2
+
+- feat: improved login flow
+- feat: limit admin account creation
+- fix: setup check on jwt key length
+
 ## 2.7.1
 
 - fix: parse address to remove http:// when requesting a token
