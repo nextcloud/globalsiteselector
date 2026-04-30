@@ -100,10 +100,7 @@ class SlaveController extends OCSController {
 	 * @PublicPage
 	 * @NoCSRFRequired
 	 * @UseSession
-	 *
-	 * @param string $jwt
-	 *
-	 * @return RedirectResponse
+	 * @BruteForceProtection(action=autoLogin)
 	 */
 	public function autoLogin(string $jwt): RedirectResponse {
 		$this->logger->debug('autologin incoming request with ' . $jwt);
@@ -115,11 +112,10 @@ class SlaveController extends OCSController {
 			return new RedirectResponse('');
 		}
 
-		if ($this->gss->isMaster()) {
-			return new RedirectResponse($masterUrl);
-		}
-		if ($jwt === '') {
-			return new RedirectResponse($masterUrl);
+		if ($this->gss->isMaster() || $jwt === '') {
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		}
 
 		try {
@@ -158,12 +154,14 @@ class SlaveController extends OCSController {
 			}
 		} catch (ExpiredException $e) {
 			$this->logger->info('token expired');
-
-			return new RedirectResponse($masterUrl);
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		} catch (\Exception $e) {
 			$this->logger->warning('issue during login process', ['exception' => $e]);
-
-			return new RedirectResponse($masterUrl);
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		}
 
 		$this->logger->debug('all good. creating session');
@@ -179,16 +177,15 @@ class SlaveController extends OCSController {
 	}
 
 	/**
-	 * Create app token
-	 *
 	 * @PublicPage
 	 * @NoAdminRequired
-	 *
-	 * @return DataResponse
+	 * @BruteForceProtection(action=createAppToken)
 	 */
-	public function createAppToken($jwt) {
+	public function createAppToken($jwt): DataResponse {
 		if ($this->gss->getMode() === 'master' || empty($jwt)) {
-			return new DataResponse([], Http::STATUS_BAD_REQUEST);
+			$response = new DataResponse([], Http::STATUS_BAD_REQUEST);
+			$response->throttle();
+			return $response;
 		}
 
 		try {
@@ -213,7 +210,9 @@ class SlaveController extends OCSController {
 			$this->logger->info('issue while token creation', ['exception' => $e]);
 		}
 
-		return new DataResponse([], Http::STATUS_BAD_REQUEST);
+		$response = new DataResponse([], Http::STATUS_BAD_REQUEST);
+		$response->throttle();
+		return $response;
 	}
 
 	/**
