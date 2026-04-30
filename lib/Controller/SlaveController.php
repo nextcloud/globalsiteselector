@@ -121,11 +121,9 @@ class SlaveController extends OCSController {
 	 * @PublicPage
 	 * @NoCSRFRequired
 	 * @UseSession
-	 *
-	 * @param string $jwt
-	 * @return RedirectResponse
+	 * @BruteForceProtection(action=autoLogin)
 	 */
-	public function autoLogin($jwt) {
+	public function autoLogin(string $jwt): RedirectResponse {
 
 		$masterUrl = $this->gss->getMasterUrl();
 
@@ -134,7 +132,9 @@ class SlaveController extends OCSController {
 		}
 
 		if ($jwt === '') {
-			return new RedirectResponse($masterUrl);
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		}
 
 		try {
@@ -166,10 +166,14 @@ class SlaveController extends OCSController {
 
 		} catch (ExpiredException $e) {
 			$this->logger->info('token expired', ['app' => 'globalsiteselector']);
-			return new RedirectResponse($masterUrl);
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		} catch (\Exception $e) {
 			$this->logger->logException($e, ['app' => 'globalsiteselector']);
-			return new RedirectResponse($masterUrl);
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		}
 
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
@@ -179,17 +183,16 @@ class SlaveController extends OCSController {
 	}
 
 	/**
-	 * Create app token
-	 *
 	 * @PublicPage
 	 * @NoAdminRequired
-	 *
-	 * @return DataResponse
+	 * @BruteForceProtection(action=createAppToken)
 	 */
-	public function createAppToken($jwt) {
+	public function createAppToken($jwt): DataResponse {
 
 		if($this->gss->getMode() === 'master' || empty($jwt)) {
-			return new DataResponse([], Http::STATUS_BAD_REQUEST);
+			$response = new DataResponse([], Http::STATUS_BAD_REQUEST);
+			$response->throttle();
+			return $response;
 		}
 
 		try {
@@ -217,7 +220,9 @@ class SlaveController extends OCSController {
 			$this->logger->logException('Create app password: ' . $e, ['app' => 'globalsiteselector']);
 		}
 
-		return new DataResponse([], Http::STATUS_BAD_REQUEST);
+		$response = new DataResponse([], Http::STATUS_BAD_REQUEST);
+		$response->throttle();
+		return $response;
 
 	}
 
