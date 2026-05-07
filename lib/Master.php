@@ -272,6 +272,15 @@ class Master {
 		// check for both possible direct webdav end-points
 		$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
 		$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
+
+		// detect HTTP Basic Auth on the incoming request; RFC 9110 §11.1 makes
+		// the scheme name case-insensitive, so we lowercase before comparing.
+		$authHeader = $this->request->getHeader('Authorization');
+		$hasBasicAuth = $authHeader !== '' && str_starts_with(strtolower($authHeader), 'basic ');
+
+		// default redirect status code; overridden below for the 307 forward.
+		$statusCode = 302;
+
 		// direct webdav access with old client or general purpose webdav clients
 		if ($isClient && $isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client direct webdav request');
@@ -289,6 +298,18 @@ class Master {
 				// fallback to v1
 				$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
 			}
+		} elseif ($isDirectWebDavAccess && $hasBasicAuth) {
+			// Third-party WebDAV clients authenticated with HTTP Basic
+			// (curl, rclone, davfs2, sabre/dav based clients, generic DAV
+			// consumers, etc.): forward the request as-is to the slave with
+			// a 307 (RFC 9110 §15.4.8) so that PUT, PROPFIND, MKCOL, DELETE,
+			// COPY and MOVE are not downgraded to GET, and the original
+			// request URI is preserved end-to-end. The client re-issues the
+			// same request to the slave, including the Authorization header
+			// it already presented to the master.
+			$this->logger->debug('redirectUser: third-party webdav request with Basic Auth, forwarding with 307');
+			$redirectUrl = rtrim($location, '/') . $requestUri;
+			$statusCode = 307;
 		} else {
 			$this->logger->debug('redirectUser: direct login so forward to target node');
 			$jwt = $this->createJwt($uid, $password, $options);
@@ -296,7 +317,7 @@ class Master {
 		}
 
 		$this->logger->debug('redirectUser: redirecting to: ' . $redirectUrl);
-		header('Location: ' . $redirectUrl, true, 302);
+		header('Location: ' . $redirectUrl, true, $statusCode);
 		die();
 	}
 
