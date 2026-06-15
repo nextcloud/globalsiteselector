@@ -137,7 +137,10 @@ class Master {
 				'providerId' => $this->session->get(\OCA\UserOIDC\Controller\LoginController::PROVIDERID)
 			];
 			// 	TODO: switch 'oidc.redirect' to \OCA\UserOIDC\Controller\LoginController::REDIRECT_AFTER_LOGIN once switched to public
-			$options['target'] = $this->forceRelativeUrl($this->session->get('oidc.redirect') ?? '/');
+			$state = $this->request->getParam('state') ?? '';
+			$sessionKeySuffix = ($state !== '') ? '-' . $state : '';
+			$redirect = $this->session->get('oidc.redirect') ?? $this->session->get('oidc.redirect' . $sessionKeySuffix) ?? '/';
+			$options['target'] = $this->forceRelativeUrl($redirect);
 
 			// Fix: restore the slave flow path into options.target after all backend blocks.
 			//
