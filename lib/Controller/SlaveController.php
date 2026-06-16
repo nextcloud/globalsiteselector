@@ -20,6 +20,11 @@ use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\ExpiredException;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\BruteForceProtection;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\Attribute\UseSession;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\OCSController;
@@ -60,15 +65,10 @@ class SlaveController extends OCSController {
 		parent::__construct($appName, $request);
 	}
 
-	/**
-	 * @PublicPage
-	 * @NoCSRFRequired
-	 * @UseSession
-	 *
-	 * @param string $jwt
-	 *
-	 * @return RedirectResponse
-	 */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	#[UseSession]
+	#[BruteForceProtection(action: 'autoLogin')]
 	public function autoLogin(string $jwt): RedirectResponse {
 		$this->logger->debug('autologin incoming request with ' . $jwt);
 
@@ -79,11 +79,10 @@ class SlaveController extends OCSController {
 			return new RedirectResponse('');
 		}
 
-		if ($this->gss->isMaster()) {
-			return new RedirectResponse($masterUrl);
-		}
-		if ($jwt === '') {
-			return new RedirectResponse($masterUrl);
+		if ($this->gss->isMaster() || $jwt === '') {
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		}
 
 		try {
@@ -129,12 +128,14 @@ class SlaveController extends OCSController {
 			}
 		} catch (ExpiredException $e) {
 			$this->logger->info('token expired');
-
-			return new RedirectResponse($masterUrl);
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		} catch (\Exception $e) {
 			$this->logger->warning('issue during login process', ['exception' => $e]);
-
-			return new RedirectResponse($masterUrl);
+			$response = new RedirectResponse($masterUrl);
+			$response->throttle();
+			return $response;
 		}
 
 		$this->logger->debug('all good. creating session');
@@ -149,17 +150,14 @@ class SlaveController extends OCSController {
 		return new RedirectResponse($home);
 	}
 
-	/**
-	 * Create app token
-	 *
-	 * @PublicPage
-	 * @NoAdminRequired
-	 *
-	 * @return DataResponse
-	 */
-	public function createAppToken($jwt) {
+	#[PublicPage]
+	#[NoAdminRequired]
+	#[BruteForceProtection(action: 'createAppToken')]
+	public function createAppToken($jwt): DataResponse {
 		if ($this->gss->getMode() === 'master' || empty($jwt)) {
-			return new DataResponse([], Http::STATUS_BAD_REQUEST);
+			$response = new DataResponse([], Http::STATUS_BAD_REQUEST);
+			$response->throttle();
+			return $response;
 		}
 
 		try {
@@ -184,7 +182,9 @@ class SlaveController extends OCSController {
 			$this->logger->info('issue while token creation', ['exception' => $e]);
 		}
 
-		return new DataResponse([], Http::STATUS_BAD_REQUEST);
+		$response = new DataResponse([], Http::STATUS_BAD_REQUEST);
+		$response->throttle();
+		return $response;
 	}
 
 	/**
