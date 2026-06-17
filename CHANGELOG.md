@@ -5,6 +5,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.7.3
+
+- fix: add brute force protection and avoid saving token on debug log
+- fix: state might be used in session keys
+
 ## 2.7.2
 
 - feat: improved login flow
