@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.1.3
+
+- fix: add brute force protection and avoid saving token on debug log
+
 ## 2.1.2
 
 - update user on login
