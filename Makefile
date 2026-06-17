@@ -7,7 +7,7 @@ build_dir=$(CURDIR)/build/artifacts
 source_dir=$(build_dir)/source
 sign_dir=$(build_dir)/sign
 package_name=$(app_name)
-version+=2.7.2
+version+=2.7.3
 
 all: appstore
 
