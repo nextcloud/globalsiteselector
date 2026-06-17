@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.4.6
+
+- fix: add brute force protection and avoid saving token on debug log
+
 ## 2.4.5
 
 - fix an issue in auth process on slave
