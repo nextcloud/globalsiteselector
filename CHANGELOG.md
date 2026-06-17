@@ -5,6 +5,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.6.2
+
+- fix: add brute force protection and avoid saving token on debug log
+
 ## 2.6.1
 
 - expecting a JSON as a result from POST request made to the Remote User Discovery endpoint
