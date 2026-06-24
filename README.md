@@ -21,9 +21,11 @@ To use the Global Site Connector you need to add some config parameters to the c
 Config.php parameters to operate the server in master mode:
 
 ````
-// can be chosen freely, you just have to make sure the master and
-// all slaves have the same key.  Also make sure to choose a strong shared secret.
-'gss.jwt.key' => 'random-key',
+// Shared secret used to sign JWT tokens between master and slave nodes.
+// IMPORTANT: Must be at least 32 characters long (required by HS256 per RFC 7518).
+// Must be identical on master and all slave nodes.
+// Example: use `openssl rand -base64 32` to generate a strong key.
+'gss.jwt.key' => 'random-key-at-least-32-characters',
 
 // operation mode
 'gss.mode' => 'master',
@@ -50,9 +52,10 @@ Config.php parameters to operate the server in master mode:
 Config parameters to operate the server in slave mode:
 
 ````
-// can be chosen freely, you just have to make sure the master and
-// all slaves have the same key. Also make sure to choose a strong shared secret.
-'gss.jwt.key' => 'random-key',
+// Shared secret used to sign JWT tokens between master and slave nodes.
+// IMPORTANT: Must be at least 32 characters long (required by HS256 per RFC 7518).
+// Must be identical on master and all slave nodes.
+'gss.jwt.key' => 'random-key-at-least-32-characters',
 
 // operation mode
 'gss.mode' => 'slave',

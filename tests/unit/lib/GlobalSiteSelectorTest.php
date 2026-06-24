@@ -61,4 +61,25 @@ class GlobalSiteSelectorTest extends TestCase {
 
 		$this->assertSame('result', $result);
 	}
+
+	public function testIsJwtKeyValidWithShortKey() {
+		$this->config->method('getSystemValueString')
+			->with('gss.jwt.key', '')->willReturn('short-key');
+
+		$this->assertFalse($this->gss->isJwtKeyValid());
+	}
+
+	public function testIsJwtKeyValidWithEmptyKey() {
+		$this->config->method('getSystemValueString')
+			->with('gss.jwt.key', '')->willReturn('');
+
+		$this->assertFalse($this->gss->isJwtKeyValid());
+	}
+
+	public function testIsJwtKeyValidWithValidKey() {
+		$this->config->method('getSystemValueString')
+			->with('gss.jwt.key', '')->willReturn('this-key-is-at-least-32-characters-long!');
+
+		$this->assertTrue($this->gss->isJwtKeyValid());
+	}
 }
