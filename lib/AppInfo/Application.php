@@ -78,7 +78,7 @@ class Application extends App implements IBootstrap {
 		);
 
 		// events on slave
-		$context->registerEventListener(UserChangedEvent::class, UserChanged::class); 
+		$context->registerEventListener(UserChangedEvent::class, UserChanged::class);
 		$context->registerEventListener(UserCreatedEvent::class, UserCreated::class);
 		$context->registerEventListener(BeforeUserDeletedEvent::class, DeletingUser::class);
 		$context->registerEventListener(UserDeletedEvent::class, UserDeleted::class);
