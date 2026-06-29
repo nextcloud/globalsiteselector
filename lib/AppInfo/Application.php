@@ -15,6 +15,7 @@ use OC;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Listeners\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Listeners\DeletingUser;
+use OCA\GlobalSiteSelector\Listeners\UserChanged;
 use OCA\GlobalSiteSelector\Listeners\UserCreated;
 use OCA\GlobalSiteSelector\Listeners\UserDeleted;
 use OCA\GlobalSiteSelector\Listeners\UserLoggedOut;
@@ -36,6 +37,7 @@ use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 use OCP\Server;
 use OCP\User\Events\BeforeUserDeletedEvent;
 use OCP\User\Events\BeforeUserLoggedInEvent;
+use OCP\User\Events\UserChangedEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\User\Events\UserDeletedEvent;
 use OCP\User\Events\UserLoggedOutEvent;
@@ -76,6 +78,7 @@ class Application extends App implements IBootstrap {
 		);
 
 		// events on slave
+		$context->registerEventListener(UserChangedEvent::class, UserChanged::class); 
 		$context->registerEventListener(UserCreatedEvent::class, UserCreated::class);
 		$context->registerEventListener(BeforeUserDeletedEvent::class, DeletingUser::class);
 		$context->registerEventListener(UserDeletedEvent::class, UserDeleted::class);
