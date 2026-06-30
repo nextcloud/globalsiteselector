@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+namespace OCA\GlobalSiteSelector\Listeners;
+
+use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Slave;
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventListener;
+use OCP\User\Events\UserChangedEvent;
+
+/**
+ * @template-implements IEventListener<UserChangedEvent>
+ */
+class UserChanged implements IEventListener {
+
+	public function __construct(
+		private GlobalSiteSelector $globalSiteSelector,
+		private Slave $slave,
+	) {
+	}
+
+	public function handle(Event $event): void {
+		if (!$event instanceof UserChangedEvent) {
+			return;
+		}
+
+		if (!$this->globalSiteSelector->isSlave()) {
+			return;
+		}
+
+		if ($event->getFeature() !== 'enabled') {
+			return;
+		}
+
+		$params = ['uid' => $event->getUser()->getUID()];
+
+		if ($event->getValue() === false) {
+			// user was disabled, remove from lookup server
+			$this->slave->preDeleteUser($params);
+			$this->slave->deleteUser($params);
+		} else {
+			// user was enabled, add to lookup server
+			$this->slave->createUser($params);
+		}
+	}
+}

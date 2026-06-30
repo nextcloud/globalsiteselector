@@ -160,11 +160,10 @@ class Slave {
 			$offset = 0;
 			$usersData = [];
 			do {
-
 				$users = $backend->getUsers('', $limit, $offset);
 				foreach ($users as $uid) {
 					$user = $this->userManager->get($uid);
-					if ($user !== null) {
+					if ($user !== null && $user->isEnabled()) {
 						$usersData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 					}
 				}
