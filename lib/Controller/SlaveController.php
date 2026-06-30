@@ -9,6 +9,7 @@
 namespace OCA\GlobalSiteSelector\Controller;
 
 use OC\Authentication\Token\IProvider;
+use OC\User\DisabledUserException;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\LocalFederatedShareException;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
@@ -63,6 +64,7 @@ class SlaveController extends OCSController {
 		private readonly IUserManager $userManager,
 		private readonly UserBackend $userBackend,
 		private readonly ISession $session,
+		private readonly Slave $slave,
 		private readonly SlaveService $slaveService,
 		private readonly GlobalScaleService $globalScaleService,
 		private readonly GlobalShareService $globalShareService,
@@ -159,6 +161,9 @@ class SlaveController extends OCSController {
 				if (!($user instanceof IUser)) {
 					throw new \InvalidArgumentException('User is not valid');
 				}
+				if (!$user->isEnabled()) {
+					throw new DisabledUserException('Account disabled');
+				}
 				$user->updateLastLoginTimestamp();
 
 				$this->session->set('globalScale.userData', $options);
@@ -191,6 +196,12 @@ class SlaveController extends OCSController {
 			$response = new RedirectResponse($masterUrl);
 			$response->throttle();
 			return $response;
+		} catch (DisabledUserException $e) {
+			// user is disabled, remove from lookup server
+			$params = ['uid' => $uid];
+			$this->slave->preDeleteUser($params);
+			$this->slave->deleteUser($params);
+			return new RedirectResponse($masterUrl);
 		} catch (\Exception $e) {
 			$this->logger->warning('issue during login process', ['exception' => $e]);
 			$response = new RedirectResponse($masterUrl);
