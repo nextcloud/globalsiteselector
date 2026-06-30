@@ -15,6 +15,7 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Service\GlobalShareService;
 use OCA\GlobalSiteSelector\Service\SlaveService;
+use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
@@ -39,6 +40,7 @@ class SlaveControllerTest extends TestCase {
 	private IUserManager $userManager;
 	private UserBackend $userBackend;
 	private ISession $session;
+	private Slave $slave;
 	private GlobalScaleService $globalScaleService;
 	private GlobalShareService $globalShareService;
 	private SlaveService $slaveService;
@@ -61,6 +63,7 @@ class SlaveControllerTest extends TestCase {
 		$this->userBackend = $this->getMockBuilder(UserBackend::class)
 			->disableOriginalConstructor()->getMock();
 		$this->session = $this->createMock(ISession::class);
+		$this->slave = $this->createMock(Slave::class);
 		$this->slaveService = $this->createMock(SlaveService::class);
 		$this->globalScaleService = $this->createMock(GlobalScaleService::class);
 		$this->globalShareService = $this->createMock(GlobalShareService::class);
@@ -86,6 +89,7 @@ class SlaveControllerTest extends TestCase {
 					$this->userManager,
 					$this->userBackend,
 					$this->session,
+					$this->slave,
 					$this->slaveService,
 					$this->globalScaleService,
 					$this->globalShareService,
