@@ -46,3 +46,9 @@ path = ["tests/stubs/icewind_streams_**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "none"
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ".github/workflows/sync-workflow-templates.yml.patch"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Nextcloud GmbH and Nextcloud contributors"
+SPDX-License-Identifier = "MIT"
