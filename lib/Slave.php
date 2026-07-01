@@ -99,6 +99,11 @@ class Slave {
 			]
 		);
 
+		if (!$user->isEnabled()) {
+			$this->removeUsers([$user->getCloudId()]);
+			return;
+		}
+
 		$userData = [];
 		$userData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
 		$this->addUsers($userData);
@@ -158,18 +163,31 @@ class Slave {
 		foreach ($backends as $backend) {
 			$limit = 200;
 			$offset = 0;
-			$usersData = [];
 			do {
-
 				$users = $backend->getUsers('', $limit, $offset);
+
+				$usersToAdd = [];
+				$usersToRemove = [];
 				foreach ($users as $uid) {
 					$user = $this->userManager->get($uid);
-					if ($user !== null) {
-						$usersData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
+					if ($user === null) {
+						continue;
+					}
+					if ($user->isEnabled()) {
+						$usersToAdd[$user->getCloudId()] = $this->slaveService->getAccountData($user);
+					} else {
+						$usersToRemove[] = $user->getCloudId();
 					}
 				}
+
+				if ($usersToAdd !== []) {
+					$this->addUsers($usersToAdd);
+				}
+				if ($usersToRemove !== []) {
+					$this->removeUsers($usersToRemove);   // one DELETE per page, not per user
+				}
+
 				$offset += $limit;
-				$this->addUsers($usersData);
 			} while (count($users) >= $limit);
 		}
 	}
