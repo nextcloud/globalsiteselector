@@ -65,7 +65,7 @@
         }
     },
     "require-dev": {
-        "nextcloud/ocp": "dev-master"
+        "nextcloud/ocp": "dev-stable32"
     },
     "autoload-dev": {
         "psr-4": {
