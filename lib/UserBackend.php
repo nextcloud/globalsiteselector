@@ -39,7 +39,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	) {
 	}
 
-
 	/**
 	 * Backend name to be shown in user management
 	 *
@@ -165,7 +164,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 		return $uids;
 	}
-
 
 	/**
 	 * counts the users in the database
@@ -313,7 +311,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		return ($this->getCurrentUserId() !== '');
 	}
 
-
 	/**
 	 * Return the id of the current user
 	 *
@@ -331,7 +328,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 		return '';
 	}
-
 
 	/**
 	 * Check if the provided token is correct
@@ -386,7 +382,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			}
 		}
 	}
-
 
 	public function updateAttributes(string $uid, array $attributes): void {
 		$user = $this->userManager->get($uid);
@@ -446,7 +441,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			}
 		}
 	}
-
 
 	/**
 	 * Whether $uid exists in the database

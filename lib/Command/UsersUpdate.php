@@ -23,7 +23,6 @@ class UsersUpdate extends Base {
 		$this->slave = $slave;
 	}
 
-
 	/**
 	 *
 	 */
@@ -33,7 +32,6 @@ class UsersUpdate extends Base {
 		$this->setName('globalsiteselector:users:update')
 			->setDescription('update known users data to Lookup Server');
 	}
-
 
 	/**
 	 * @param InputInterface $input

@@ -29,7 +29,6 @@ class UserDiscoverySAML implements IUserDiscoveryModule {
 		$this->idpParameter = $config->getSystemValueString('gss.discovery.saml.slave.mapping', '');
 	}
 
-
 	/**
 	 * read user location from SAML parameters
 	 *

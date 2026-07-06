@@ -26,7 +26,6 @@ class UserDeleted implements IEventListener {
 	) {
 	}
 
-
 	/**
 	 * @param Event $event
 	 */

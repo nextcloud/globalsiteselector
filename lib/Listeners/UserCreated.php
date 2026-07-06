@@ -26,7 +26,6 @@ class UserCreated implements IEventListener {
 	) {
 	}
 
-
 	/**
 	 * @param Event $event
 	 */

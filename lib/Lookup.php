@@ -105,7 +105,6 @@ class Lookup {
 		}
 	}
 
-
 	private function getUserLocation_Validate(string $address): string {
 		try {
 			$cloudId = $this->cloudIdManager->resolveCloudId($address);
@@ -132,7 +131,6 @@ class Lookup {
 
 		return rtrim($url, '/');
 	}
-
 
 	/**
 	 * based on the sanitizeUsername() method from apps/user_ldap/lib/Access.php

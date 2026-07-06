@@ -46,7 +46,6 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$this->logger->debug('use regular expression: ' . ($this->useRegularExpressions ? 'true' : 'false'));
 	}
 
-
 	/**
 	 * get the initial user location
 	 *

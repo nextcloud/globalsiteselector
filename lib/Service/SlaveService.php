@@ -5,7 +5,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-
 namespace OCA\GlobalSiteSelector\Service;
 
 use Exception;
@@ -64,7 +63,6 @@ class SlaveService {
 		$this->cacheDisplayNameTtl = ($ttl === 0) ? self::CACHE_DISPLAY_NAME_TTL : $ttl;
 	}
 
-
 	public function updateUserById(string $userId): void {
 		$user = $this->userManager->get($userId);
 		if (is_null($user)) {
@@ -88,7 +86,6 @@ class SlaveService {
 		$userData[$user->getCloudId()] = $this->getAccountData($user);
 		$this->updateUsersOnLookup($userData);
 	}
-
 
 	/**
 	 * get single user's display name
@@ -166,7 +163,6 @@ class SlaveService {
 		return array_merge($knownDetails, $details);
 	}
 
-
 	protected function updateUsersOnLookup(array $users): void {
 		$this->logger->debug(
 			'Batch updating users: {users}',
@@ -175,7 +171,6 @@ class SlaveService {
 
 		$this->postLookup('/gs/users', ['users' => $users]);
 	}
-
 
 	protected function postLookup(string $path, array $data): void {
 		try {
@@ -199,7 +194,6 @@ class SlaveService {
 			);
 		}
 	}
-
 
 	/**
 	 * @param string $path
@@ -231,7 +225,6 @@ class SlaveService {
 		return $response->getBody();
 	}
 
-
 	/**
 	 * @return void
 	 * @throws ConfigurationException
@@ -249,7 +242,6 @@ class SlaveService {
 			throw new ConfigurationException('not configured as slave');
 		}
 	}
-
 
 	/**
 	 * get user data from account manager
