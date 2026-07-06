@@ -5,7 +5,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-
 namespace OCA\GlobalSiteSelector\Controller;
 
 use OC\Authentication\Token\IProvider;
@@ -122,7 +121,6 @@ class SlaveController extends OCSController {
 			return new DataResponse($e->getFederatedShare(), Http::STATUS_MOVED_PERMANENTLY);
 		}
 	}
-
 
 	#[PublicPage]
 	#[NoCSRFRequired]
@@ -288,7 +286,6 @@ class SlaveController extends OCSController {
 
 		return [$uid, $password, json_decode($options, true)];
 	}
-
 
 	/**
 	 * create new user if the user doesn't exist yet on the client node

@@ -30,7 +30,6 @@ class UserDiscoveryOIDC implements IUserDiscoveryModule {
 		$this->tokenLocationAttribute = $config->getSystemValueString('gss.discovery.oidc.slave.mapping', '');
 	}
 
-
 	/**
 	 * read user location from OIDC token attribute
 	 *
@@ -38,6 +37,7 @@ class UserDiscoveryOIDC implements IUserDiscoveryModule {
 	 *
 	 * @return string
 	 */
+	#[\Override]
 	public function getLocation(array $data): string {
 		$location = '';
 		if (!empty($this->tokenLocationAttribute) && isset($data['oidc'][$this->tokenLocationAttribute])) {

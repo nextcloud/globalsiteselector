@@ -23,16 +23,15 @@ class UsersUpdate extends Base {
 		$this->slave = $slave;
 	}
 
-
 	/**
 	 *
 	 */
+	#[\Override]
 	protected function configure() {
 		parent::configure();
 		$this->setName('globalsiteselector:users:update')
 			->setDescription('update known users data to Lookup Server');
 	}
-
 
 	/**
 	 * @param InputInterface $input
@@ -40,6 +39,7 @@ class UsersUpdate extends Base {
 	 *
 	 * @return int
 	 */
+	#[\Override]
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$this->slave->batchUpdate();
 

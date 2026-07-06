@@ -19,14 +19,17 @@ class LongJwtKeySetupCheck implements ISetupCheck {
 	) {
 	}
 
+	#[\Override]
 	public function getName(): string {
 		return 'Globalscale Jwt key';
 	}
 
+	#[\Override]
 	public function getCategory(): string {
 		return 'globalscale';
 	}
 
+	#[\Override]
 	public function run(): SetupResult {
 		if (strlen($this->gss->getJwtKey()) > 31) {
 			return SetupResult::success('gss.jwt.key is set to a long enough string');

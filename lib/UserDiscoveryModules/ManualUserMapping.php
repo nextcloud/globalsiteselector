@@ -46,7 +46,6 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$this->logger->debug('use regular expression: ' . ($this->useRegularExpressions ? 'true' : 'false'));
 	}
 
-
 	/**
 	 * get the initial user location
 	 *
@@ -54,6 +53,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 *
 	 * @return string
 	 */
+	#[\Override]
 	public function getLocation(array $data): string {
 		$location = '';
 		$dictionary = $this->getDictionary();

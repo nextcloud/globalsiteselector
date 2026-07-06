@@ -46,7 +46,7 @@
     },
     "require": {
         "bamarni/composer-bin-plugin": "^1.8",
-        "firebase/php-jwt": "^6.8"
+        "firebase/php-jwt": "^7.0"
     },
     "extra": {
         "bamarni-bin": {
@@ -65,7 +65,7 @@
         }
     },
     "require-dev": {
-        "nextcloud/ocp": "dev-master"
+        "nextcloud/ocp": "dev-stable32"
     },
     "autoload-dev": {
         "psr-4": {

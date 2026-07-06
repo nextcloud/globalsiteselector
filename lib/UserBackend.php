@@ -39,13 +39,13 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	) {
 	}
 
-
 	/**
 	 * Backend name to be shown in user management
 	 *
 	 * @return string the name of the backend to be shown
 	 * @since 0.11.0
 	 */
+	#[\Override]
 	public function getBackendName(): string {
 		return 'user_globalsiteselector';
 	}
@@ -60,6 +60,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 *
 	 * @since 4.5.0
 	 */
+	#[\Override]
 	public function implementsActions($actions): bool {
 		$availableActions = Backend::CHECK_PASSWORD;
 		$availableActions |= Backend::GET_DISPLAYNAME;
@@ -110,6 +111,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return bool
 	 * @since 4.5.0
 	 */
+	#[\Override]
 	public function deleteUser($uid): bool {
 		if ($this->userExistsInDatabase($uid)) {
 			/* @var $qb IQueryBuilder */
@@ -134,6 +136,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return string[] an array of all uids
 	 * @since 4.5.0
 	 */
+	#[\Override]
 	public function getUsers($search = '', $limit = null, $offset = null): array {
 		/* @var $qb IQueryBuilder */
 		$qb = $this->db->getQueryBuilder();
@@ -162,12 +165,12 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 		return $uids;
 	}
 
-
 	/**
 	 * counts the users in the database
 	 *
 	 * @return int|bool
 	 */
+	#[\Override]
 	public function countUsers(): int {
 		$query = $this->db->getQueryBuilder();
 		$query->select($query->func()->count('uid'))
@@ -185,6 +188,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return boolean
 	 * @since 4.5.0
 	 */
+	#[\Override]
 	public function userExists($uid): bool {
 		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->userExists($uid);
@@ -219,6 +223,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return string display name
 	 * @since 4.5.0
 	 */
+	#[\Override]
 	public function getDisplayName($uid): string {
 		if ($backend = $this->getActualUserBackend($uid)) {
 			return $backend->getDisplayName($uid);
@@ -250,6 +255,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return array an array of all displayNames (value) and the corresponding uids (key)
 	 * @since 4.5.0
 	 */
+	#[\Override]
 	public function getDisplayNames($search = '', $limit = null, $offset = null): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('uid', 'displayname')
@@ -290,6 +296,7 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	 * @return boolean if users can be listed or not
 	 * @since 4.5.0
 	 */
+	#[\Override]
 	public function hasUserListings(): bool {
 		return true;
 	}
@@ -303,7 +310,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 	public function isSessionActive(): bool {
 		return ($this->getCurrentUserId() !== '');
 	}
-
 
 	/**
 	 * Return the id of the current user
@@ -322,7 +328,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 
 		return '';
 	}
-
 
 	/**
 	 * Check if the provided token is correct
@@ -377,7 +382,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			}
 		}
 	}
-
 
 	public function updateAttributes(string $uid, array $attributes): void {
 		$user = $this->userManager->get($uid);
@@ -437,7 +441,6 @@ class UserBackend implements IUserBackend, UserInterface, ICountUsersBackend {
 			}
 		}
 	}
-
 
 	/**
 	 * Whether $uid exists in the database

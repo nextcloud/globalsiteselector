@@ -6,6 +6,7 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
 namespace OCA\GlobalSiteSelector\Model;
 
 use JsonSerializable;
@@ -90,6 +91,7 @@ class LocalFile implements JsonSerializable {
 	/**
 	 * @return array{id: int, name: string, storageId: int, parent: int, path: string[]}
 	 */
+	#[\Override]
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->getId(),

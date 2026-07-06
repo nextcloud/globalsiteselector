@@ -6,6 +6,7 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
 namespace OCA\GlobalSiteSelector;
 
 use OCP\Config\Lexicon\Entry;
@@ -17,6 +18,7 @@ class ConfigLexicon implements ILexicon {
 	public const GS_TOKENS = 'globalScaleTokens';
 	public const LOCAL_TOKEN = 'localToken';
 
+	#[\Override]
 	public function getStrictness(): Strictness {
 		return Strictness::IGNORE;
 	}
@@ -24,6 +26,7 @@ class ConfigLexicon implements ILexicon {
 	/**
 	 * @inheritDoc
 	 */
+	#[\Override]
 	public function getAppConfigs(): array {
 		return [
 			new Entry(key: self::GS_TOKENS, type: ValueType::ARRAY, defaultRaw: [], definition: 'list of token+host to navigate through GlobalScale', lazy: true),
@@ -34,6 +37,7 @@ class ConfigLexicon implements ILexicon {
 	/**
 	 * @inheritDoc
 	 */
+	#[\Override]
 	public function getUserConfigs(): array {
 		return [
 		];

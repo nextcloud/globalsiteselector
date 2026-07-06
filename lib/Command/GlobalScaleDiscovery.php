@@ -6,6 +6,7 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
 namespace OCA\GlobalSiteSelector\Command;
 
 use OC\Core\Command\Base;
@@ -25,6 +26,7 @@ class GlobalScaleDiscovery extends Base {
 		parent::__construct();
 	}
 
+	#[\Override]
 	protected function configure(): void {
 		parent::configure();
 		$this->setName('globalsiteselector:discovery')
@@ -32,6 +34,7 @@ class GlobalScaleDiscovery extends Base {
 			->setDescription('run a discovery request over Global Scale to get details about each instances');
 	}
 
+	#[\Override]
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		if ($input->getOption('current')) {
 			$output->writeln(json_encode($this->appConfig->getValueArray(Application::APP_ID, ConfigLexicon::GS_TOKENS), JSON_PRETTY_PRINT));
