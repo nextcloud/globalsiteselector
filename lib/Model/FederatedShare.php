@@ -135,6 +135,7 @@ class FederatedShare implements JsonSerializable {
 	/**
 	 * @return array{id: int, fileId: int, shareType: int, shareWith: string, permissions: int, target: array, remote: string, remoteId: int}
 	 */
+	#[\Override]
 	public function jsonSerialize(): array {
 		if ($this->isBounce()) {
 			return [

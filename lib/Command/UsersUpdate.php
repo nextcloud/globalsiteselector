@@ -27,6 +27,7 @@ class UsersUpdate extends Base {
 	/**
 	 *
 	 */
+	#[\Override]
 	protected function configure() {
 		parent::configure();
 		$this->setName('globalsiteselector:users:update')
@@ -40,6 +41,7 @@ class UsersUpdate extends Base {
 	 *
 	 * @return int
 	 */
+	#[\Override]
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$this->slave->batchUpdate();
 

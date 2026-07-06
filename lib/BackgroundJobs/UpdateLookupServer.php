@@ -30,6 +30,7 @@ class UpdateLookupServer extends TimedJob {
 		$this->setTimeSensitivity(IJob::TIME_SENSITIVE);
 	}
 
+	#[\Override]
 	protected function run($argument) {
 		if (!$this->globalSiteSelector->isSlave()) {
 			return;

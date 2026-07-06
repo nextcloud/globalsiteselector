@@ -26,6 +26,8 @@
 		<file name="tests/stubs/oc_appframework_ocs_v1response.php" />
 		<file name="tests/stubs/oc_appframework_utility_simplecontainer.php" />
 		<file name="tests/stubs/oc_core_command_base.php" />
+		<file name="tests/stubs/oc_core_controller_clientflowloginv2controller.php" />
+		<file name="tests/stubs/oc_core_service_loginflowv2service.php" />
 		<file name="tests/stubs/oc_files_cache_cache.php" />
 		<file name="tests/stubs/oc_files_cache_cacheentry.php" />
 		<file name="tests/stubs/oc_files_cache_scanner.php" />
