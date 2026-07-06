@@ -156,18 +156,28 @@ class Slave {
 		foreach ($backends as $backend) {
 			$limit = 200;
 			$offset = 0;
-			$usersData = [];
 			do {
-
+				$usersToAdd = [];
+				$usersToRemove = [];
 				$users = $backend->getUsers('', $limit, $offset);
 				foreach ($users as $uid) {
 					$user = $this->userManager->get($uid);
-					if ($user !== null) {
-						$usersData[$user->getCloudId()] = $this->slaveService->getAccountData($user);
+					if ($user === null) {
+						continue;
+					}
+					if ($user->isEnabled()) {
+						$usersToAdd[$user->getCloudId()] = $this->slaveService->getAccountData($user);
+					} else {
+						$usersToRemove[] = $user->getCloudId();
 					}
 				}
 				$offset += $limit;
-				$this->addUsers($usersData);
+				if ($usersToAdd !== []) {
+					$this->addUsers($usersToAdd);
+				}
+				if ($usersToRemove !== []) {
+					$this->removeUsers($usersToRemove);
+				}
 			} while (count($users) >= $limit);
 		}
 	}
