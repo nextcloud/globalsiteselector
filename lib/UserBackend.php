@@ -138,19 +138,11 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 
 	#[Override]
 	public function userExists($uid): bool {
-		if ($backend = $this->getActualUserBackend($uid)) {
-			return $backend->userExists($uid);
-		} else {
-			return $this->userExistsInDatabase($uid);
-		}
+		return $this->userExistsInDatabase($uid);
 	}
 
 	#[Override]
 	public function setDisplayName(string $uid, string $displayName): bool {
-		if ($backend = $this->getActualUserBackend($uid)) {
-			return $backend->setDisplayName($uid, $displayName);
-		}
-
 		if ($this->userExistsInDatabase($uid)) {
 			$qb = $this->db->getQueryBuilder();
 			$qb->update($this->dbName)
@@ -166,20 +158,16 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 
 	#[Override]
 	public function getDisplayName($uid): string {
-		if ($backend = $this->getActualUserBackend($uid)) {
-			return $backend->getDisplayName($uid);
-		} else {
-			if ($this->userExistsInDatabase($uid)) {
-				$qb = $this->db->getQueryBuilder();
-				$qb->select('displayname')
-					->from($this->dbName)
-					->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
-					->setMaxResults(1);
-				$result = $qb->executeQuery();
-				$users = $result->fetchAll();
-				if (isset($users[0]['displayname'])) {
-					return $users[0]['displayname'];
-				}
+		if ($this->userExistsInDatabase($uid)) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('displayname')
+				->from($this->dbName)
+				->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
+				->setMaxResults(1);
+			$result = $qb->executeQuery();
+			$users = $result->fetchAll();
+			if (isset($users[0]['displayname'])) {
+				return $users[0]['displayname'];
 			}
 		}
 
@@ -266,37 +254,6 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		}
 
 		return false;
-	}
-
-	/**
-	 * Gets the actual user backend of the user
-	 *
-	 * @param string $uid
-	 *
-	 * @return null|UserInterface
-	 */
-	public function getActualUserBackend(string $uid): ?UserInterface {
-		foreach (self::$backends as $backend) {
-			if ($backend->userExists($uid)) {
-				return $backend;
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Registers the used backends, used later to get the actual user backend
-	 * of the user.
-	 *
-	 * @param UserInterface[] $backends
-	 */
-	public function registerBackends(array $backends): void {
-		foreach ($backends as $backend) {
-			if (!($backend instanceof UserBackend)) {
-				self::$backends[] = $backend;
-			}
-		}
 	}
 
 	public function updateAttributes(string $uid, array $attributes): void {
