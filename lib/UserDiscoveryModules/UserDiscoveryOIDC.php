@@ -38,6 +38,7 @@ class UserDiscoveryOIDC implements IUserDiscoveryModule {
 	 *
 	 * @return string
 	 */
+	#[\Override]
 	public function getLocation(array $data): string {
 		$location = '';
 		if (!empty($this->tokenLocationAttribute) && isset($data['oidc'][$this->tokenLocationAttribute])) {

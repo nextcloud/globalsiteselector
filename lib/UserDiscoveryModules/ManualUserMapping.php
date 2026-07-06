@@ -54,6 +54,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 *
 	 * @return string
 	 */
+	#[\Override]
 	public function getLocation(array $data): string {
 		$location = '';
 		$dictionary = $this->getDictionary();

@@ -17,6 +17,7 @@ class ConfigLexicon implements ILexicon {
 	public const GS_TOKENS = 'globalScaleTokens';
 	public const LOCAL_TOKEN = 'localToken';
 
+	#[\Override]
 	public function getStrictness(): Strictness {
 		return Strictness::IGNORE;
 	}
@@ -24,6 +25,7 @@ class ConfigLexicon implements ILexicon {
 	/**
 	 * @inheritDoc
 	 */
+	#[\Override]
 	public function getAppConfigs(): array {
 		return [
 			new Entry(key: self::GS_TOKENS, type: ValueType::ARRAY, defaultRaw: [], definition: 'list of token+host to navigate through GlobalScale', lazy: true),
@@ -34,6 +36,7 @@ class ConfigLexicon implements ILexicon {
 	/**
 	 * @inheritDoc
 	 */
+	#[\Override]
 	public function getUserConfigs(): array {
 		return [
 		];

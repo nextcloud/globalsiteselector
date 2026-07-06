@@ -90,6 +90,7 @@ class LocalFile implements JsonSerializable {
 	/**
 	 * @return array{id: int, name: string, storageId: int, parent: int, path: string[]}
 	 */
+	#[\Override]
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->getId(),

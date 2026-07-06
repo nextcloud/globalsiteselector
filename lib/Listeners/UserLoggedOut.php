@@ -29,6 +29,7 @@ class UserLoggedOut implements IEventListener {
 	/**
 	 * @param Event $event
 	 */
+	#[\Override]
 	public function handle(Event $event): void {
 		if (!$event instanceof UserLoggedOutEvent) {
 			return;
