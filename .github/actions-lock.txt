@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
 # SPDX-License-Identifier: MIT
-c5893d7af1998af66d22f8c171ff4448 lint-info-xml.yml
+023b664746d1f2e09a9aaaac772ff7f5 lint-info-xml.yml
 870b483dbcbca59479211270d61546dd lint-php-cs.yml
 ee2b04d185b82fe7dd6fe6d83c6c7b45 lint-php.yml
 d676be1ed03142832d8e712962f5961c phpunit-mysql.yml
