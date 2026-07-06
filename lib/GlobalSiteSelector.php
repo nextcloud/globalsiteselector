@@ -23,15 +23,11 @@ class GlobalSiteSelector {
 	public const MASTER = 'master';
 	public const SLAVE = 'slave';
 
-	/** @var IConfig */
-	private $config;
+	public const MIN_JWT_KEY_LENGTH = 32;
 
-	/**
-	 * GlobalSiteSelector constructor.
-	 *
-	 * @param IConfig $config
-	 */
-	public function __construct(IConfig $config) {
+	public function __construct(
+		private IConfig $config,
+	) {
 		$this->config = $config;
 	}
 
@@ -64,8 +60,16 @@ class GlobalSiteSelector {
 	 * @return string
 	 */
 	public function getJwtKey(): string {
-		// TODO: returns exception if non-existant
 		return $this->config->getSystemValueString('gss.jwt.key', '');
+	}
+
+	/**
+	 * Validate that the JWT key meets minimum length requirements.
+	 * HS256 requires a key of at least 256 bits (32 bytes) per RFC 7518 §3.2.
+	 */
+	public function isJwtKeyValid(): bool {
+		$key = $this->getJwtKey();
+		return $key !== '' && strlen($key) >= self::MIN_JWT_KEY_LENGTH;
 	}
 
 	/**
