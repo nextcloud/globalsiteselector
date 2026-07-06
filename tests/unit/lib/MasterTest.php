@@ -127,7 +127,7 @@ class MasterTest extends TestCase {
 		$plainPassword = 'password';
 		$encryptedPassword = 'password-encrypted';
 		$options = ['foo' => 'bar'];
-		$jwtKey = 'jwtkey';
+		$jwtKey = 'jwtkeybutlongenoughforsecurityasthisisnowimportant';
 
 		$master = $this->getInstance();
 

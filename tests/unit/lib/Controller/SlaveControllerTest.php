@@ -97,7 +97,7 @@ class SlaveControllerTest extends TestCase {
 
 	public function testDecodeJwt() {
 		$controller = $this->getInstance();
-		$jwtKey = 'jwtkey';
+		$jwtKey = 'jwtkeybutlongenoughforsecurityasthisisnowimportant';
 		$encryptedPassword = 'password-encrypted';
 		$plainPassword = 'password';
 
