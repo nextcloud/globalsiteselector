@@ -48,6 +48,7 @@ class LocalMount implements JsonSerializable {
 	/**
 	 * @return array{provider: string, mountPoint: string, userId: string}
 	 */
+	#[\Override]
 	public function jsonSerialize(): array {
 		return [
 			'provider' => $this->getProviderClass(),

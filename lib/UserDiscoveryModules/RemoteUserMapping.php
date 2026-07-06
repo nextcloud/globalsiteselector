@@ -40,6 +40,7 @@ class RemoteUserMapping implements IUserDiscoveryModule {
 		$this->logger->debug('host: ' . $this->discoveryEndpoint);
 	}
 
+	#[\Override]
 	public function getLocation(array $data): string {
 		$client = $this->clientService->newClient();
 		if ($this->discoverySecretKey !== '') {

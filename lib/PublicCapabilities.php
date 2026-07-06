@@ -17,6 +17,7 @@ class PublicCapabilities implements IPublicCapability {
 	) {
 
 	}
+	#[\Override]
 	public function getCapabilities(): array {
 		return [
 			'globalscale' => [

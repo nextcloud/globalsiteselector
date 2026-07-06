@@ -65,6 +65,7 @@ class Application extends App implements IBootstrap {
 	/**
 	 * @param IRegistrationContext $context
 	 */
+	#[\Override]
 	public function register(IRegistrationContext $context): void {
 		$context->registerCapability(PublicCapabilities::class);
 
@@ -103,6 +104,7 @@ class Application extends App implements IBootstrap {
 	 *
 	 * @throws Throwable
 	 */
+	#[\Override]
 	public function boot(IBootContext $context): void {
 		$this->globalSiteSelector = $context->getAppContainer()->get(GlobalSiteSelector::class);
 		$this->logger = $context->getServerContainer()->get(LoggerInterface::class);
