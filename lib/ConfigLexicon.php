@@ -17,6 +17,7 @@ use OCP\Config\ValueType;
 class ConfigLexicon implements ILexicon {
 	public const GS_TOKENS = 'globalScaleTokens';
 	public const LOCAL_TOKEN = 'localToken';
+    public const REDIRECT_WEBDAV = 'redirectWebDAV';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
@@ -31,6 +32,7 @@ class ConfigLexicon implements ILexicon {
 		return [
 			new Entry(key: self::GS_TOKENS, type: ValueType::ARRAY, defaultRaw: [], definition: 'list of token+host to navigate through GlobalScale', lazy: true),
 			new Entry(key: self::LOCAL_TOKEN, type: ValueType::STRING, defaultRaw: '', definition: 'local token to id instance within GlobalScale', lazy: true),
+			new Entry(key: self::REDIRECT_WEBDAV, type: ValueType::BOOL, defaultRaw: false, definition: 'redirect WebDAV request on Master to Slaves', lazy: true),
 		];
 	}
 
