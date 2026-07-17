@@ -13,6 +13,7 @@ use Exception;
 use OC\Core\Controller\ClientFlowLoginV2Controller;
 use OC\Core\Service\LoginFlowV2Service;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
@@ -20,6 +21,7 @@ use OCP\AppFramework\Http\StandaloneTemplateResponse;
 use OCP\Authentication\IApacheBackend;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
@@ -48,6 +50,7 @@ class Master {
 		private readonly Lookup $lookup,
 		private readonly IRequest $request,
 		private readonly IClientService $clientService,
+        private readonly IAppConfig $appConfig,
 		private readonly IConfig $config,
 		private readonly LoggerInterface $logger,
 	) {
@@ -273,10 +276,9 @@ class Master {
 		$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
 		$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
 
-		// detect HTTP Basic Auth on the incoming request; RFC 9110 §11.1 makes
-		// the scheme name case-insensitive, so we lowercase before comparing.
-		$authHeader = $this->request->getHeader('Authorization');
-		$hasBasicAuth = $authHeader !== '' && str_starts_with(strtolower($authHeader), 'basic ');
+        $authHeader = $this->request->getHeader('Authorization');
+        $redirectWebDav = $this->appConfig->getValueBool(Application::APP_ID, ConfigLexicon::REDIRECT_WEBDAV);
+        $hasBasicAuth = $redirectWebDav && $authHeader !== '' && str_starts_with(strtolower($authHeader), 'basic ');
 
 		// default redirect status code; overridden below for the 307 forward.
 		$statusCode = 302;
