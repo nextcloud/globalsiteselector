@@ -17,7 +17,7 @@ use OCP\Config\ValueType;
 class ConfigLexicon implements ILexicon {
 	public const GS_TOKENS = 'globalScaleTokens';
 	public const LOCAL_TOKEN = 'localToken';
-    public const REDIRECT_WEBDAV = 'redirectWebDAV';
+	public const REDIRECT_WEBDAV = 'redirectWebDAV';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
