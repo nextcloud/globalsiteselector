@@ -14,9 +14,9 @@ use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
-use OCP\AppFramework\IAppContainer;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
@@ -28,32 +28,15 @@ use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class MasterTest extends TestCase {
-	/** @var GlobalSiteSelector|\PHPUnit_Framework_MockObject_MockObject */
-	private $gss;
-
-	/** @var ICrypto|\PHPUnit_Framework_MockObject_MockObject */
-	private $crypto;
-
-	/** @var Lookup|\PHPUnit_Framework_MockObject_MockObject */
-	private $lookup;
-
-	/** @var IRequest|\PHPUnit_Framework_MockObject_MockObject */
-	private $request;
-
-	/** @var IClientService | \PHPUnit_Framework_MockObject_MockObject */
-	private $clientService;
-
-	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
-	private $config;
-
-	/** @var \PHPUnit_Framework_MockObject_MockObject|LoggerInterface */
-	private $logger;
-
-	/** @var \PHPUnit_Framework_MockObject_MockObject|IAppContainer */
-	private $container;
-
-	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
-	private $session;
+	private GlobalSiteSelector&MockObject $gss;
+	private ICrypto&MockObject $crypto;
+	private Lookup&MockObject $lookup;
+	private IRequest&MockObject $request;
+	private IClientService&MockObject $clientService;
+	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $appConfig;
+	private LoggerInterface&MockObject $logger;
+	private ISession&MockObject $session;
 	private LoginFlowV2Service&MockObject $loginflow;
 	private ServerVersion $serverVersion;
 
@@ -70,16 +53,12 @@ class MasterTest extends TestCase {
 		$this->request = $this->createMock(IRequest::class);
 		$this->clientService = $this->createMock(IClientService::class);
 		$this->config = $this->createMock(IConfig::class);
+		$this->appConfig = $this->createMock(IAppConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
-		$this->container = $this->createMock(IAppContainer::class);
 		$this->session = $this->createMock(ISession::class);
 	}
 
-	/**
-	 * @param array $mockMethods
-	 * @return Master|\PHPUnit_Framework_MockObject_MockObject
-	 */
-	private function getInstance(array $mockMethods = []) {
+	private function getInstance(array $mockMethods = []): Master&MockObject {
 		return $this->getMockBuilder(Master::class)
 			->setConstructorArgs(
 				[
@@ -91,6 +70,7 @@ class MasterTest extends TestCase {
 					$this->lookup,
 					$this->request,
 					$this->clientService,
+					$this->appConfig,
 					$this->config,
 					$this->logger
 				]
