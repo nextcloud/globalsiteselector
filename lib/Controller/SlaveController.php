@@ -311,7 +311,6 @@ class SlaveController extends OCSController {
 			throw new \InvalidArgumentException('No valid uid given. Given uid: ' . $uid);
 		}
 
-		$this->userBackend->createUserIfNotExists($uid);
-		$this->userBackend->updateAttributes($uid, $options);
+		$this->userBackend->createUserIfNotExists($uid, $options);
 	}
 }
