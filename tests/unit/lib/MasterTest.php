@@ -24,7 +24,6 @@ use OCP\Security\ICrypto;
 use OCP\Server;
 use OCP\ServerVersion;
 use PHPUnit\Framework\MockObject\MockObject;
-use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
@@ -37,7 +36,6 @@ class MasterTest extends TestCase {
 	private IConfig&MockObject $config;
 	private IAppConfig&MockObject $appConfig;
 	private LoggerInterface&MockObject $logger;
-	private ContainerInterface&MockObject $container;
 	private ISession&MockObject $session;
 	private LoginFlowV2Service&MockObject $loginflow;
 	private ServerVersion $serverVersion;
@@ -57,7 +55,6 @@ class MasterTest extends TestCase {
 		$this->config = $this->createMock(IConfig::class);
 		$this->appConfig = $this->createMock(IAppConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
-		$this->container = $this->createMock(ContainerInterface::class);
 		$this->session = $this->createMock(ISession::class);
 	}
 
