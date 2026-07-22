@@ -36,13 +36,13 @@
         "test:unit": "./vendor-bin/phpunit/vendor/bin/phpunit -c tests/phpunit.xml --color --fail-on-warning --fail-on-risky",
         "rector": "rector && composer cs:fix",
         "post-install-cmd": [
-            "\"vendor-bin/mozart/vendor/bin/mozart\" compose",
+            "@composer bin all install --ansi",
             "@composer dump-autoload"
-        ],
+		],
         "post-update-cmd": [
-            "\"vendor-bin/mozart/vendor/bin/mozart\" compose",
-            "composer dump-autoload"
-        ]
+            "@composer bin all install --ansi",
+            "@composer dump-autoload"
+		]
     },
     "require": {
         "bamarni/composer-bin-plugin": "^1.8",
