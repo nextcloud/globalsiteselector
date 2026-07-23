@@ -90,7 +90,7 @@ class Application extends App implements IBootstrap {
 			function (GenericEvent $event): void {
 				/** @var IUser $user */
 				$user = $event->getSubject();
-				$slave = OC::$server->get(Slave::class);
+				$slave = Server::get(Slave::class);
 				$slave->updateUser($user);
 			}
 		);
@@ -104,8 +104,8 @@ class Application extends App implements IBootstrap {
 		$this->globalSiteSelector = $context->getAppContainer()->get(GlobalSiteSelector::class);
 		$this->logger = $context->getServerContainer()->get(LoggerInterface::class);
 
-		$context->injectFn(Closure::fromCallable($this->registerUserBackendForSlave(...)));
-		$context->injectFn(Closure::fromCallable($this->redirectToMasterLogin(...)));
+		$context->injectFn(\Closure::fromCallable($this->registerUserBackendForSlave(...)));
+		$context->injectFn(\Closure::fromCallable($this->redirectToMasterLogin(...)));
 	}
 
 	/**
