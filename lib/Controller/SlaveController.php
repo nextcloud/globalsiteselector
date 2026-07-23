@@ -189,12 +189,12 @@ class SlaveController extends OCSController {
 			if ($result === false) {
 				throw new \Exception('wrong username or password given for: ' . $uid);
 			}
-		} catch (ExpiredException $e) {
+		} catch (ExpiredException) {
 			$this->logger->info('token expired');
 			$response = new RedirectResponse($masterUrl);
 			$response->throttle();
 			return $response;
-		} catch (DisabledUserException $e) {
+		} catch (DisabledUserException) {
 			// user is disabled, remove from lookup server
 			$params = ['uid' => $uid];
 			$this->slave->preDeleteUser($params);
@@ -220,7 +220,7 @@ class SlaveController extends OCSController {
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
 
-		if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
+		if (str_starts_with((string)$target, 'http://') || str_starts_with((string)$target, 'https://')) {
 			$home = $target;
 		} else {
 			$home = $this->urlGenerator->getAbsoluteURL($target);
@@ -260,7 +260,7 @@ class SlaveController extends OCSController {
 					return new DataResponse($token);
 				}
 			}
-		} catch (ExpiredException $e) {
+		} catch (ExpiredException) {
 			$this->logger->info('Create app password: JWT token expired');
 		} catch (\Exception $e) {
 			$this->logger->info('issue while token creation', ['exception' => $e]);
@@ -274,12 +274,10 @@ class SlaveController extends OCSController {
 	/**
 	 * decode jwt and return the uid and the password
 	 *
-	 * @param string $jwt
 	 *
-	 * @return array
 	 * @throws \Exception
 	 */
-	protected function decodeJwt($jwt) {
+	protected function decodeJwt(string $jwt): array {
 		$key = $this->gss->getJwtKey();
 		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
 
@@ -299,14 +297,11 @@ class SlaveController extends OCSController {
 	}
 
 	/**
-	 * create new user if the user doesn't exist yet on the client node
-	 *
-	 * @param string $uid
-	 * @param array $options
+	 * Create new user if the user doesn't exist yet on the client node
 	 */
-	protected function autoprovisionIfNeeded($uid, $options) {
+	protected function autoprovisionIfNeeded(string $uid, array $options) {
 		// make sure that a valid UID is given
-		if (empty($uid)) {
+		if ($uid === '') {
 			$this->logger->error('Uid "{uid}" is not valid.', ['app' => $this->appName, 'uid' => $uid]);
 			throw new \InvalidArgumentException('No valid uid given. Given uid: ' . $uid);
 		}

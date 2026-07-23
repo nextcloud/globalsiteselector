@@ -17,14 +17,14 @@ use Psr\Log\LoggerInterface;
 
 class Lookup {
 
-	private string $lookupServerUrl;
+	private readonly string $lookupServerUrl;
 
 	public function __construct(
-		private IClientService $clientService,
-		private LoggerInterface $logger,
-		private ICloudIdManager $cloudIdManager,
-		private GlobalSiteSelector $gss,
-		private IConfig $config,
+		private readonly IClientService $clientService,
+		private readonly LoggerInterface $logger,
+		private readonly ICloudIdManager $cloudIdManager,
+		private readonly GlobalSiteSelector $gss,
+		private readonly IConfig $config,
 	) {
 		$this->lookupServerUrl = $this->config->getSystemValueString('lookup_server', '');
 	}
@@ -33,7 +33,6 @@ class Lookup {
 	 * try to find the exact user at the lookup server, we allow to search for
 	 * email addresses and federated cloud ids and internal UIDs.
 	 *
-	 * @param string $uid
 	 *
 	 * @return string the url of the server where the user is located
 	 */
@@ -57,7 +56,7 @@ class Lookup {
 			} else {
 				$this->logger->debug('search: federationId not set for ' . $uid . ' ' . json_encode($body));
 			}
-		} catch (\InvalidArgumentException $e) {
+		} catch (\InvalidArgumentException) {
 			// Nothing to do, assuming we have not found anything
 		}
 
@@ -70,10 +69,9 @@ class Lookup {
 	 *
 	 * @param $uid
 	 *
-	 * @return mixed
 	 * @throws \Exception
 	 */
-	protected function queryLookupServer(string $uid, bool $matchUid = false) {
+	protected function queryLookupServer(string $uid, bool $matchUid = false): mixed {
 		$this->sanitizeUid($uid);
 		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid . ' (matchUid: ' . json_encode($matchUid) . ')');
 		$client = $this->clientService->newClient();
@@ -100,7 +98,7 @@ class Lookup {
 				'sanitize' => $this->getUserLocation_Sanitize($address, $uid),
 				'', 'validate' => $this->getUserLocation_Validate($address)
 			};
-		} catch (\UnhandledMatchError $e) {
+		} catch (\UnhandledMatchError) {
 			throw new \UnhandledMatchError('gss.username_format in config.php is not valid');
 		}
 	}
@@ -111,7 +109,7 @@ class Lookup {
 			$location = $cloudId->getRemote();
 
 			return rtrim($location, '/');
-		} catch (\InvalidArgumentException $e) {
+		} catch (\InvalidArgumentException) {
 			$this->logger->notice('(CloudIdManager) Invalid Federated Cloud ID ' . $address);
 			throw new \InvalidArgumentException('Invalid Federated Cloud ID');
 		}
@@ -135,10 +133,7 @@ class Lookup {
 	/**
 	 * based on the sanitizeUsername() method from apps/user_ldap/lib/Access.php
 	 *
-	 * @param string $address
-	 * @param string $uid
 	 *
-	 * @return string
 	 */
 	private function getUserLocation_Sanitize(string $address, string &$uid): string {
 		$address = $this->getUserLocation_Ignore($address, $extractedUid);
@@ -174,13 +169,13 @@ class Lookup {
 		$uid = preg_replace(
 			'#&([A-Za-z])(?:acute|cedil|caron|circ|grave|orn|ring|slash|th|tilde|uml);#', '\1', $uid
 		);
-		$uid = preg_replace('#&([A-Za-z]{2})(?:lig);#', '\1', $uid);
-		$uid = preg_replace('#&[^;]+;#', '', $uid);
+		$uid = preg_replace('#&([A-Za-z]{2})(?:lig);#', '\1', (string)$uid);
+		$uid = preg_replace('#&[^;]+;#', '', (string)$uid);
 		$uid = str_replace(' ', '_', $uid);
 		$uid = preg_replace('/[^a-zA-Z0-9_.@-]/u', '', $uid);
 
-		if (strlen($uid) > 64) {
-			$uid = hash('sha256', $uid, false);
+		if (strlen((string)$uid) > 64) {
+			$uid = hash('sha256', (string)$uid, false);
 		}
 
 		if ($uid === '') {
@@ -190,11 +185,6 @@ class Lookup {
 		}
 	}
 
-	/**
-	 * @param array $options
-	 *
-	 * @return array
-	 */
 	public function configureClient(array $options): array {
 		return array_merge(
 			$options,

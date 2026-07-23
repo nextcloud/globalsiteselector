@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector\AppInfo;
 
-use Closure;
 use Exception;
 use OC;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -63,9 +62,6 @@ class Application extends App implements IBootstrap {
 		parent::__construct(self::APP_ID, $urlParams);
 	}
 
-	/**
-	 * @param IRegistrationContext $context
-	 */
 	#[\Override]
 	public function register(IRegistrationContext $context): void {
 		$context->registerCapability(PublicCapabilities::class);
@@ -91,7 +87,7 @@ class Application extends App implements IBootstrap {
 		$dispatcher = Server::get(IEventDispatcher::class);
 		$dispatcher->addListener(
 			'OC\AccountManager::userUpdated',
-			function (GenericEvent $event) {
+			function (GenericEvent $event): void {
 				/** @var IUser $user */
 				$user = $event->getSubject();
 				$slave = OC::$server->get(Slave::class);
@@ -101,8 +97,6 @@ class Application extends App implements IBootstrap {
 	}
 
 	/**
-	 * @param IBootContext $context
-	 *
 	 * @throws Throwable
 	 */
 	#[\Override]
@@ -110,14 +104,14 @@ class Application extends App implements IBootstrap {
 		$this->globalSiteSelector = $context->getAppContainer()->get(GlobalSiteSelector::class);
 		$this->logger = $context->getServerContainer()->get(LoggerInterface::class);
 
-		$context->injectFn(Closure::fromCallable([$this, 'registerUserBackendForSlave']));
-		$context->injectFn(Closure::fromCallable([$this, 'redirectToMasterLogin']));
+		$context->injectFn(Closure::fromCallable($this->registerUserBackendForSlave(...)));
+		$context->injectFn(Closure::fromCallable($this->redirectToMasterLogin(...)));
 	}
 
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
 	 */
-	private function registerUserBackendForSlave() {
+	private function registerUserBackendForSlave(): void {
 		if (!$this->globalSiteSelector->isSlave()) {
 			return;
 		}
@@ -144,7 +138,7 @@ class Application extends App implements IBootstrap {
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
 	 */
-	private function redirectToMasterLogin() {
+	private function redirectToMasterLogin(): void {
 		if (OC::$CLI) {
 			return;
 		}

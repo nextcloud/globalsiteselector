@@ -13,15 +13,17 @@ use OCP\Federation\ICloudId;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class LookupTest extends TestCase {
-	private IClientService $httpClientService;
-	private IConfig $config;
-	private LoggerInterface $logger;
-	private ICloudIdManager $cloudIdManager;
-	private GlobalSiteSelector $gss;
+	private MockObject&IClientService $httpClientService;
+	private MockObject&Iconfig $config;
+	private MockObject&LoggerInterface $logger;
+	private MockObject&ICloudIdManager $cloudIdManager;
+	private MockObject&GlobalSiteSelector $gss;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -34,12 +36,9 @@ class LookupTest extends TestCase {
 	}
 
 	/**
-	 * get Lookup instance
-	 *
-	 * @param array $mockMethods
-	 * @return Lookup|\PHPUnit_Framework_MockObject_MockObject
+	 * Get Lookup instance
 	 */
-	private function getInstance(array $mockMethods = []) {
+	private function getInstance(array $mockMethods = []): Lookup&MockObject {
 		return $this->getMockBuilder(Lookup::class)
 			->setConstructorArgs(
 				[
@@ -52,15 +51,8 @@ class LookupTest extends TestCase {
 			)->onlyMethods($mockMethods)->getMock();
 	}
 
-	/**
-	 * @param string $lookupServerUrl
-	 * @param string $lookupServerResult
-	 * @param string $userLocation
-	 * @param string $expected
-	 *
-	 * @dataProvider dataTestSearch
-	 */
-	public function testSearch($lookupServerUrl, $lookupServerResult, $userLocation, $expected) {
+	#[DataProvider('dataTestSearch')]
+	public function testSearch(string $lookupServerUrl, array $lookupServerResult, string $userLocation, string $expected): void {
 		$this->config->expects($this->any())->method('getSystemValueString')
 			->with('lookup_server', '')->willReturn($lookupServerUrl);
 
@@ -78,7 +70,7 @@ class LookupTest extends TestCase {
 		$this->assertSame($expected, $result);
 	}
 
-	public function dataTestSearch() {
+	public function dataTestSearch(): array {
 		return [
 			['', [], 'location', ''],
 			['', ['location' => 'https://nextcloud.com'], 'location', ''],

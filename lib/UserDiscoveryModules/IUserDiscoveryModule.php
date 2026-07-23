@@ -15,8 +15,6 @@ interface IUserDiscoveryModule {
 	 *
 	 * @param array $data arbitrary data, whatever the module needs (for example for SAML we hand over the
 	 *                    raw data)
-	 *
-	 * @return string
 	 */
 	public function getLocation(array $data): string;
 }

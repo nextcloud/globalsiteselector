@@ -23,9 +23,6 @@ class FederatedShare implements JsonSerializable {
 
 	private ?LocalFile $target = null;
 
-	public function __construct() {
-	}
-
 	public function setId(int $id): self {
 		$this->id = $id;
 		return $this;

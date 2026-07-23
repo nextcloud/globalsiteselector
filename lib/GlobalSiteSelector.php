@@ -26,38 +26,27 @@ class GlobalSiteSelector {
 	public const MIN_JWT_KEY_LENGTH = 32;
 
 	public function __construct(
-		private IConfig $config,
+		private readonly IConfig $config,
 	) {
-		$this->config = $config;
 	}
 
 	/**
 	 * the global site selector can operate as 'master' or 'slave'
-	 *
-	 * @return string
 	 */
 	public function getMode(): string {
 		return strtolower($this->config->getSystemValueString('gss.mode', self::SLAVE));
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function isMaster(): bool {
 		return ($this->getMode() === self::MASTER);
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function isSlave(): bool {
 		return ($this->getMode() === self::SLAVE);
 	}
 
 	/**
 	 * get JWT key
-	 *
-	 * @return string
 	 */
 	public function getJwtKey(): string {
 		return $this->config->getSystemValueString('gss.jwt.key', '');
@@ -75,7 +64,6 @@ class GlobalSiteSelector {
 	/**
 	 * get the URL of the global site selector master
 	 *
-	 * @return string
 	 * @throws MasterUrlException
 	 */
 	public function getMasterUrl(): string {
@@ -89,8 +77,6 @@ class GlobalSiteSelector {
 
 	/**
 	 * get lookup server URL
-	 *
-	 * @return string
 	 */
 	public function getLookupServerUrl(): string {
 		// TODO: returns exception if non-existant

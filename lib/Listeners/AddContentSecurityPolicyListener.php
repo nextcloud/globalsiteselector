@@ -23,9 +23,9 @@ use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 class AddContentSecurityPolicyListener implements IEventListener {
 
 	public function __construct(
-		private IConfig $config,
-		private IUserSession $userSession,
-		private IRequest $request,
+		private readonly IConfig $config,
+		private readonly IUserSession $userSession,
+		private readonly IRequest $request,
 	) {
 	}
 

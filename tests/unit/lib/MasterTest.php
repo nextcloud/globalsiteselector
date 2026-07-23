@@ -77,7 +77,7 @@ class MasterTest extends TestCase {
 			)->onlyMethods($mockMethods)->getMock();
 	}
 
-	public function testHandleLoginRequest() {
+	public function testHandleLoginRequest(): void {
 		$location = 'nextcloud.com';
 		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
 		$master->expects($this->once())->method('queryLookupServer')
@@ -91,7 +91,7 @@ class MasterTest extends TestCase {
 		$master->handleLoginRequest('user', 'password');
 	}
 
-	public function testHandleLoginRequestException() {
+	public function testHandleLoginRequestException(): void {
 		$location = '';
 		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
 		$master->expects($this->once())->method('queryLookupServer')
@@ -102,7 +102,7 @@ class MasterTest extends TestCase {
 		$master->handleLoginRequest('user', 'password');
 	}
 
-	public function testCreateJWT() {
+	public function testCreateJWT(): void {
 		$uid = 'user1';
 		$plainPassword = 'password';
 		$encryptedPassword = 'password-encrypted';
@@ -126,19 +126,14 @@ class MasterTest extends TestCase {
 
 	/**
 	 * @dataProvider dataTestBuildBasicAuthUrl
-	 *
-	 * @param string $url
-	 * @param string $uid
-	 * @param string $password
-	 * @param string $expected
 	 */
-	public function testBuildBasicAuthUrl($url, $uid, $password, $expected) {
+	public function testBuildBasicAuthUrl(string $url, string $uid, string $password, string $expected): void {
 		$master = $this->getInstance();
 		$result = $this->invokePrivate($master, 'buildBasicAuthUrl', [$url, $uid, $password]);
 		$this->assertSame($expected, $result);
 	}
 
-	public function dataTestBuildBasicAuthUrl() {
+	public function dataTestBuildBasicAuthUrl(): array {
 		return [
 			['http://nextcloud.com', 'user', 'password', 'http://user:password@nextcloud.com'],
 			['https://nextcloud.com', 'user', 'password', 'https://user:password@nextcloud.com'],
@@ -152,14 +147,14 @@ class MasterTest extends TestCase {
 	 * @param $url
 	 * @param $expected
 	 */
-	public function testNormalizeLocation($url, $expected) {
+	public function testNormalizeLocation(string $url, string $expected): void {
 		$master = $this->getInstance();
 		$this->request->expects($this->any())->method('getServerProtocol')->willReturn('https');
 		$result = $this->invokePrivate($master, 'normalizeLocation', [$url]);
 		$this->assertSame($expected, $result);
 	}
 
-	public function dataTestNormalizeLocation() {
+	public function dataTestNormalizeLocation(): array {
 		return [
 			['localhost/nextcloud', 'https://localhost/nextcloud'],
 			['https://localhost/nextcloud', 'https://localhost/nextcloud'],

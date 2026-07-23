@@ -16,9 +16,6 @@ class LocalMount implements JsonSerializable {
 	private string $mountPoint = '';
 	private string $userId = '';
 
-	public function __construct() {
-	}
-
 	public function setProviderClass(string $providerClass): self {
 		$this->providerClass = $providerClass;
 		return $this;

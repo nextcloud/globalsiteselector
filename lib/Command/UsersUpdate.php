@@ -15,12 +15,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class UsersUpdate extends Base {
-	private Slave $slave;
-
-	public function __construct(Slave $slave) {
+	public function __construct(
+		private readonly Slave $slave,
+	) {
 		parent::__construct();
-
-		$this->slave = $slave;
 	}
 
 	/**
@@ -33,12 +31,6 @@ class UsersUpdate extends Base {
 			->setDescription('update known users data to Lookup Server');
 	}
 
-	/**
-	 * @param InputInterface $input
-	 * @param OutputInterface $output
-	 *
-	 * @return int
-	 */
 	#[\Override]
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$this->slave->batchUpdate();

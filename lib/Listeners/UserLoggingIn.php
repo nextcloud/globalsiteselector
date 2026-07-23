@@ -22,15 +22,12 @@ use Psr\Log\LoggerInterface;
 class UserLoggingIn implements IEventListener {
 
 	public function __construct(
-		private GlobalSiteSelector $globalSiteSelector,
-		private Master $master,
-		private LoggerInterface $logger,
+		private readonly GlobalSiteSelector $globalSiteSelector,
+		private readonly Master $master,
+		private readonly LoggerInterface $logger,
 	) {
 	}
 
-	/**
-	 * @param Event $event
-	 */
 	#[\Override]
 	public function handle(Event $event): void {
 		if (!$event instanceof BeforeUserLoggedInEvent) {

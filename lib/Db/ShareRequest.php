@@ -57,8 +57,8 @@ class ShareRequest {
 		$shares = [];
 		while ($row = $result->fetch()) {
 			$shareWith = $row['share_with'];
-			if (str_ends_with(strtolower($shareWith), '@' . strtolower($instance))) {
-				$shareWith = substr($shareWith, 0, -strlen('@' . $instance));
+			if (str_ends_with(strtolower((string)$shareWith), '@' . strtolower($instance))) {
+				$shareWith = substr((string)$shareWith, 0, -strlen('@' . $instance));
 			}
 
 			$federatedShare = new FederatedShare();

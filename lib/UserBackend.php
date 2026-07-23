@@ -35,12 +35,12 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 	private CappedMemoryCache $cache;
 
 	public function __construct(
-		private IDBConnection $db,
-		private ISession $session,
-		private IEventDispatcher $eventDispatcher,
-		private IGroupManager $groupManager,
-		private IUserManager $userManager,
-		private IRootFolder $rootFolder,
+		private readonly IDBConnection $db,
+		private readonly ISession $session,
+		private readonly IEventDispatcher $eventDispatcher,
+		private readonly IGroupManager $groupManager,
+		private readonly IUserManager $userManager,
+		private readonly IRootFolder $rootFolder,
 	) {
 		$this->cache = new CappedMemoryCache();
 	}
@@ -75,7 +75,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		try {
 			// copy skeleton
 			\OC_Util::copySkeleton($uid, $userFolder);
-		} catch (NotPermittedException $ex) {
+		} catch (NotPermittedException) {
 			// read only uses
 		}
 
@@ -100,9 +100,9 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 			&& $currentEmail !== $newEmail) {
 			$user->setEMailAddress($newEmail);
 		}
-		$currentDisplayName = (string)$this->getDisplayName($uid);
+		$currentDisplayName = $this->getDisplayName($uid);
 		if ($newDisplayName !== null && $currentDisplayName !== $newDisplayName) {
-			$this->eventDispatcher->dispatchTyped(new UserChangedEvent($user, 'displayname', $newDisplayName, null));
+			$this->eventDispatcher->dispatchTyped(new UserChangedEvent($user, 'displayname', $newDisplayName));
 			\OC_Hook::emit(
 				'OC_User', 'changeUser',
 				[
@@ -126,7 +126,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 			$groupsToRemove = array_diff($oldGroups, $newGroups);
 
 			foreach ($groupsToAdd as $group) {
-				if (strtolower($group) === 'admin') {
+				if (strtolower((string)$group) === 'admin') {
 					continue;
 				}
 
@@ -165,7 +165,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		$limit = $this->fixLimit($limit);
 
 		$users = $this->getDisplayNames($search, $limit, $offset);
-		$userIds = array_map('strval', array_keys($users));
+		$userIds = array_map(strval(...), array_keys($users));
 		sort($userIds, SORT_STRING | SORT_FLAG_CASE);
 		return $userIds;
 	}
@@ -175,11 +175,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		$query = $this->db->getQueryBuilder();
 		$query->select($query->func()->count('uid'))
 			->from($this->dbName);
-		$result = $query->executeQuery()->fetchOne();
-		if ($result === false) {
-			return false;
-		}
-		return $result;
+		return $query->executeQuery()->fetchOne();
 	}
 
 	#[Override]

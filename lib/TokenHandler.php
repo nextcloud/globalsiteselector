@@ -21,8 +21,8 @@ use OCP\Security\ISecureRandom;
 class TokenHandler {
 
 	public function __construct(
-		private IProvider $tokenProvider,
-		private ISecureRandom $random,
+		private readonly IProvider $tokenProvider,
+		private readonly ISecureRandom $random,
 	) {
 	}
 
@@ -30,10 +30,8 @@ class TokenHandler {
 	 * generate app token
 	 *
 	 * @param string $uid
-	 *
-	 * @return array
 	 */
-	public function generateAppToken($uid) {
+	public function generateAppToken($uid): array {
 		// generate random token
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER . ISecureRandom::CHAR_LOWER . ISecureRandom::CHAR_DIGITS);
 		$deviceToken = $this->tokenProvider->generateToken($token, $uid, $uid, null, 'Client login', IToken::PERMANENT_TOKEN);

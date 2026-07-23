@@ -25,26 +25,27 @@ use OCP\IURLGenerator;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
+use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class SlaveControllerTest extends TestCase {
-	private IRequest $request;
+	private MockObject&IRequest $request;
 	private GlobalSiteSelector $gss;
-	private LoggerInterface $logger;
-	private IUserSession $userSession;
-	private IURLGenerator $urlGenerator;
-	private ICrypto $crypto;
+	private MockObject&LoggerInterface $logger;
+	private MockObject&IUserSession $userSession;
+	private MockObject&IURLGenerator $urlGenerator;
+	private MockObject&ICrypto $crypto;
 	private TokenHandler $tokenHandler;
-	private IUserManager $userManager;
+	private MockObject&IUserManager $userManager;
 	private UserBackend $userBackend;
-	private ISession $session;
-	private Slave $slave;
-	private GlobalScaleService $globalScaleService;
-	private GlobalShareService $globalShareService;
-	private SlaveService $slaveService;
-	private IConfig $config;
-	private IProvider $tokenProvider;
+	private MockObject&ISession $session;
+	private MockObject&Slave $slave;
+	private MockObject&GlobalScaleService $globalScaleService;
+	private MockObject&GlobalShareService $globalShareService;
+	private MockObject&SlaveService $slaveService;
+	private MockObject&IConfig $config;
+	private MockObject&IProvider $tokenProvider;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -70,11 +71,7 @@ class SlaveControllerTest extends TestCase {
 		$this->tokenProvider = $this->createMock(IProvider::class);
 	}
 
-	/**
-	 * @param array $mockMathods
-	 * @return SlaveController|\PHPUnit_Framework_MockObject_MockObject
-	 */
-	private function getInstance(array $mockMathods = []) {
+	private function getInstance(array $mockMathods = []): SlaveController&MockObject {
 		return $this->getMockBuilder(SlaveController::class)
 			->setConstructorArgs(
 				[
@@ -99,7 +96,7 @@ class SlaveControllerTest extends TestCase {
 			)->onlyMethods($mockMathods)->getMock();
 	}
 
-	public function testDecodeJwt() {
+	public function testDecodeJwt(): void {
 		$controller = $this->getInstance();
 		$jwtKey = 'jwtkeybutlongenoughforsecurityasthisisnowimportant';
 		$encryptedPassword = 'password-encrypted';

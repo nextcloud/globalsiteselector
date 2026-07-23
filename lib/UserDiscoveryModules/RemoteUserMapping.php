@@ -25,13 +25,13 @@ use Psr\Log\LoggerInterface;
  *    'gss.discovery.remote.secret' => 'myVeryOwnLittleSecret',
  */
 class RemoteUserMapping implements IUserDiscoveryModule {
-	private string $discoveryEndpoint;
-	private string $discoverySecretKey;
+	private readonly string $discoveryEndpoint;
+	private readonly string $discoverySecretKey;
 
 	public function __construct(
-		private IClientService $clientService,
+		private readonly IClientService $clientService,
 		IConfig $config,
-		private LoggerInterface $logger,
+		private readonly LoggerInterface $logger,
 	) {
 		$this->discoveryEndpoint = $config->getSystemValueString('gss.discovery.remote.endpoint', '');
 		$this->discoverySecretKey = $config->getSystemValueString('gss.discovery.remote.secret', '');

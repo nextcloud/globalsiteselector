@@ -21,8 +21,8 @@ use OCP\User\Events\UserChangedEvent;
 class UserChanged implements IEventListener {
 
 	public function __construct(
-		private GlobalSiteSelector $globalSiteSelector,
-		private Slave $slave,
+		private readonly GlobalSiteSelector $globalSiteSelector,
+		private readonly Slave $slave,
 	) {
 	}
 
