@@ -102,7 +102,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		}
 		$currentDisplayName = (string)$this->getDisplayName($uid);
 		if ($newDisplayName !== null && $currentDisplayName !== $newDisplayName) {
-			$this->eventDispatcher->dispatchTyped(new UserChangedEvent($user, 'displayname', $value, null));
+			$this->eventDispatcher->dispatchTyped(new UserChangedEvent($user, 'displayname', $newDisplayName, null));
 			\OC_Hook::emit(
 				'OC_User', 'changeUser',
 				[
