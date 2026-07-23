@@ -277,7 +277,7 @@ class Master {
 		if ($isClient && $isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client direct webdav request');
 			$redirectUrl = $location . '/remote.php/webdav/';
-		} elseif ($isClient && !$isDirectWebDavAccess) {
+		} elseif ($isClient) {
 			$this->logger->debug('redirectUser: client request generating apptoken');
 			$appToken = $this->getAppToken($location, $uid, $password, $options);
 

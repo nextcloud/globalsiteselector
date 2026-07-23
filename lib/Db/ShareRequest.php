@@ -78,7 +78,7 @@ class ShareRequest {
 	/**
 	 * return id and owner about a file.
 	 *
-	 * @return array{int, string} [fileId, fileOwner]
+	 * @return array{0?: int, 1?: string} [fileId, fileOwner]
 	 */
 	public function getFileOwnerFromShareId(int $shareId): array {
 		$qb = $this->connection->getQueryBuilder();
@@ -92,7 +92,7 @@ class ShareRequest {
 			return [];
 		}
 		$fileId = (int)$row['file_source'];
-		$owner = $row['uid_owner'];
+		$owner = (string)$row['uid_owner'];
 		$result->closeCursor();
 
 		return [$fileId, $owner];

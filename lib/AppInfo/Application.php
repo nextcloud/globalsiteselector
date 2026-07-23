@@ -23,13 +23,12 @@ use OCA\GlobalSiteSelector\PublicCapabilities;
 use OCA\GlobalSiteSelector\SetupChecks\LongJwtKeySetupCheck;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
+use OCP\Accounts\UserUpdatedEvent;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IRequest;
-use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
@@ -43,7 +42,6 @@ use OCP\User\Events\UserLoggedOutEvent;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\GenericEvent;
 use Throwable;
 
 /**
@@ -79,21 +77,9 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(UserDeletedEvent::class, UserDeleted::class);
 		$context->registerEventListener(UserLoggedOutEvent::class, UserLoggedOut::class);
 		$context->registerEventListener(UserChangedEvent::class, UserChanged::class);
+		$context->registerEventListener(UserUpdatedEvent::class, UserChanged::class);
 
 		$context->registerSetupCheck(LongJwtKeySetupCheck::class);
-
-		// It seems that AccountManager use deprecated dispatcher, let's use a deprecated listener
-		/** @var IEventDispatcher $eventDispatcher */
-		$dispatcher = Server::get(IEventDispatcher::class);
-		$dispatcher->addListener(
-			'OC\AccountManager::userUpdated',
-			function (GenericEvent $event): void {
-				/** @var IUser $user */
-				$user = $event->getSubject();
-				$slave = Server::get(Slave::class);
-				$slave->updateUser($user);
-			}
-		);
 	}
 
 	/**

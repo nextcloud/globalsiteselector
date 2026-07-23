@@ -194,7 +194,7 @@ class SlaveService {
 			return '';
 		}
 
-		return $response->getBody();
+		return (string)$response->getBody();
 	}
 
 	/**

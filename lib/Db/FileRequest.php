@@ -15,6 +15,7 @@ use OCA\GlobalSiteSelector\Model\LocalFile;
 use OCA\GlobalSiteSelector\Model\LocalMount;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Federation\ICloudIdManager;
+use OCP\Files\Config\ICachedMountFileInfo;
 use OCP\Files\Config\IUserMountCache;
 use OCP\Files\IRootFolder;
 use OCP\IDBConnection;
@@ -188,12 +189,13 @@ class FileRequest {
 	 * returns the mount using the id of a node,
 	 * userid can then be extracted and used to retrieve the file's root folder
 	 */
-	private function getCachedMountInfoFromNodeId(int $nodeId): \OCP\Files\Config\ICachedMountFileInfo {
+	private function getCachedMountInfoFromNodeId(int $nodeId): ?ICachedMountFileInfo {
 		$mounts = $this->userMountCache->getMountsForFileId($nodeId);
-		if (empty($mounts ?? [])) {
+		if ($mounts === []) {
 			$this->logger->warning('mount not found for node id ' . $nodeId);
+			return null;
 		}
 
-		return reset($mounts);
+		return current($mounts);
 	}
 }

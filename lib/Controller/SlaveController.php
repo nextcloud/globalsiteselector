@@ -208,6 +208,7 @@ class SlaveController extends OCSController {
 		}
 
 		$this->logger->debug('all good. creating session');
+		/** @psalm-suppress UndefinedInterfaceMethod defined in the private implementation */
 		$this->userSession->createSessionToken($this->request, $uid, $uid, null, IToken::REMEMBER);
 
 		// ignore the need of password validation on slaves

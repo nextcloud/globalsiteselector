@@ -22,7 +22,7 @@ class LocalFederatedShareException extends Exception {
 		parent::__construct($message, $code, $previous);
 	}
 
-	public function getFederatedShare(): FederatedShare {
+	public function getFederatedShare(): ?FederatedShare {
 		return $this->federatedShare;
 	}
 }

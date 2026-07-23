@@ -60,12 +60,12 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$this->logger->debug('Lookup key is: "' . $key . '"');
 
 		// regular lookup
-		if (!empty($key) && is_array($dictionary) && !$this->useRegularExpressions) {
+		if (!empty($key) && !$this->useRegularExpressions) {
 			$location = $dictionary[$key] ?? '';
 		}
 
 		// dictionary contains regular expressions
-		if (!empty($key) && is_array($dictionary) && $this->useRegularExpressions) {
+		if (!empty($key) && $this->useRegularExpressions) {
 			foreach ($dictionary as $regex => $nextcloudNode) {
 				$this->logger->debug('Testing regex: "' . $regex . '"');
 				if (preg_match($regex, $key) === 1) {

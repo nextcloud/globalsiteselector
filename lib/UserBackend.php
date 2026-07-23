@@ -31,7 +31,7 @@ use Override;
 class UserBackend extends ABackend implements IUserBackend, UserInterface, ICheckPasswordBackend, IGetDisplayNameBackend, ISetDisplayNameBackend, ILimitAwareCountUsersBackend {
 	private string $dbName = 'global_scale_users';
 
-	/** @var CappedMemoryCache<string, array{displayname?: string}|false> $cache */
+	/** @var CappedMemoryCache<array{displayname?: string}|false> $cache */
 	private CappedMemoryCache $cache;
 
 	public function __construct(
@@ -199,7 +199,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 			->where($qb->expr()->eq('uid', $qb->createNamedParameter($uid)))
 			->executeStatement();
 
-		$this->cache[$uid]['displayname'] = $displayName;
+		$this->cache[$uid] = ['displayname' => $displayName];
 
 		return true;
 	}
@@ -234,9 +234,9 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		}
 		$result = $qb->executeQuery();
 		$displayNames = [];
-		while ($row = $result->fetchAssociative()) {
+		while ($row = $result->fetch()) {
 			$displayNames[(string)$row['uid']] = (string)$row['displayname'];
-			$this->cache[(string)$row['uid']]['displayname'] = (string)$row['displayname'];
+			$this->cache[(string)$row['uid']] = ['displayname' => (string)$row['displayname']];
 		}
 		$result->closeCursor();
 

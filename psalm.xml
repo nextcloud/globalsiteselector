@@ -5,7 +5,7 @@
 -->
 <psalm
 		errorBaseline="tests/psalm-baseline.xml"
-		errorLevel="7"
+		errorLevel="4"
 		findUnusedBaselineEntry="true"
 		findUnusedCode="false"
 		resolveFromConfigFile="true"

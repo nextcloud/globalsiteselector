@@ -11,12 +11,14 @@ namespace OCA\GlobalSiteSelector\Listeners;
 
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Slave;
+use OCP\Accounts\UserUpdatedEvent;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
+use OCP\Server;
 use OCP\User\Events\UserChangedEvent;
 
 /**
- * @template-implements IEventListener<UserChangedEvent>
+ * @template-implements IEventListener<UserChangedEvent|UserUpdatedEvent>
  */
 class UserChanged implements IEventListener {
 
@@ -28,6 +30,10 @@ class UserChanged implements IEventListener {
 
 	#[\Override]
 	public function handle(Event $event): void {
+		if ($event instanceof UserUpdatedEvent) {
+			$this->handleUpdated($event);
+		}
+
 		if (!$event instanceof UserChangedEvent) {
 			return;
 		}
@@ -50,5 +56,9 @@ class UserChanged implements IEventListener {
 			// user was enabled, add to lookup server
 			$this->slave->createUser($params);
 		}
+	}
+
+	public function handleUpdated(UserUpdatedEvent $event): void {
+		$this->slave->updateUser($event->getUser());
 	}
 }
