@@ -5,10 +5,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.7.4
+
+- redirect WebDAV request on master to slave
+- broadcast disabled users to LUS
+- fix: state might be used in session keys
+
 ## 2.7.3
 
 - fix: add brute force protection and avoid saving token on debug log
-- fix: state might be used in session keys
 
 ## 2.7.2
 
