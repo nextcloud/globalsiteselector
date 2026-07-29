@@ -13,19 +13,19 @@ use Exception;
 use OC\Core\Controller\ClientFlowLoginV2Controller;
 use OC\Core\Service\LoginFlowV2Service;
 use OCA\GlobalSiteSelector\AppInfo\Application;
-use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
+use OCA\GlobalSiteSelector\Exceptions\IsLocalAdminException;
+use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http\StandaloneTemplateResponse;
-use OCP\Authentication\IApacheBackend;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
+use OCP\IUser;
 use OCP\Security\ICrypto;
-use OCP\Server;
 use OCP\ServerVersion;
 use OCP\Util;
 use Psr\Container\ContainerExceptionInterface;
@@ -52,6 +52,7 @@ class Master {
 		private readonly IAppConfig $appConfig,
 		private readonly IConfig $config,
 		private readonly LoggerInterface $logger,
+		private readonly GlobalScaleService $globalScaleService,
 	) {
 	}
 
@@ -64,80 +65,63 @@ class Master {
 	 * @throws NotFoundExceptionInterface
 	 */
 	public function handleLoginRequest(
-		string $uid,
+		IUser $user,
 		?string $password,
-		?IApacheBackend $backend = null,
+		bool $ignoreJwt = false,
 	): void {
+		$backend = $user->getBackend();
 		$this->logger->debug(
 			'start handle login request',
 			[
-				'uid' => $uid,
+				'uid' => $user->getUID(),
 				'backend' => ($backend === null) ? null : $backend::class
 			]
 		);
 
 		/** ignoring request from slave with valid jwt */
-		if ($this->isValidJwt($this->request->getParam('jwt', ''))) {
+		if (!$ignoreJwt && $this->isValidJwt($this->request->getParam('jwt', ''))) {
 			$this->logger->debug('ignore request with valid jwt');
 
 			return;
 		}
 
-		$target = (!$this->request->getPathInfo()) ? '/' : '/index.php' . $this->request->getPathInfo();
-		$this->logger->debug('handleLoginRequest: target is: ' . $target);
-
+		// Use the entry script that actually handled this request (index.php,
+		// remote.php, ...) instead of hardcoding index.php: this event also
+		// fires for DAV/OCS requests served through remote.php, and hardcoding
+		// index.php there produces a target URL that doesn't exist on the slave.
+		$target = (!$this->request->getPathInfo()) ? '/' : $this->request->getScriptName() . $this->request->getPathInfo();
 		$options = [
 			'target' => $target,
 			'params' => $this->request->getParams(),
 		];
 
-		$discoveryData = [];
-
-		$userDiscoveryModule = $this->config->getSystemValueString('gss.user.discovery.module', '');
-		$this->logger->debug('handleLoginRequest: discovery module is: ' . $userDiscoveryModule);
-
 		$redirectUrl = $this->request->getParam('redirect_url', '');
 
-		$isSamlOrOidc = false;
-		if (class_exists('\OCA\User_SAML\UserBackend')
-			&& $backend instanceof \OCA\User_SAML\UserBackend) {
-			$isSamlOrOidc = true;
+		$ssoUserData = $this->globalScaleService->getSsoUserData($user);
+		if ($ssoUserData !== null && $ssoUserData['backend'] === 'saml') {
 			$this->logger->debug('handleLoginRequest: backend is SAML');
 
-			$options['backend'] = 'saml';
-			$options['userData'] = $backend->getUserData();
-			$uid = $options['userData']['formatted']['uid'];
 			$password = '';
-			$discoveryData['saml'] = $options['userData']['raw'];
 			// we only send the formatted user data to the slave
-			$options['userData'] = $options['userData']['formatted'];
+			$options['backend'] = 'saml';
+			$options['userData'] = $ssoUserData['formatted'];
 			$options['saml'] = [
 				'idp' => $this->session->get('user_saml.Idp')
 			];
-
-			$this->logger->debug('handleLoginRequest: backend is SAML.', ['options' => $options]);
-		} elseif (class_exists('\OCA\UserOIDC\Controller\LoginController')
-			&& class_exists('\OCA\UserOIDC\User\Backend')
-			&& $backend instanceof \OCA\UserOIDC\User\Backend
-			&& method_exists($backend, 'getUserData')
-		) {
-			// TODO double check if we need to behave the same when saml or oidc is used
-			$isSamlOrOidc = true;
+		} elseif ($ssoUserData !== null && $ssoUserData['backend'] === 'oidc') {
 			$this->logger->debug('handleLoginRequest: backend is OIDC');
 
-			$options['backend'] = 'oidc';
-			$options['userData'] = $backend->getUserData();
-			$uid = $options['userData']['formatted']['uid'];
 			$password = '';
-			$discoveryData['oidc'] = $options['userData']['raw'];
 			// we only send the formatted user data to the slave
-			$options['userData'] = $options['userData']['formatted'];
+			$options['backend'] = 'oidc';
+			$options['userData'] = $ssoUserData['formatted'];
 			$options['oidc'] = [
-				'providerId' => $this->session->get(\OCA\UserOIDC\Controller\LoginController::PROVIDERID)
+				// keep in sync with \OCA\UserOIDC\Controller\LoginController::PROVIDERID
+				'providerId' => $this->session->get('oidc.providerid')
 			];
-			// 	TODO: switch 'oidc.redirect' to \OCA\UserOIDC\Controller\LoginController::REDIRECT_AFTER_LOGIN once switched to public
 			$state = $this->request->getParam('state') ?? '';
 			$sessionKeySuffix = ($state !== '') ? '-' . $state : '';
+			// keep in sync with \OCA\UserOIDC\Controller\LoginController::REDIRECT_AFTER_LOGIN
 			$redirect = $this->session->get('oidc.redirect') ?? $this->session->get('oidc.redirect' . $sessionKeySuffix) ?? '/';
 			$options['target'] = $this->forceRelativeUrl($redirect);
 
@@ -157,8 +141,6 @@ class Master {
 				parse_str(parse_url($oidcRedirect, PHP_URL_QUERY) ?? '', $oidcRedirectParams);
 				$redirectUrl = $oidcRedirectParams['redirect_url'] ?? $redirectUrl;
 			}
-
-			$this->logger->debug('handleLoginRequest: backend is OIDC.', ['options' => $options]);
 		} else {
 			$this->logger->debug('handleLoginRequest: backend is not SAML or OIDC');
 		}
@@ -168,89 +150,35 @@ class Master {
 			$this->logger->debug('handleLoginRequest: overriding target with slave flow path: ' . $options['target']);
 		}
 
-		$this->logger->debug('handleLoginRequest: uid is: ' . $uid);
-
-		// let local account login, everyone else will redirected to a client
-		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);     // old syntax
-		$localAccounts = $this->config->getSystemValue('gss.master.accounts', []); // new one
-		$masterAdmins = (is_array($masterAdmins)) ? $masterAdmins : [];
-		$localAccounts = (is_array($localAccounts)) ? $localAccounts : [];
-
-		if (in_array($uid, array_merge($masterAdmins, $localAccounts), true)) {
-			$this->logger->debug('handleLoginRequest: this user is a local account so ignore');
+		try {
+			$location = $this->globalScaleService->getSecondaryRemoteLocation($user);
+		} catch (IsLocalAdminException) {
 			return;
 		}
-
-		// first ask the lookup server if we already know the user
-		// is from SAML or OIDC, only search on userId, ignore email.
-		$location = $this->queryLookupServer($uid, $isSamlOrOidc);
-		$this->logger->debug('handleLoginRequest: location according to lookup server: ' . $location);
-
-		// if not we fall-back to a initial user deployment method, if configured
-		if (empty($location) && !empty($userDiscoveryModule)) {
-			try {
-				$this->logger->debug('handleLoginRequest: obtaining location from discovery module ' . $userDiscoveryModule);
-
-				/** @var IUserDiscoveryModule $module */
-				$module = Server::get($userDiscoveryModule);
-				$location = $module->getLocation($discoveryData);
-				$this->lookup->sanitizeUid($uid);
-
-				$this->logger->debug(
-					'handleLoginRequest: location according to discovery module: ' . $location
-				);
-			} catch (Exception $e) {
-				$this->logger->warning(
-					'could not load user discovery module: ' . $userDiscoveryModule,
-					['exception' => $e->getMessage()]
-				);
-			}
-		}
-
-		if (!empty($location)) {
+		if ($location !== null) {
 			$this->logger->debug(
-				'handleLoginRequest: redirecting user: ' . $uid . ' to ' . $this->normalizeLocation($location)
+				'handleLoginRequest: redirecting user: ' . $user->getUID() . ' to ' . $location
 			);
 
-			$this->redirectUser($uid, $password, $this->normalizeLocation($location), $options);
+			$this->redirectUser($user->getUID(), $password, $location, $options);
 		} else {
-			$this->logger->debug('handleLoginRequest: Could not find location for account ' . $uid);
+			$this->logger->debug('handleLoginRequest: Could not find location for account ' . $user->getUID());
 
 			throw new HintException('Unknown Account');
 		}
 	}
 
 	/**
-	 * format URL
-	 *
-	 * @param string $url
-	 */
-	protected function normalizeLocation($url): string {
-		if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
-			return $url;
-		}
-
-		return $this->request->getServerProtocol() . '://' . $url;
-	}
-
-	/**
-	 * search for the user and return the location of the user
-	 *
-	 * @param $uid
-	 */
-	protected function queryLookupServer(string &$uid, bool $matchUid = false): string {
-		return $this->lookup->search($uid, $matchUid);
-	}
-
-	/**
 	 * redirect user to the right Nextcloud server
 	 *
 	 * @param string $uid
+	 * @param string $password
 	 * @param string $location
 	 * @param array $options can contain additional parameters, e.g. from SAML
+	 *
 	 * @throws Exception
 	 */
-	protected function redirectUser($uid, string $password, $location, array $options = []) {
+	protected function redirectUser($uid, $password, $location, array $options = []) {
 		$isClient = $this->request->isUserAgent(
 			[
 				IRequest::USER_AGENT_CLIENT_IOS,
@@ -262,13 +190,24 @@ class Master {
 		) || $this->isPath(['/login/flow/grant', '/login/v2/grant'], $options['target'] ?? '');
 
 		$requestUri = $this->request->getRequestUri();
+
 		// check for both possible direct webdav end-points
-		$isDirectWebDavAccess = str_contains($requestUri, 'remote.php/webdav');
-		$isDirectWebDavAccess = $isDirectWebDavAccess || str_contains($requestUri, 'remote.php/dav');
+		$isDirectWebDavAccess = str_starts_with($requestUri, '/remote.php/webdav')
+			|| str_starts_with($requestUri, '/remote.php/dav');
+
+		$isDirectOCS = str_starts_with($requestUri, '/ocs/v2.php')
+			|| str_starts_with($requestUri, '/ocs/v1.php');
 
 		$authHeader = $this->request->getHeader('Authorization');
 		$redirectWebDav = $this->appConfig->getValueBool(Application::APP_ID, ConfigLexicon::REDIRECT_WEBDAV);
-		$hasBasicAuth = $redirectWebDav && $authHeader !== '' && str_starts_with(strtolower($authHeader), 'basic ');
+		$authHeaderLower = strtolower($authHeader);
+		// Basic (third-party WebDAV clients) as well as Bearer (OAuth2 app
+		// tokens, e.g. from a GSS-unaware OIDC/OAuth2 client) can both be
+		// forwarded as-is to the slave: neither depends on a browser session,
+		// unlike the JWT-autologin bounce below.
+		$hasForwardableAuth = $authHeader !== ''
+			&& (str_starts_with($authHeaderLower, 'basic ') || str_starts_with($authHeaderLower, 'bearer '));
+		$hasForwardableAuthDav = $redirectWebDav && $hasForwardableAuth;
 
 		// default redirect status code; overridden below for the 307 forward.
 		$statusCode = 302;
@@ -290,16 +229,19 @@ class Master {
 				// fallback to v1
 				$redirectUrl = 'nc://login/server:' . $location . '&user:' . urlencode($uid) . '&password:' . urlencode($appToken);
 			}
-		} elseif ($isDirectWebDavAccess && $hasBasicAuth) {
-			// Third-party WebDAV clients authenticated with HTTP Basic
-			// (curl, rclone, davfs2, sabre/dav based clients, generic DAV
-			// consumers, etc.): forward the request as-is to the slave with
-			// a 307 (RFC 9110 §15.4.8) so that PUT, PROPFIND, MKCOL, DELETE,
-			// COPY and MOVE are not downgraded to GET, and the original
-			// request URI is preserved end-to-end. The client re-issues the
-			// same request to the slave, including the Authorization header
-			// it already presented to the master.
-			$this->logger->debug('redirectUser: third-party webdav request with Basic Auth, forwarding with 307');
+		} elseif ($isDirectWebDavAccess && $hasForwardableAuthDav) {
+			// Third-party WebDAV clients authenticated with HTTP Basic or
+			// Bearer (curl, rclone, davfs2, sabre/dav based clients, OAuth2
+			// clients, generic DAV consumers, etc.): forward the request as-is
+			// to the slave with a 307 (RFC 9110 §15.4.8) so that PUT,
+			// PROPFIND, MKCOL, DELETE, COPY and MOVE are not downgraded to
+			// GET, and the original request URI is preserved end-to-end. The
+			// client re-issues the same request to the slave, including the
+			// Authorization header it already presented to the master.
+			$this->logger->debug('redirectUser: third-party webdav request with forwardable auth, forwarding with 307');
+			$redirectUrl = rtrim($location, '/') . $requestUri;
+			$statusCode = 307;
+		} elseif ($isDirectOCS) {
 			$redirectUrl = rtrim($location, '/') . $requestUri;
 			$statusCode = 307;
 		} else {
@@ -346,12 +288,13 @@ class Master {
 	 *
 	 * @param string $location
 	 * @param string $uid
+	 * @param string $password
 	 * @param array $options
 	 *
 	 * @return string
 	 * @throws Exception
 	 */
-	protected function getAppToken($location, $uid, string $password, $options) {
+	protected function getAppToken($location, $uid, $password, $options) {
 		$client = $this->clientService->newClient();
 		$jwt = $this->createJwt($uid, $password, $options);
 

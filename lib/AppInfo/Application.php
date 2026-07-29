@@ -19,7 +19,9 @@ use OCA\GlobalSiteSelector\Listeners\UserCreated;
 use OCA\GlobalSiteSelector\Listeners\UserDeleted;
 use OCA\GlobalSiteSelector\Listeners\UserLoggedOut;
 use OCA\GlobalSiteSelector\Listeners\UserLoggingIn;
+use OCA\GlobalSiteSelector\Master;
 use OCA\GlobalSiteSelector\PublicCapabilities;
+use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\SetupChecks\LongJwtKeySetupCheck;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
@@ -28,16 +30,17 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\GlobalScale\IGlobalScaleService;
 use OCP\IRequest;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 use OCP\Server;
 use OCP\User\Events\BeforeUserDeletedEvent;
-use OCP\User\Events\BeforeUserLoggedInEvent;
 use OCP\User\Events\UserChangedEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\User\Events\UserDeletedEvent;
+use OCP\User\Events\UserLoggedInEvent;
 use OCP\User\Events\UserLoggedOutEvent;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -65,7 +68,7 @@ class Application extends App implements IBootstrap {
 		$context->registerCapability(PublicCapabilities::class);
 
 		// events on master
-		$context->registerEventListener(BeforeUserLoggedInEvent::class, UserLoggingIn::class);
+		$context->registerEventListener(UserLoggedInEvent::class, UserLoggingIn::class);
 		$context->registerEventListener(
 			AddContentSecurityPolicyEvent::class,
 			AddContentSecurityPolicyListener::class
@@ -80,6 +83,13 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(UserUpdatedEvent::class, UserChanged::class);
 
 		$context->registerSetupCheck(LongJwtKeySetupCheck::class);
+
+		// registerGlobalScaleService() and IGlobalScaleService only exist since Nextcloud
+		// 34.0.3, but this app still supports 32 and 33, see lib/Service/GlobalScaleService.php
+		if (interface_exists(IGlobalScaleService::class)) {
+			/** @psalm-suppress UndefinedInterfaceMethod */
+			$context->registerGlobalScaleService(GlobalScaleService::class);
+		}
 	}
 
 	/**
@@ -92,6 +102,7 @@ class Application extends App implements IBootstrap {
 
 		$context->injectFn(\Closure::fromCallable($this->registerUserBackendForSlave(...)));
 		$context->injectFn(\Closure::fromCallable($this->redirectToMasterLogin(...)));
+		$context->injectFn(\Closure::fromCallable($this->redirectToSlave(...)));
 	}
 
 	/**
@@ -178,5 +189,36 @@ class Application extends App implements IBootstrap {
 				]
 			);
 		}
+	}
+
+	private function redirectToSlave(IRequest $request, Master $master, IUserSession $userSession): void {
+		/** only used in master mode */
+		if (!$this->globalSiteSelector->isMaster()) {
+			return;
+		}
+
+		if (!$userSession->isLoggedIn()) {
+			return;
+		}
+
+		// We should ignore oauth2 token endpoint (oauth can send the credentials as basic auth which will fail with apache auth)
+		$uri = $request->getPathInfo();
+		if (str_starts_with($uri, '/apps/oauth/api/v1/token') || str_starts_with($uri, '/apps/oauth2/authorize') || str_starts_with($uri, '/login/flow')) {
+			return;
+		}
+
+		$user = $userSession->getUser();
+		if ($user === null) {
+			return;
+		}
+
+		$this->logger->debug('new redirectToSlave');
+		$master->handleLoginRequest(
+			$user,
+			'',
+			true,
+		);
+
+		$this->logger->debug('ending redirectToSlave');
 	}
 }

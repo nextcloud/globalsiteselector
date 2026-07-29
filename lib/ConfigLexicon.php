@@ -18,6 +18,7 @@ class ConfigLexicon implements ILexicon {
 	public const GS_TOKENS = 'globalScaleTokens';
 	public const LOCAL_TOKEN = 'localToken';
 	public const REDIRECT_WEBDAV = 'redirectWebDAV';
+	public const SSO_USER_DATA = 'ssoUserData';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
@@ -42,6 +43,7 @@ class ConfigLexicon implements ILexicon {
 	#[\Override]
 	public function getUserConfigs(): array {
 		return [
+			new Entry(key: self::SSO_USER_DATA, type: ValueType::ARRAY, defaultRaw: [], definition: 'formatted SAML/OIDC identity data, cached from the last login with an active SSO session', lazy: true),
 		];
 	}
 }
