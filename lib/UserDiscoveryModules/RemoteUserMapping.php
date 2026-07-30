@@ -51,6 +51,7 @@ class RemoteUserMapping implements IUserDiscoveryModule {
 			$result = $client->post($this->discoveryEndpoint, ['body' => $data]);
 		} catch (\Exception $e) {
 			$this->logger->warning('cannot access remote discovery endpoint ' . $this->discoveryEndpoint, ['exception' => $e]);
+			return '';
 		}
 
 		try {
