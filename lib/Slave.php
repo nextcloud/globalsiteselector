@@ -20,40 +20,25 @@ use Psr\Log\LoggerInterface;
 class Slave {
 	public const SAML_IDP = 'saml_idp';
 	public const OIDC_PROVIDER_ID = 'oidc_provider_id';
-
-	private IUserManager $userManager;
-	private IClientService $clientService;
-	private SlaveService $slaveService;
-	private Lookup $lookup;
-	private LoggerInterface $logger;
 	private string $lookupServer;
-	private string $operationMode;
-	private string $authKey;
-	private GlobalSiteSelector $gss;
-	private IConfig $config;
+	private readonly string $operationMode;
+	private readonly string $authKey;
 	private static array $toRemove = []; // remember users which should be removed
 
 	public function __construct(
-		IUserManager $userManager,
-		IClientService $clientService,
-		SlaveService $slaveService,
-		Lookup $lookup,
-		GlobalSiteSelector $gss,
-		LoggerInterface $logger,
-		IConfig $config,
+		private readonly IUserManager $userManager,
+		private readonly IClientService $clientService,
+		private readonly SlaveService $slaveService,
+		private readonly Lookup $lookup,
+		private readonly GlobalSiteSelector $gss,
+		private readonly LoggerInterface $logger,
+		private readonly IConfig $config,
 	) {
-		$this->userManager = $userManager;
-		$this->clientService = $clientService;
-		$this->slaveService = $slaveService;
-		$this->lookup = $lookup;
-		$this->logger = $logger;
-		$this->lookupServer = $gss->getLookupServerUrl();
-		$this->operationMode = $gss->getMode();
-		$this->authKey = $gss->getJwtKey();
+		$this->lookupServer = $this->gss->getLookupServerUrl();
+		$this->operationMode = $this->gss->getMode();
+		$this->authKey = $this->gss->getJwtKey();
 		$this->lookupServer = rtrim($this->lookupServer, '/');
 		$this->lookupServer .= '/gs/users';
-		$this->gss = $gss;
-		$this->config = $config;
 	}
 
 	public function createUser(array $params): void {
@@ -81,8 +66,6 @@ class Slave {
 
 	/**
 	 * update existing user if personal data change
-	 *
-	 * @param IUser $user
 	 */
 	public function updateUser(IUser $user): void {
 		if (!$this->checkConfiguration()) {
@@ -106,8 +89,6 @@ class Slave {
 	 * the server indicated that the admin want to remove a user, remember the
 	 * federated cloud id so that we can remove the user from the lookup server
 	 * once they were deleted
-	 *
-	 * @param array $params
 	 */
 	public function preDeleteUser(array $params): void {
 		$uid = $params['uid'];
@@ -119,8 +100,6 @@ class Slave {
 
 	/**
 	 * remove user from lookup server
-	 *
-	 * @param array $params
 	 */
 	public function deleteUser(array $params): void {
 		if (!$this->checkConfiguration()) {
@@ -184,8 +163,6 @@ class Slave {
 
 	/**
 	 * send users to the lookup server
-	 *
-	 * @param array $users
 	 */
 	protected function addUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
@@ -217,8 +194,6 @@ class Slave {
 
 	/**
 	 * remove users from the lookup server
-	 *
-	 * @param array $users
 	 */
 	protected function removeUsers(array $users): void {
 		$dataBatch = ['authKey' => $this->authKey, 'users' => $users];
@@ -282,8 +257,6 @@ class Slave {
 
 	/**
 	 * Operation mode - slave or master
-	 *
-	 * @return string
 	 */
 	public function getOperationMode(): string {
 		return $this->operationMode;
@@ -292,7 +265,7 @@ class Slave {
 	/**
 	 * send user back to master
 	 */
-	public function handleLogoutRequest(IUser $user) {
+	public function handleLogoutRequest(IUser $user): void {
 		$token = [
 			'logout' => 'true',
 			'saml.idp' => $this->config->getUserValue(

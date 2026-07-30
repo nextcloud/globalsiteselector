@@ -23,9 +23,6 @@ class FederatedShare implements JsonSerializable {
 
 	private ?LocalFile $target = null;
 
-	public function __construct() {
-	}
-
 	public function setId(int $id): self {
 		$this->id = $id;
 		return $this;
@@ -133,7 +130,7 @@ class FederatedShare implements JsonSerializable {
 	}
 
 	/**
-	 * @return array{id: int, fileId: int, shareType: int, shareWith: string, permissions: int, target: array, remote: string, remoteId: int}
+	 * @return array{id?: int, fileId?: int, shareType?: int, shareWith?: string, permissions?: int, target: ?LocalFile, remote?: string, remoteId?: int, bounce?: bool}
 	 */
 	#[\Override]
 	public function jsonSerialize(): array {

@@ -24,7 +24,7 @@ use OCP\IConfig;
  * @package OCA\GlobalSiteSelector\UserDiscoveryModule
  */
 class UserDiscoveryOIDC implements IUserDiscoveryModule {
-	private string $tokenLocationAttribute;
+	private readonly string $tokenLocationAttribute;
 
 	public function __construct(IConfig $config) {
 		$this->tokenLocationAttribute = $config->getSystemValueString('gss.discovery.oidc.slave.mapping', '');
@@ -34,8 +34,6 @@ class UserDiscoveryOIDC implements IUserDiscoveryModule {
 	 * read user location from OIDC token attribute
 	 *
 	 * @param array $data OIDC attributes to read the location from
-	 *
-	 * @return string
 	 */
 	#[\Override]
 	public function getLocation(array $data): string {

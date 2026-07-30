@@ -24,36 +24,22 @@ use Psr\Log\LoggerInterface;
 class SlaveService {
 	private const CACHE_DISPLAY_NAME = 'gss/displayName';
 	private const CACHE_DISPLAY_NAME_TTL = 3600;
-
-	private LoggerInterface $logger;
-	private IClientService $clientService;
-	private IUserManager $userManager;
-	private IAccountManager $accountManager;
-	private IConfig $config;
-	private Lookup $lookup;
-	private string $lookupServer;
-	private string $operationMode;
-	private string $authKey;
-	private ICache $cacheDisplayName;
-	private int $cacheDisplayNameTtl;
+	private readonly string $lookupServer;
+	private readonly string $operationMode;
+	private readonly string $authKey;
+	private readonly ICache $cacheDisplayName;
+	private readonly int $cacheDisplayNameTtl;
 
 	public function __construct(
-		LoggerInterface $logger,
-		IClientService $clientService,
-		IUserManager $userManager,
-		IAccountManager $accountManager,
-		IConfig $config,
-		Lookup $lookup,
+		private readonly LoggerInterface $logger,
+		private readonly IClientService $clientService,
+		private readonly IUserManager $userManager,
+		private readonly IAccountManager $accountManager,
+		private readonly IConfig $config,
+		private readonly Lookup $lookup,
 		GlobalSiteSelector $gss,
 		ICacheFactory $cacheFactory,
 	) {
-		$this->logger = $logger;
-		$this->clientService = $clientService;
-		$this->userManager = $userManager;
-		$this->accountManager = $accountManager;
-		$this->config = $config;
-		$this->lookup = $lookup;
-
 		$this->lookupServer = rtrim($gss->getLookupServerUrl(), '/');
 		$this->operationMode = $gss->getMode();
 		$this->authKey = $gss->getJwtKey();
@@ -72,13 +58,10 @@ class SlaveService {
 		$this->updateUser($user);
 	}
 
-	/**
-	 * @param IUser $user
-	 */
 	public function updateUser(IUser $user): void {
 		try {
 			$this->checkConfiguration();
-		} catch (ConfigurationException $e) {
+		} catch (ConfigurationException) {
 			return;
 		}
 
@@ -90,10 +73,8 @@ class SlaveService {
 	/**
 	 * get single user's display name
 	 *
-	 * @param string $userId
 	 * @param bool $cacheOnly - only get data from cache, do not request lus
 	 *
-	 * @return string
 	 */
 	public function getUserDisplayName(string $userId, bool $cacheOnly = false): string {
 		$userId = trim($userId, '/');
@@ -105,16 +86,12 @@ class SlaveService {
 	/**
 	 * get multiple users' display name
 	 *
-	 * @param array $userIds
 	 * @param bool $cacheOnly - only get data from cache, do not request lus
 	 *
-	 * @return array
 	 */
 	public function getUsersDisplayName(array $userIds, bool $cacheOnly = false): array {
 		return $this->getDetails(
-			array_map(function (string $userId): string {
-				return trim($userId, '/');
-			}, $userIds), $cacheOnly
+			array_map(fn (string $userId): string => trim($userId, '/'), $userIds), $cacheOnly
 		);
 	}
 
@@ -122,10 +99,8 @@ class SlaveService {
 	 * get details for a list of userIds from the LUS.
 	 * Will first get data from cache, and will cache data returned by lus
 	 *
-	 * @param array $users
 	 * @param bool $cacheOnly - only get data from cache, do not request lus
 	 *
-	 * @return array
 	 */
 	protected function getDetails(array $users, bool $cacheOnly = false): array {
 		$knownDetails = [];
@@ -149,7 +124,7 @@ class SlaveService {
 					true,
 					512, JSON_THROW_ON_ERROR
 				);
-			} catch (Exception $e) {
+			} catch (Exception) {
 				// if configuration issue or request is not complete, we return known details.
 				return $knownDetails;
 			}
@@ -196,10 +171,7 @@ class SlaveService {
 	}
 
 	/**
-	 * @param string $path
-	 * @param array $data
 	 *
-	 * @return string
 	 * @throws ConfigurationException
 	 */
 	protected function getLookup(string $path, array $data): string {
@@ -222,11 +194,10 @@ class SlaveService {
 			return '';
 		}
 
-		return $response->getBody();
+		return (string)$response->getBody();
 	}
 
 	/**
-	 * @return void
 	 * @throws ConfigurationException
 	 */
 	protected function checkConfiguration(): void {
@@ -246,9 +217,7 @@ class SlaveService {
 	/**
 	 * get user data from account manager
 	 *
-	 * @param IUser $user
 	 *
-	 * @return array
 	 */
 	public function getAccountData(IUser $user): array {
 		$data = [ // we get basic values from IUser

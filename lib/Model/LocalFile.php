@@ -19,9 +19,6 @@ class LocalFile implements JsonSerializable {
 	/** @var string[] */
 	private array $path = [];
 
-	public function __construct() {
-	}
-
 	public function getId(): int {
 		return $this->id;
 	}
@@ -67,8 +64,6 @@ class LocalFile implements JsonSerializable {
 
 	/**
 	 * @param string[] $path
-	 *
-	 * @return $this
 	 */
 	public function setPath(array $path): self {
 		$this->path = $path;

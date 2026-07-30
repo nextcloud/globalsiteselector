@@ -9,14 +9,12 @@ namespace OCA\GlobalSiteSelector\Tests\Unit;
 
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCP\IConfig;
+use PHPUnit\Framework\MockObject\MockObject;
 use Test\TestCase;
 
 class GlobalSiteSelectorTest extends TestCase {
-	/** @var IConfig|\PHPUnit_Framework_MockObject_MockObject */
-	private $config;
-
-	/** @var GlobalSiteSelector */
-	private $gss;
+	private MockObject&IConfig $config;
+	private GlobalSiteSelector $gss;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -25,7 +23,7 @@ class GlobalSiteSelectorTest extends TestCase {
 		$this->gss = new GlobalSiteSelector($this->config);
 	}
 
-	public function testGetMode() {
+	public function testGetMode(): void {
 		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('gss.mode', 'slave')->willReturn('result');
 
@@ -34,7 +32,7 @@ class GlobalSiteSelectorTest extends TestCase {
 		$this->assertSame('result', $result);
 	}
 
-	public function testGetJwtKey() {
+	public function testGetJwtKey(): void {
 		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('gss.jwt.key', '')->willReturn('result');
 
@@ -43,7 +41,7 @@ class GlobalSiteSelectorTest extends TestCase {
 		$this->assertSame('result', $result);
 	}
 
-	public function testGetMasterUrl() {
+	public function testGetMasterUrl(): void {
 		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('gss.master.url', '')->willReturn('result');
 
@@ -52,7 +50,7 @@ class GlobalSiteSelectorTest extends TestCase {
 		$this->assertSame('result', $result);
 	}
 
-	public function testGetLookupServerUrl() {
+	public function testGetLookupServerUrl(): void {
 		$this->config->expects($this->once())->method('getSystemValueString')
 			->with('lookup_server', '')->willReturn('result');
 
@@ -61,21 +59,21 @@ class GlobalSiteSelectorTest extends TestCase {
 		$this->assertSame('result', $result);
 	}
 
-	public function testIsJwtKeyValidWithShortKey() {
+	public function testIsJwtKeyValidWithShortKey(): void {
 		$this->config->method('getSystemValueString')
 			->with('gss.jwt.key', '')->willReturn('short-key');
 
 		$this->assertFalse($this->gss->isJwtKeyValid());
 	}
 
-	public function testIsJwtKeyValidWithEmptyKey() {
+	public function testIsJwtKeyValidWithEmptyKey(): void {
 		$this->config->method('getSystemValueString')
 			->with('gss.jwt.key', '')->willReturn('');
 
 		$this->assertFalse($this->gss->isJwtKeyValid());
 	}
 
-	public function testIsJwtKeyValidWithValidKey() {
+	public function testIsJwtKeyValidWithValidKey(): void {
 		$this->config->method('getSystemValueString')
 			->with('gss.jwt.key', '')->willReturn('this-key-is-at-least-32-characters-long!');
 

@@ -21,14 +21,11 @@ use OCP\User\Events\UserDeletedEvent;
 class UserDeleted implements IEventListener {
 
 	public function __construct(
-		private GlobalSiteSelector $globalSiteSelector,
-		private Slave $slave,
+		private readonly GlobalSiteSelector $globalSiteSelector,
+		private readonly Slave $slave,
 	) {
 	}
 
-	/**
-	 * @param Event $event
-	 */
 	#[\Override]
 	public function handle(Event $event): void {
 		if (!$event instanceof UserDeletedEvent) {

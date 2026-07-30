@@ -58,9 +58,6 @@ class Master {
 	/**
 	 * find users location and redirect them to the right server
 	 *
-	 * @param string $uid
-	 * @param string|null $password
-	 * @param IApacheBackend|null $backend
 	 *
 	 * @throws ContainerExceptionInterface
 	 * @throws HintException
@@ -75,7 +72,7 @@ class Master {
 			'start handle login request',
 			[
 				'uid' => $uid,
-				'backend' => ($backend === null) ? null : get_class($backend)
+				'backend' => ($backend === null) ? null : $backend::class
 			]
 		);
 
@@ -227,11 +224,9 @@ class Master {
 	 * format URL
 	 *
 	 * @param string $url
-	 *
-	 * @return string
 	 */
-	protected function normalizeLocation($url) {
-		if (substr($url, 0, 7) === 'http://' || substr($url, 0, 8) === 'https://') {
+	protected function normalizeLocation($url): string {
+		if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
 			return $url;
 		}
 
@@ -242,8 +237,6 @@ class Master {
 	 * search for the user and return the location of the user
 	 *
 	 * @param $uid
-	 *
-	 * @return string
 	 */
 	protected function queryLookupServer(string &$uid, bool $matchUid = false): string {
 		return $this->lookup->search($uid, $matchUid);
@@ -253,13 +246,11 @@ class Master {
 	 * redirect user to the right Nextcloud server
 	 *
 	 * @param string $uid
-	 * @param string $password
 	 * @param string $location
 	 * @param array $options can contain additional parameters, e.g. from SAML
-	 *
 	 * @throws Exception
 	 */
-	protected function redirectUser($uid, $password, $location, array $options = []) {
+	protected function redirectUser($uid, string $password, $location, array $options = []) {
 		$isClient = $this->request->isUserAgent(
 			[
 				IRequest::USER_AGENT_CLIENT_IOS,
@@ -272,8 +263,8 @@ class Master {
 
 		$requestUri = $this->request->getRequestUri();
 		// check for both possible direct webdav end-points
-		$isDirectWebDavAccess = strpos($requestUri, 'remote.php/webdav') !== false;
-		$isDirectWebDavAccess = $isDirectWebDavAccess || strpos($requestUri, 'remote.php/dav') !== false;
+		$isDirectWebDavAccess = str_contains($requestUri, 'remote.php/webdav');
+		$isDirectWebDavAccess = $isDirectWebDavAccess || str_contains($requestUri, 'remote.php/dav');
 
 		$authHeader = $this->request->getHeader('Authorization');
 		$redirectWebDav = $this->appConfig->getValueBool(Application::APP_ID, ConfigLexicon::REDIRECT_WEBDAV);
@@ -286,7 +277,7 @@ class Master {
 		if ($isClient && $isDirectWebDavAccess) {
 			$this->logger->debug('redirectUser: client direct webdav request');
 			$redirectUrl = $location . '/remote.php/webdav/';
-		} elseif ($isClient && !$isDirectWebDavAccess) {
+		} elseif ($isClient) {
 			$this->logger->debug('redirectUser: client request generating apptoken');
 			$appToken = $this->getAppToken($location, $uid, $password, $options);
 
@@ -326,12 +317,10 @@ class Master {
 	 * generate JWT
 	 *
 	 * @param string $uid
-	 * @param string $password
 	 * @param array $options
 	 *
-	 * @return string
 	 */
-	protected function createJwt($uid, $password, $options) {
+	protected function createJwt($uid, string $password, $options): string {
 		if (!$this->gss->isJwtKeyValid()) {
 			$this->logger->error(
 				'gss.jwt.key is too short: HS256 requires at least '
@@ -349,9 +338,7 @@ class Master {
 			'exp' => time() + 300, // expires after 5 minutes
 		];
 
-		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
-
-		return $jwt;
+		return JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
 	}
 
 	/**
@@ -359,13 +346,12 @@ class Master {
 	 *
 	 * @param string $location
 	 * @param string $uid
-	 * @param string $password
 	 * @param array $options
 	 *
 	 * @return string
 	 * @throws Exception
 	 */
-	protected function getAppToken($location, $uid, $password, $options) {
+	protected function getAppToken($location, $uid, string $password, $options) {
 		$client = $this->clientService->newClient();
 		$jwt = $this->createJwt($uid, $password, $options);
 
@@ -407,13 +393,11 @@ class Master {
 	 * @param string $url
 	 * @param string $uid
 	 * @param string $password
-	 *
-	 * @return string
 	 */
-	protected function buildBasicAuthUrl($url, $uid, $password) {
-		if (strpos($url, 'http://') === 0) {
+	protected function buildBasicAuthUrl($url, $uid, $password): string {
+		if (str_starts_with($url, 'http://')) {
 			$protocol = 'http://';
-		} elseif (strpos($url, 'https://') === 0) {
+		} elseif (str_starts_with($url, 'https://')) {
 			$protocol = 'https://';
 		} else {
 			// no protocol given, switch to https as default
@@ -461,7 +445,7 @@ class Master {
 		}
 
 		foreach ($search as $entry) {
-			if (str_starts_with($path, $entry) || str_starts_with($path, '/index.php' . $entry)) {
+			if (str_starts_with($path, (string)$entry) || str_starts_with($path, '/index.php' . $entry)) {
 				return true;
 			}
 		}

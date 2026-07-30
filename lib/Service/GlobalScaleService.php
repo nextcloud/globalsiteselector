@@ -97,7 +97,7 @@ class GlobalScaleService {
 		}
 
 		$token = $this->getRemotePublicDiscovery($address)['token'] ?? '';
-		if ($token === '' || strlen($token) < 5) {
+		if ($token === '' || strlen((string)$token) < 5) {
 			return;
 		}
 

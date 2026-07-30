@@ -191,10 +191,11 @@ class FileRequest {
 	 */
 	private function getCachedMountInfoFromNodeId(int $nodeId): ?ICachedMountFileInfo {
 		$mounts = $this->userMountCache->getMountsForFileId($nodeId);
-		if (empty($mounts ?? [])) {
+		if ($mounts === []) {
 			$this->logger->warning('mount not found for node id ' . $nodeId);
+			return null;
 		}
 
-		return reset($mounts);
+		return current($mounts);
 	}
 }

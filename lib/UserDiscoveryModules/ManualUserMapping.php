@@ -28,13 +28,13 @@ use Psr\Log\LoggerInterface;
  * @package OCA\GlobalSiteSelector\UserDiscoveryModules
  */
 class ManualUserMapping implements IUserDiscoveryModule {
-	private string $idpParameter;
-	private string $file;
-	private bool $useRegularExpressions;
+	private readonly string $idpParameter;
+	private readonly string $file;
+	private readonly bool $useRegularExpressions;
 
 	public function __construct(
 		IConfig $config,
-		private LoggerInterface $logger,
+		private readonly LoggerInterface $logger,
 	) {
 		$this->idpParameter = $config->getSystemValueString('gss.discovery.manual.mapping.parameter', '');
 		$this->file = $config->getSystemValueString('gss.discovery.manual.mapping.file', '');
@@ -50,8 +50,6 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 * get the initial user location
 	 *
 	 * @param array $data idp parameters
-	 *
-	 * @return string
 	 */
 	#[\Override]
 	public function getLocation(array $data): string {
@@ -62,12 +60,12 @@ class ManualUserMapping implements IUserDiscoveryModule {
 		$this->logger->debug('Lookup key is: "' . $key . '"');
 
 		// regular lookup
-		if (!empty($key) && is_array($dictionary) && !$this->useRegularExpressions) {
+		if (!empty($key) && !$this->useRegularExpressions) {
 			$location = $dictionary[$key] ?? '';
 		}
 
 		// dictionary contains regular expressions
-		if (!empty($key) && is_array($dictionary) && $this->useRegularExpressions) {
+		if (!empty($key) && $this->useRegularExpressions) {
 			foreach ($dictionary as $regex => $nextcloudNode) {
 				$this->logger->debug('Testing regex: "' . $regex . '"');
 				if (preg_match($regex, $key) === 1) {
@@ -86,10 +84,8 @@ class ManualUserMapping implements IUserDiscoveryModule {
 
 	/**
 	 * get dictionary which maps idp parameters to nextcloud nodes
-	 *
-	 * @return array
 	 */
-	private function getDictionary() {
+	private function getDictionary(): array {
 		$dictionary = [];
 		$isValidFile = !empty($this->file) && file_exists($this->file);
 		if ($isValidFile) {
@@ -111,7 +107,7 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 *
 	 * @return string
 	 */
-	private function getKey($data) {
+	private function getKey(array $data) {
 		$key = '';
 		if (!empty($this->idpParameter) && array_key_exists($this->idpParameter, $data)) {
 			$keys = $data[$this->idpParameter];
@@ -136,9 +132,9 @@ class ManualUserMapping implements IUserDiscoveryModule {
 	 */
 	private function normalizeKey($key) {
 		$normalized = $key;
-		$pos = strrpos($key, '@');
+		$pos = strrpos((string)$key, '@');
 		if ($pos !== false) {
-			$normalized = substr($key, $pos + 1);
+			$normalized = substr((string)$key, $pos + 1);
 		}
 
 		$this->logger->debug('Normalized key: ' . $normalized);

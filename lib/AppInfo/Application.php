@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector\AppInfo;
 
-use Closure;
 use Exception;
 use OC;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
@@ -24,13 +23,12 @@ use OCA\GlobalSiteSelector\PublicCapabilities;
 use OCA\GlobalSiteSelector\SetupChecks\LongJwtKeySetupCheck;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\UserBackend;
+use OCP\Accounts\UserUpdatedEvent;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IRequest;
-use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
@@ -44,7 +42,6 @@ use OCP\User\Events\UserLoggedOutEvent;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\GenericEvent;
 use Throwable;
 
 /**
@@ -63,9 +60,6 @@ class Application extends App implements IBootstrap {
 		parent::__construct(self::APP_ID, $urlParams);
 	}
 
-	/**
-	 * @param IRegistrationContext $context
-	 */
 	#[\Override]
 	public function register(IRegistrationContext $context): void {
 		$context->registerCapability(PublicCapabilities::class);
@@ -83,26 +77,12 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(UserDeletedEvent::class, UserDeleted::class);
 		$context->registerEventListener(UserLoggedOutEvent::class, UserLoggedOut::class);
 		$context->registerEventListener(UserChangedEvent::class, UserChanged::class);
+		$context->registerEventListener(UserUpdatedEvent::class, UserChanged::class);
 
 		$context->registerSetupCheck(LongJwtKeySetupCheck::class);
-
-		// It seems that AccountManager use deprecated dispatcher, let's use a deprecated listener
-		/** @var IEventDispatcher $eventDispatcher */
-		$dispatcher = Server::get(IEventDispatcher::class);
-		$dispatcher->addListener(
-			'OC\AccountManager::userUpdated',
-			function (GenericEvent $event) {
-				/** @var IUser $user */
-				$user = $event->getSubject();
-				$slave = OC::$server->get(Slave::class);
-				$slave->updateUser($user);
-			}
-		);
 	}
 
 	/**
-	 * @param IBootContext $context
-	 *
 	 * @throws Throwable
 	 */
 	#[\Override]
@@ -110,14 +90,14 @@ class Application extends App implements IBootstrap {
 		$this->globalSiteSelector = $context->getAppContainer()->get(GlobalSiteSelector::class);
 		$this->logger = $context->getServerContainer()->get(LoggerInterface::class);
 
-		$context->injectFn(Closure::fromCallable([$this, 'registerUserBackendForSlave']));
-		$context->injectFn(Closure::fromCallable([$this, 'redirectToMasterLogin']));
+		$context->injectFn(\Closure::fromCallable($this->registerUserBackendForSlave(...)));
+		$context->injectFn(\Closure::fromCallable($this->redirectToMasterLogin(...)));
 	}
 
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
 	 */
-	private function registerUserBackendForSlave() {
+	private function registerUserBackendForSlave(): void {
 		if (!$this->globalSiteSelector->isSlave()) {
 			return;
 		}
@@ -144,7 +124,7 @@ class Application extends App implements IBootstrap {
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
 	 */
-	private function redirectToMasterLogin() {
+	private function redirectToMasterLogin(): void {
 		if (OC::$CLI) {
 			return;
 		}

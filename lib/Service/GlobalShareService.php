@@ -115,7 +115,7 @@ class GlobalShareService {
 		}
 
 		// from a file id, get all parents until mount point
-		$files = $this->getRelatedFiles((int)$fileId);
+		$files = $this->getRelatedFiles($fileId);
 		if (empty($files)) {
 			throw new SharedFileException('file not found');
 		}

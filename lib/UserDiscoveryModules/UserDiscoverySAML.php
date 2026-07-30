@@ -23,7 +23,7 @@ use OCP\IConfig;
  * @package OCA\GlobalSiteSelector\UserDiscoveryModule
  */
 class UserDiscoverySAML implements IUserDiscoveryModule {
-	private string $idpParameter;
+	private readonly string $idpParameter;
 
 	public function __construct(IConfig $config) {
 		$this->idpParameter = $config->getSystemValueString('gss.discovery.saml.slave.mapping', '');
@@ -33,8 +33,6 @@ class UserDiscoverySAML implements IUserDiscoveryModule {
 	 * read user location from SAML parameters
 	 *
 	 * @param array $data SAML Parameters to read the location from
-	 *
-	 * @return string
 	 */
 	#[\Override]
 	public function getLocation(array $data): string {
