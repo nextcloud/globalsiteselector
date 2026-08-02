@@ -9,26 +9,33 @@ declare(strict_types=1);
 namespace OCA\GlobalSiteSelector\Service;
 
 use Exception;
+use OC\User\NoUserException;
 use OCA\Circles\CirclesManager;
 use OCA\Circles\Model\Circle;
 use OCA\Files_Sharing\External\MountProvider;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\BackgroundJobs\NotifyRemoteFile;
+use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\GlobalSiteSelector\Db\FileRequest;
 use OCA\GlobalSiteSelector\Db\ShareRequest;
 use OCA\GlobalSiteSelector\Exceptions\LocalFederatedShareException;
+use OCA\GlobalSiteSelector\Exceptions\RemoteIsLocalException;
 use OCA\GlobalSiteSelector\Exceptions\SharedFileException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Model\FederatedShare;
 use OCA\GlobalSiteSelector\Model\LocalFile;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCP\AppFramework\Http;
+use OCP\BackgroundJob\IJobList;
 use OCP\Files\IRootFolder;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Share\IShare;
+use OCP\User\Exceptions\UserNotFoundException;
 use Psr\Log\LoggerInterface;
 use UnhandledMatchError;
 
@@ -37,10 +44,12 @@ class GlobalShareService {
 	private array $currentGroups = [];
 	private array $currentTeams = [];
 	public function __construct(
+		private readonly IAppConfig $appConfig,
 		private readonly IRootFolder $rootFolder,
 		private readonly IUserSession $userSession,
 		private readonly FileRequest $fileRequest,
 		private readonly ShareRequest $shareRequest,
+		private readonly IJobList $jobList,
 		private readonly GlobalSiteSelector $gss,
 		private readonly GlobalScaleService $globalScaleService,
 		private readonly IUserManager $userManager,
@@ -143,6 +152,90 @@ class GlobalShareService {
 
 
 	/**
+	 * Rescan a part of a user root folder, based on a federated share and the
+	 * path to reach a target.
+	 */
+	public function refreshSharedTarget(string $instance, int $shareId, string $shareToken, LocalFile $target): void {
+		$this->logger->debug('reaching details about federated share to refresh', ['shareId' => $shareId, 'shareToken' => $shareToken, 'target' => $target?->jsonSerialize()]);
+		[$userId, $mountPoint] = $this->fileRequest->getMountPointFromShare($instance, $shareId, $shareToken);
+		if ($userId === null || $mountPoint === null) {
+			return;
+		}
+
+		$path = implode('/', array_reverse($target->getPath()));
+		$this->logger->debug('refreshing shared target', ['userId' => $userId, 'mountPoint' => $mountPoint, 'path' => $path]);
+        try {
+            $this->rootFolder->getUserFolder($userId)
+                ->get($mountPoint)
+                ->getStorage()
+                ->getScanner()
+                ->scan($path);
+        } catch (NotFoundException|NotPermittedException|NoUserException|UserNotFoundException $e) {
+            $this->logger->warning('could not refresh shared target', ['exception' => $e, 'mountPoint' => $mountPoint, 'path' => $path, 'userId' => $userId, 'shareToken' => $shareToken]);
+        }
+    }
+
+
+	/**
+	 * Based on a file id, will retrieve federated share and send a notification to each remote instance
+	 * This to be used when a local file is modified to keep remote instance in sync with local file.
+	 *
+	 * @throws SharedFileException
+	 */
+	public function refreshFileAcrossGlobalScale(int $fileId): void {
+		$files = $this->getRelatedFiles($fileId);
+		if (empty($files)) {
+			throw new SharedFileException('file not found');
+		}
+
+		// confirm mountPoint is local
+		$mountPoint = array_slice($files, -1)[0];
+		if ($this->getFederatedShareFromTargetLocalFile($mountPoint) !== null) {
+			return;
+		}
+
+		$federatedShares = $this->shareRequest->getFederatedSharesRelatedToRemoteInstance($files, null);
+		$instances = [];
+
+		// regroup federated shares linked to the node by instances
+		foreach ($federatedShares as $federatedShare) {
+			$getShareWith = $federatedShare->getShareWith();
+			$pos = strrpos($getShareWith, '@');
+			if ($pos === false) {
+				continue;
+			}
+			$instance = substr($getShareWith, $pos + 1);
+			$federatedShare->setShareWith(substr($getShareWith, 0, $pos));
+			if (!array_key_exists($instance, $instances)) {
+				$instances[$instance] = [];
+			}
+			$instances[$instance][] = $federatedShare->jsonSerialize();
+		}
+
+		if (count($instances) > $this->appConfig->getValueInt(Application::APP_ID, ConfigLexicon::INSTANCE_MAIN_THREAD)) {
+			$this->jobList->add(NotifyRemoteFile::class, ['instances' => $instances]);
+			return;
+		}
+
+		foreach ($instances as $instance => $shares) {
+			$this->requestRemoteFileRefresh($instance, $shares);
+		}
+	}
+
+	/**
+	 * send notification to a remote instance to initiate a rescan of a federated
+	 * shared in order to keep in sync.
+	 */
+	public function requestRemoteFileRefresh(string $remote, array $federatedShares): void {
+		$responseCode = 0;
+		try {
+			$this->requestRemoteInstance($remote, 'Slave.refreshSharedFile', ['shares' => $federatedShares], $responseCode);
+		} catch (RemoteIsLocalException) {
+		}
+	}
+
+
+	/**
 	 * get details about a shared remote file based on the address of the remote
 	 * instance and the id of the file as stored on that remote instance
 	 *
@@ -238,6 +331,7 @@ class GlobalShareService {
 		[$fileId, $fileOwner] = $this->shareRequest->getFileOwnerFromShareId($shareId);
 		return $this->getFinalFileId($fileOwner, $fileId, $target);
 	}
+
 
 	/**
 	 * Return a file id based on a list of available shares.
@@ -339,13 +433,11 @@ class GlobalShareService {
 	}
 
 	/**
-	 * request remote instance to get the list of federated shares between both instances that would
-	 * provide access to file id search can also be performed on the share id.
+	 * GET request a remote instance of the GlobalScale using app route and a payload
 	 *
-	 * @return FederatedShare[]
-	 * @throws LocalFederatedShareException if the federated share is not remote
+	 * @throws RemoteIsLocalException if remote is local
 	 */
-	private function requestRemoteFederatedShares(string &$remote, array $search, bool $redirected = false): array {
+	private function requestRemoteInstance(string &$remote, string $route, array $payload, ?int &$responseCode = null): array {
 		if (str_contains($remote, '://')) {
 			$remote = parse_url($remote, PHP_URL_HOST);
 		}
@@ -353,17 +445,36 @@ class GlobalShareService {
 		// this should not happen, but we keep a trace
 		if ($this->globalScaleService->isLocalAddress($remote)) {
 			$this->logger->warning('remote is local', ['exception' => new Exception(), 'remote' => $remote]);
-			return [];
+			throw new RemoteIsLocalException('remote is local');
 		}
 
 		$responseCode = 0;
 		$result = $this->globalScaleService->requestGssOcs(
 			$remote,
-			'Slave.sharedFile',
-			['jwt' => JWT::encode(array_merge($search, ['instance' => $this->globalScaleService->getLocalAddress()]), $this->gss->getJwtKey(), Application::JWT_ALGORITHM)],
+			$route,
+			['jwt' => JWT::encode(array_merge($payload, ['instance' => $this->globalScaleService->getLocalAddress()]), $this->gss->getJwtKey(), Application::JWT_ALGORITHM)],
 			$responseCode);
 
-		$this->logger->warning('result from remote gss ocs', ['remote' => $remote, 'search' => $search, 'data' => $result, 'responseCode' => $responseCode]);
+		$this->logger->debug('result from remote gss ocs', ['remote' => $remote, 'payload' => $payload, 'data' => $result, 'responseCode' => $responseCode]);
+
+		return $result;
+	}
+
+
+	/**
+	 * request remote instance to get the list of federated shares between both instances that would
+	 * provide access to file id search can also be performed on the share id.
+	 *
+	 * @return FederatedShare[]
+	 * @throws LocalFederatedShareException if the federated share is not remote
+	 */
+	private function requestRemoteFederatedShares(string &$remote, array $search, bool $redirected = false): array {
+		$responseCode = 0;
+		try {
+			$result = $this->requestRemoteInstance($remote, 'Slave.sharedFile', $search, $responseCode);
+		} catch (RemoteIsLocalException) {
+			return [];
+		}
 
 		// in case file is not on remote instance, we get a redirection
 		if (!$redirected && $responseCode === Http::STATUS_MOVED_PERMANENTLY) {

@@ -11,6 +11,7 @@ return [
 		['name' => 'Slave#createAppToken', 'url' => '/v1/createapptoken', 'verb' => 'GET'],
 		['name' => 'Slave#discovery', 'url' => '/discovery', 'verb' => 'GET'],
 		['name' => 'Slave#sharedFile', 'url' => '/sharedfile', 'verb' => 'GET'],
+		['name' => 'Slave#refreshSharedFile', 'url' => '/refreshSharedFile', 'verb' => 'GET'],
 	],
 	'routes' => [
 		[
