@@ -12,6 +12,7 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 use Closure;
 use Exception;
 use OC;
+use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Listeners\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Listeners\DeletingUser;
@@ -86,6 +87,7 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(UserChangedEvent::class, UserChanged::class);
 
 		$context->registerSetupCheck(LongJwtKeySetupCheck::class);
+		$context->registerConfigLexicon(ConfigLexicon::class);
 
 		// It seems that AccountManager use deprecated dispatcher, let's use a deprecated listener
 		/** @var IEventDispatcher $eventDispatcher */
