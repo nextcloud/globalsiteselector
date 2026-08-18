@@ -5,6 +5,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.8.0
+
+- feat: IGlobalScaleService
+- feat: enforce long JWT key
+- fix: removing default HTTP Client options override
+
 ## 2.7.3
 
 - fix: add brute force protection and avoid saving token on debug log
