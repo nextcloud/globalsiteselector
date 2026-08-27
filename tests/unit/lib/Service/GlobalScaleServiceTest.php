@@ -59,6 +59,14 @@ class GlobalScaleServiceTest extends TestCase {
 		$this->time = $this->createMock(ITimeFactory::class);
 	}
 
+	public function tearDown(): void {
+		// Some tests freeze "now" for JWT::decode() via this testing hook (see below);
+		// always reset it so it can't leak into unrelated tests.
+		JWT::$timestamp = null;
+
+		parent::tearDown();
+	}
+
 	private function getInstance(array $mockMethods = []): GlobalScaleService&MockObject {
 		return $this->getMockBuilder(GlobalScaleService::class)
 			->setConstructorArgs(
@@ -221,6 +229,10 @@ class GlobalScaleServiceTest extends TestCase {
 		$this->assertTrue($capturedOptions['verify']);
 		$this->assertSame(['format' => 'json'], $capturedOptions['query']);
 
+		// The payload's "exp" (1300) is derived from the mocked getTime() (1000), a
+		// timestamp long in the past by real wall-clock time: freeze JWT::decode()'s
+		// notion of "now" to that same mocked time so the token isn't seen as expired.
+		JWT::$timestamp = 1000;
 		$decoded = (array)JWT::decode($capturedOptions['body']['jwt'], new Key($jwtKey, 'HS256'));
 		$this->assertSame('regularuser', $decoded['uid']);
 		$this->assertSame('sometoken', $decoded['token']);
@@ -257,6 +269,10 @@ class GlobalScaleServiceTest extends TestCase {
 			['uid' => 'regularuser', 'exp' => 5000]
 		);
 
+		// Same as above: the explicit "exp" (5000) is a fictional timestamp far in the
+		// past by real wall-clock time, so freeze JWT::decode()'s notion of "now" to
+		// something before it.
+		JWT::$timestamp = 1000;
 		$decoded = (array)JWT::decode($capturedOptions['body']['jwt'], new Key($jwtKey, 'HS256'));
 		$this->assertSame(5000, $decoded['exp']);
 	}
