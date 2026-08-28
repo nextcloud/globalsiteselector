@@ -13,11 +13,12 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Master;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
-use OCP\User\Events\BeforeUserLoggedInEvent;
+use OCP\IRequest;
+use OCP\User\Events\UserLoggedInEvent;
 use Psr\Log\LoggerInterface;
 
 /**
- * @template-implements IEventListener<BeforeUserLoggedInEvent>
+ * @template-implements IEventListener<UserLoggedInEvent>
  */
 class UserLoggingIn implements IEventListener {
 
@@ -25,12 +26,13 @@ class UserLoggingIn implements IEventListener {
 		private readonly GlobalSiteSelector $globalSiteSelector,
 		private readonly Master $master,
 		private readonly LoggerInterface $logger,
+		private readonly IRequest $request,
 	) {
 	}
 
 	#[\Override]
 	public function handle(Event $event): void {
-		if (!$event instanceof BeforeUserLoggedInEvent) {
+		if (!$event instanceof UserLoggedInEvent) {
 			return;
 		}
 
@@ -39,11 +41,15 @@ class UserLoggingIn implements IEventListener {
 			return;
 		}
 
+		$uri = $this->request->getRequestUri();
+		if (str_ends_with($uri, '/apps/oauth/api/v1/token')) {
+			return;
+		}
+
 		$this->logger->debug('new BeforeUserLoggedInEvent event');
 		$this->master->handleLoginRequest(
-			$event->getUsername(),
+			$event->getUser(),
 			$event->getPassword(),
-			$event->getBackend()
 		);
 
 		$this->logger->debug('ending BeforeUserLoggedInEvent event');

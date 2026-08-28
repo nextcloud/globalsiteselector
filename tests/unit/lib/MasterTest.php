@@ -12,6 +12,7 @@ use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
+use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\HintException;
@@ -20,6 +21,7 @@ use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
+use OCP\IUser;
 use OCP\Security\ICrypto;
 use OCP\Server;
 use OCP\ServerVersion;
@@ -38,6 +40,7 @@ class MasterTest extends TestCase {
 	private LoggerInterface&MockObject $logger;
 	private ISession&MockObject $session;
 	private LoginFlowV2Service&MockObject $loginflow;
+	private GlobalScaleService&MockObject $globalScaleService;
 	private ServerVersion $serverVersion;
 
 	public function setUp(): void {
@@ -56,6 +59,8 @@ class MasterTest extends TestCase {
 		$this->appConfig = $this->createMock(IAppConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->session = $this->createMock(ISession::class);
+		$this->globalScaleService = $this->getMockBuilder(GlobalScaleService::class)
+			->disableOriginalConstructor()->getMock();
 	}
 
 	private function getInstance(array $mockMethods = []): Master&MockObject {
@@ -72,34 +77,94 @@ class MasterTest extends TestCase {
 					$this->clientService,
 					$this->appConfig,
 					$this->config,
-					$this->logger
+					$this->logger,
+					$this->globalScaleService,
 				]
 			)->onlyMethods($mockMethods)->getMock();
 	}
 
+	private function getUser(string $uid, $backend = null): IUser&MockObject {
+		$user = $this->createMock(IUser::class);
+		$user->method('getUID')->willReturn($uid);
+		$user->method('getBackend')->willReturn($backend);
+
+		return $user;
+	}
+
 	public function testHandleLoginRequest(): void {
-		$location = 'nextcloud.com';
-		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
-		$master->expects($this->once())->method('queryLookupServer')
+		$location = 'https://nextcloud.com';
+		$user = $this->getUser('user');
+
+		$master = $this->getInstance(['redirectUser']);
+
+		$this->request->method('getPathInfo')->willReturn('');
+		$this->request->method('getParams')->willReturn([]);
+		$this->request->method('getParam')->willReturn('');
+
+		$this->globalScaleService->expects($this->once())->method('getSecondaryRemoteLocation')
+			->with($user)
 			->willReturn($location);
 
-		$this->request->method('getServerProtocol')
-			->willReturn('https');
 		$master->expects($this->once())->method('redirectUser')
-			->with('user', 'password', 'https://' . $location);
+			->with('user', 'password', $location, ['target' => '/', 'params' => []]);
 
-		$master->handleLoginRequest('user', 'password');
+		$master->handleLoginRequest($user, 'password');
 	}
 
 	public function testHandleLoginRequestException(): void {
-		$location = '';
-		$master = $this->getInstance(['queryLookupServer', 'redirectUser']);
-		$master->expects($this->once())->method('queryLookupServer')
-			->willReturn($location);
+		$user = $this->getUser('user');
+
+		$master = $this->getInstance(['redirectUser']);
+
+		$this->request->method('getPathInfo')->willReturn('');
+		$this->request->method('getParams')->willReturn([]);
+		$this->request->method('getParam')->willReturn('');
+
+		$this->globalScaleService->method('getSecondaryRemoteLocation')
+			->with($user)
+			->willReturn(null);
+
+		$master->expects($this->never())->method('redirectUser');
 
 		$this->expectException(HintException::class);
+		$master->handleLoginRequest($user, 'password');
+	}
+
+	public function testHandleLoginRequestIgnoresValidJwtUnlessIgnored(): void {
+		$user = $this->getUser('user');
+
+		$master = $this->getInstance(['redirectUser', 'isValidJwt']);
+
+		$this->request->method('getParam')->willReturn('some-jwt');
+
+		$master->expects($this->once())->method('isValidJwt')
+			->with('some-jwt')
+			->willReturn(true);
+
+		$this->globalScaleService->expects($this->never())->method('getSecondaryRemoteLocation');
 		$master->expects($this->never())->method('redirectUser');
-		$master->handleLoginRequest('user', 'password');
+
+		$master->handleLoginRequest($user, 'password');
+	}
+
+	public function testHandleLoginRequestIgnoreJwtSkipsJwtCheck(): void {
+		$location = 'https://nextcloud.com';
+		$user = $this->getUser('user');
+
+		$master = $this->getInstance(['redirectUser', 'isValidJwt']);
+
+		$this->request->method('getPathInfo')->willReturn('');
+		$this->request->method('getParams')->willReturn([]);
+		$this->request->method('getParam')->willReturn('some-jwt');
+
+		$master->expects($this->never())->method('isValidJwt');
+
+		$this->globalScaleService->method('getSecondaryRemoteLocation')
+			->willReturn($location);
+
+		$master->expects($this->once())->method('redirectUser');
+
+		$master->handleLoginRequest($user, 'password', true);
 	}
 
 	public function testCreateJWT(): void {
@@ -138,27 +203,6 @@ class MasterTest extends TestCase {
 			['http://nextcloud.com', 'user', 'password', 'http://user:password@nextcloud.com'],
 			['https://nextcloud.com', 'user', 'password', 'https://user:password@nextcloud.com'],
 			['nextcloud.com', 'user', 'password', 'https://user:password@nextcloud.com'],
-		];
-	}
-
-	/**
-	 * @dataProvider dataTestNormalizeLocation
-	 *
-	 * @param $url
-	 * @param $expected
-	 */
-	public function testNormalizeLocation(string $url, string $expected): void {
-		$master = $this->getInstance();
-		$this->request->expects($this->any())->method('getServerProtocol')->willReturn('https');
-		$result = $this->invokePrivate($master, 'normalizeLocation', [$url]);
-		$this->assertSame($expected, $result);
-	}
-
-	public function dataTestNormalizeLocation(): array {
-		return [
-			['localhost/nextcloud', 'https://localhost/nextcloud'],
-			['https://localhost/nextcloud', 'https://localhost/nextcloud'],
-			['http://localhost/nextcloud', 'http://localhost/nextcloud'],
 		];
 	}
 }

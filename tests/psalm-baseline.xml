@@ -4,11 +4,6 @@
   - SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <files psalm-version="4.30.0@d0bc6e25d89f649e4f36a534f330f8bb4643dd69">
-	<file src="lib/Master.php">
-		<UndefinedClass occurrences="1">
-			<code>\OCA\User_SAML\UserBackend</code>
-		</UndefinedClass>
-	</file>
 	<file src="lib/Slave.php">
 		<UndefinedClass occurrences="1">
 			<code>\OC\User\Database</code>

@@ -13,16 +13,26 @@ use Exception;
 use JsonException;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\ConfigLexicon;
+use OCA\GlobalSiteSelector\Exceptions\IsLocalAdminException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
+use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
+use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\Config\IUserConfig;
+use OCP\GlobalScale\IGlobalScaleService;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
 use OCP\IConfig;
+use OCP\IRequest;
 use OCP\IURLGenerator;
+use OCP\IUser;
 use OCP\Security\ISecureRandom;
+use OCP\Server;
 use Psr\Log\LoggerInterface;
 
-class GlobalScaleService {
+trait TGlobalScaleService {
 	public function __construct(
 		private readonly IAppConfig $appConfig,
 		private readonly IClientService $clientService,
@@ -32,6 +42,9 @@ class GlobalScaleService {
 		private readonly GlobalSiteSelector $gss,
 		private readonly Lookup $lookup,
 		private readonly LoggerInterface $logger,
+		private readonly IRequest $request,
+		private readonly IUserConfig $userConfig,
+		private readonly ITimeFactory $time,
 	) {
 	}
 
@@ -170,5 +183,184 @@ class GlobalScaleService {
 			$this->logger->warning('could not decode json', ['exception' => $e]);
 			return [];
 		}
+	}
+
+	/**
+	 * Return the formatted SAML/OIDC identity data for a user, if their account is
+	 * backed by one of those backends.
+	 *
+	 * This is cached since this requires calling the backend's getUserData(),
+	 * which reads from the current session and is not always available.
+	 *
+	 * @return array{backend: 'saml'|'oidc', formatted: array, raw: array}|null
+	 */
+	public function getSsoUserData(IUser $user): ?array {
+		$uid = $user->getUID();
+
+		$cached = $this->userConfig->getValueArray($uid, Application::APP_ID, ConfigLexicon::SSO_USER_DATA, [], lazy: true);
+		if ($cached !== []) {
+			return $cached;
+		}
+
+		$backend = $user->getBackend();
+		$data = null;
+
+		try {
+			if (class_exists('\OCA\User_SAML\UserBackend')
+				&& $backend instanceof \OCA\User_SAML\UserBackend) {
+				$userData = $backend->getUserData();
+				$data = ['backend' => 'saml', 'formatted' => $userData['formatted'], 'raw' => $userData['raw']];
+			} elseif (class_exists('\OCA\UserOIDC\Controller\LoginController')
+				&& class_exists('\OCA\UserOIDC\User\Backend')
+				&& $backend instanceof \OCA\UserOIDC\User\Backend
+				&& method_exists($backend, 'getUserData')
+			) {
+				$userData = $backend->getUserData();
+				$data = ['backend' => 'oidc', 'formatted' => $userData['formatted'], 'raw' => $userData['raw']];
+			}
+		} catch (Exception $e) {
+			$this->logger->debug('getSsoUserData: could not read SAML/OIDC session data for ' . $uid, ['exception' => $e]);
+			return null;
+		}
+
+		if ($data !== null) {
+			$this->userConfig->setValueArray($uid, Application::APP_ID, ConfigLexicon::SSO_USER_DATA, $data, lazy: true);
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Find the secondary (slave) location for a user, if any.
+	 *
+	 * @throws IsLocalAdminException If the user is one of the local admin and shouldn't be redirected
+	 */
+	public function getSecondaryRemoteLocation(IUser $user): ?string {
+		$uid = $user->getUID();
+		$discoveryData = [];
+		$isSamlOrOidc = false;
+
+		$ssoUserData = $this->getSsoUserData($user);
+		if ($ssoUserData !== null) {
+			$isSamlOrOidc = true;
+			$this->logger->debug('getSecondaryRemoteLocation: backend is ' . $ssoUserData['backend']);
+
+			$uid = $ssoUserData['formatted']['uid'];
+			$discoveryData[$ssoUserData['backend']] = $ssoUserData['raw'];
+		} else {
+			$this->logger->debug('getSecondaryRemoteLocation: backend is not SAML or OIDC');
+		}
+
+		$this->logger->debug('getSecondaryRemoteLocation: uid is: ' . $uid);
+
+		// let local account login, everyone else will be redirected to a client
+		$masterAdmins = $this->config->getSystemValue('gss.master.admin', []);     // old syntax
+		$localAccounts = $this->config->getSystemValue('gss.master.accounts', []); // new one
+		$masterAdmins = (is_array($masterAdmins)) ? $masterAdmins : [];
+		$localAccounts = (is_array($localAccounts)) ? $localAccounts : [];
+
+		if (in_array($uid, array_merge($masterAdmins, $localAccounts), true)) {
+			$this->logger->debug('getSecondaryRemoteLocation: this user is a local account so ignore');
+			throw new IsLocalAdminException();
+		}
+
+		// first ask the lookup server if we already know the user
+		// is from SAML or OIDC, only search on userId, ignore email.
+		$location = $this->queryLookupServer($uid, $isSamlOrOidc);
+		$this->logger->debug('getSecondaryRemoteLocation: location according to lookup server: ' . $location);
+
+		// if not we fall back to an initial user deployment method, if configured
+		$userDiscoveryModule = $this->config->getSystemValueString('gss.user.discovery.module', '');
+		if (empty($location) && !empty($userDiscoveryModule)) {
+			try {
+				$this->logger->debug('getSecondaryRemoteLocation: obtaining location from discovery module ' . $userDiscoveryModule);
+
+				/** @var IUserDiscoveryModule $module */
+				$module = Server::get($userDiscoveryModule);
+				$location = $module->getLocation($discoveryData);
+				$this->lookup->sanitizeUid($uid);
+
+				$this->logger->debug(
+					'getSecondaryRemoteLocation: location according to discovery module: ' . $location
+				);
+			} catch (Exception $e) {
+				$this->logger->warning(
+					'Could not load user discovery module: ' . $userDiscoveryModule,
+					['exception' => $e->getMessage()]
+				);
+			}
+		}
+
+		if ($location === '') {
+			return null;
+		}
+
+		return $this->normalizeLocation($location);
+	}
+
+	protected function queryLookupServer(string &$uid, bool $matchUid = false): string {
+		return $this->lookup->search($uid, $matchUid);
+	}
+
+	/**
+	 * @param non-empty-string $url
+	 * @return non-empty-string
+	 */
+	protected function normalizeLocation(string $url): string {
+		if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+			return $url;
+		}
+
+		return $this->request->getServerProtocol() . '://' . $url;
+	}
+
+	public function sendToSecondary(IUser $user, string $path, array $payload): string {
+		$location = $this->getSecondaryRemoteLocation($user);
+		if ($location === null) {
+			throw new \Exception('Could not send message to secondary. No secondary location found for user with id: ' . $user->getUID());
+		}
+
+		if (!isset($payload['exp'])) {
+			$payload['exp'] = $this->time->getTime() + 300; // expires after 5 minutes;
+		}
+
+		$jwt = JWT::encode(
+			$payload,
+			$this->config->getSystemValueString('gss.jwt.key', ''),
+			'HS256',
+		);
+
+		try {
+			$this->clientService->newClient()->post(
+				$location . $path,
+				[
+					'headers' => ['OCS-APIRequest' => 'true'],
+					'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
+					'query' => ['format' => 'json'],
+					'body' => ['jwt' => $jwt],
+				]
+			);
+		} catch (\Exception $e) {
+			throw new \Exception('Could not send message to secondary due to a network issue :' . $e->getMessage(), previous: $e);
+		}
+
+		return $location;
+	}
+
+	public function decodePayload(string $jwt): array {
+		return (array)JWT::decode($jwt, new Key($this->config->getSystemValueString('gss.jwt.key', ''), 'HS256'));
+	}
+}
+
+// OCP\GlobalScale\IGlobalScaleService only exists since Nextcloud 34.0.3, but this app
+// still supports 32 and 33, so only implement it when it's actually available.
+if (interface_exists(IGlobalScaleService::class)) {
+	class GlobalScaleService implements IGlobalScaleService {
+		use TGlobalScaleService;
+	}
+} else {
+	// needed as long as Nextcloud < 34.0.3 is supported, see appinfo/info.xml
+	class GlobalScaleService {
+		use TGlobalScaleService;
 	}
 }
