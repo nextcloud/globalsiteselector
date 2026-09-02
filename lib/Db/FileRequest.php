@@ -186,6 +186,34 @@ class FileRequest {
 	}
 
 	/**
+	 * returns an array containing user and mountpoint from an external share; based on remote
+	 * instance that owns the file, the shareId on the remote instance and
+	 * the share token.
+	 *
+	 * If not known, user and mountpoint are null in the returned array.
+	 */
+	public function getMountPointFromShare(string $instance, int $remoteId, string $shareToken): array {
+		$qb = $this->connection->getQueryBuilder();
+		$qb->select('user', 'mountpoint')
+			->from('share_external')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->like('remote', $qb->createNamedParameter('%://' . str_replace('%', '', $instance) . '/')),
+					$qb->expr()->eq('remote_id', $qb->createNamedParameter($remoteId, IQueryBuilder::PARAM_INT)),
+					$qb->expr()->eq('share_token', $qb->createNamedParameter($shareToken)),
+				)
+			);
+
+		$result = $qb->executeQuery();
+		$row = $result->fetch();
+		if ($row === false) {
+			return [null, null];
+		}
+
+		return [$row['user'], $row['mountpoint']];
+	}
+
+	/**
 	 * returns the mount using the id of a node,
 	 * userid can then be extracted and used to retrieve the file's root folder
 	 */

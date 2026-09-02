@@ -16,6 +16,7 @@ class FederatedShare implements JsonSerializable {
 	private int $fileId = 0;
 	private int $shareType = 0;
 	private string $shareWith = '';
+	private string $shareToken = '';
 	private int $permissions = 0;
 	private bool $bounce = false;
 	private string $remote = '';
@@ -57,6 +58,15 @@ class FederatedShare implements JsonSerializable {
 
 	public function getShareWith(): string {
 		return $this->shareWith;
+	}
+
+	public function setShareToken(string $shareToken): self {
+		$this->shareToken = $shareToken;
+		return $this;
+	}
+
+	public function getShareToken(): string {
+		return $this->shareToken;
 	}
 
 	public function setPermissions(int $permissions): self {
@@ -117,6 +127,7 @@ class FederatedShare implements JsonSerializable {
 				->setFileId($data['fileId'] ?? 0)
 				->setShareType($data['shareType'] ?? 0)
 				->setShareWith($data['shareWith'] ?? '')
+				->setShareToken($data['shareToken'] ?? '')
 				->setPermissions($data['permissions'] ?? 0);
 		}
 
@@ -130,7 +141,7 @@ class FederatedShare implements JsonSerializable {
 	}
 
 	/**
-	 * @return array{id?: int, fileId?: int, shareType?: int, shareWith?: string, permissions?: int, target: ?LocalFile, remote?: string, remoteId?: int, bounce?: bool}
+	 * @return array{id?: int, fileId?: int, shareType?: int, shareWith?: string, shareToken: string, permissions?: int, target: ?LocalFile, remote?: string, remoteId?: int, bounce?: bool}
 	 */
 	#[\Override]
 	public function jsonSerialize(): array {
@@ -148,9 +159,9 @@ class FederatedShare implements JsonSerializable {
 			'fileId' => $this->getFileId(),
 			'shareType' => $this->getShareType(),
 			'shareWith' => $this->getShareWith(),
+			'shareToken' => $this->getShareToken(),
 			'permissions' => $this->getPermissions(),
 			'target' => $this->getTarget(),
 		];
-
 	}
 }
