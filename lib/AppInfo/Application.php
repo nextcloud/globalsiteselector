@@ -16,6 +16,7 @@ use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Listeners\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Listeners\DeletingUser;
+use OCA\GlobalSiteSelector\Listeners\SharedFileRefresh;
 use OCA\GlobalSiteSelector\Listeners\UserChanged;
 use OCA\GlobalSiteSelector\Listeners\UserCreated;
 use OCA\GlobalSiteSelector\Listeners\UserDeleted;
@@ -30,6 +31,9 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\Events\Node\NodeDeletedEvent;
+use OCP\Files\Events\Node\NodeRenamedEvent;
+use OCP\Files\Events\Node\NodeWrittenEvent;
 use OCP\IRequest;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -85,6 +89,10 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(UserDeletedEvent::class, UserDeleted::class);
 		$context->registerEventListener(UserLoggedOutEvent::class, UserLoggedOut::class);
 		$context->registerEventListener(UserChangedEvent::class, UserChanged::class);
+
+		$context->registerEventListener(NodeWrittenEvent::class, SharedFileRefresh::class);
+		$context->registerEventListener(NodeRenamedEvent::class, SharedFileRefresh::class);
+		$context->registerEventListener(NodeDeletedEvent::class, SharedFileRefresh::class);
 
 		$context->registerSetupCheck(LongJwtKeySetupCheck::class);
 		$context->registerConfigLexicon(ConfigLexicon::class);

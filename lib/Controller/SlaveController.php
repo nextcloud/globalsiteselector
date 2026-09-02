@@ -15,6 +15,7 @@ use OCA\GlobalSiteSelector\Exceptions\LocalFederatedShareException;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\Exceptions\SharedFileException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Model\FederatedShare;
 use OCA\GlobalSiteSelector\Model\LocalFile;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Service\GlobalShareService;
@@ -125,6 +126,35 @@ class SlaveController extends OCSController {
 		}
 	}
 
+
+
+	/**
+	 * initiate refresh on local versions of a remote federated file.
+	 * request must contain encoded jwt.
+	 */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	public function refreshSharedFile(string $jwt): DataResponse {
+		$key = $this->gss->getJwtKey();
+		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
+		// JWT store data as stdClass, not array
+		$decoded = json_decode(json_encode($decoded), true);
+		$this->logger->debug('decoded request', ['data' => $decoded]);
+		$instance = $decoded['instance'] ?? '';
+
+		foreach ($decoded['shares'] as $entry) {
+			$federatedShare = new FederatedShare();
+			$federatedShare->import($entry);
+			$this->globalShareService->refreshSharedTarget(
+				$instance,
+				$federatedShare->getId(),
+				$federatedShare->getShareToken(),
+				$federatedShare->getTarget()
+			);
+		}
+
+		return new DataResponse([]);
+	}
 
 	#[PublicPage]
 	#[NoCSRFRequired]

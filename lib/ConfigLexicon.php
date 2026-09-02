@@ -17,6 +17,7 @@ class ConfigLexicon implements ILexicon {
 	public const GS_TOKENS = 'globalScaleTokens';
 	public const LOCAL_TOKEN = 'localToken';
 	public const REDIRECT_WEBDAV = 'redirectWebDAV';
+	public const INSTANCE_MAIN_THREAD = 'requested_instance_main_thread';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
@@ -32,6 +33,7 @@ class ConfigLexicon implements ILexicon {
 			new Entry(key: self::GS_TOKENS, type: ValueType::ARRAY, defaultRaw: [], definition: 'list of token+host to navigate through GlobalScale', lazy: true),
 			new Entry(key: self::LOCAL_TOKEN, type: ValueType::STRING, defaultRaw: '', definition: 'local token to id instance within GlobalScale', lazy: true),
 			new Entry(key: self::REDIRECT_WEBDAV, type: ValueType::BOOL, defaultRaw: false, definition: 'redirect WebDAV request on Master to Slaves', lazy: false),
+			new Entry(key: self::INSTANCE_MAIN_THREAD, type: ValueType::INT, defaultRaw: 2, definition: 'when running event requests, maximum number of instances to reach before switching to background job', lazy: false),
 		];
 	}
 
