@@ -25,12 +25,14 @@ class ShareRequest {
 	/**
 	 * returns list of existing federated shares providing access to a list
 	 * of files, in relation to the specified instance.
+	 * if instance is NULL then all instances are returned
 	 *
 	 * @param LocalFile[] $files
+	 * @param string|null $instance
 	 *
 	 * @return FederatedShare[]
 	 */
-	public function getFederatedSharesRelatedToRemoteInstance(array $files, string $instance): array {
+	public function getFederatedSharesRelatedToRemoteInstance(array $files, ?string $instance = null): array {
 		$indexedFiles = $ids = [];
 		foreach ($files as $entry) {
 			$indexedFiles[$entry->getId()] = $entry;
@@ -38,7 +40,7 @@ class ShareRequest {
 		}
 
 		$qb = $this->connection->getQueryBuilder();
-		$qb->select('s.id', 's.file_source', 's.share_type', 's.share_with', 's.permissions')
+		$qb->select('s.id', 's.file_source', 's.share_type', 's.share_with', 's.permissions', 's.token')
 			->from('share', 's')
 			->where(
 				$qb->expr()->andX(
@@ -46,7 +48,7 @@ class ShareRequest {
 					$qb->expr()->orX(
 						$qb->expr()->andX(
 							$qb->expr()->in('share_type', $qb->createNamedParameter([IShare::TYPE_REMOTE, IShare::TYPE_REMOTE_GROUP], IQueryBuilder::PARAM_INT_ARRAY)),
-							$qb->expr()->like('share_with', $qb->createNamedParameter('%@' . $instance)),
+							$qb->expr()->like('share_with', $qb->createNamedParameter('%@' . ($instance ?? '%'))),
 						),
 						$qb->expr()->in('share_type', $qb->createNamedParameter([IShare::TYPE_CIRCLE], IQueryBuilder::PARAM_INT_ARRAY)),
 					)
@@ -57,7 +59,7 @@ class ShareRequest {
 		$shares = [];
 		while ($row = $result->fetch()) {
 			$shareWith = $row['share_with'];
-			if (str_ends_with(strtolower((string)$shareWith), '@' . strtolower($instance))) {
+			if ($instance !== null && str_ends_with(strtolower((string)$shareWith), '@' . strtolower($instance))) {
 				$shareWith = substr((string)$shareWith, 0, -strlen('@' . $instance));
 			}
 
@@ -65,6 +67,7 @@ class ShareRequest {
 			$federatedShare->setId($row['id'])
 				->setFileId($row['file_source'])
 				->setShareType($row['share_type'])
+				->setShareToken($row['token'])
 				->setShareWith($shareWith)
 				->setPermissions($row['permissions'])
 				->setTarget($indexedFiles[$row['file_source']]);

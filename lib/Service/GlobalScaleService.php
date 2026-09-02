@@ -168,6 +168,8 @@ trait TGlobalScaleService {
 				[
 					'headers' => ['OCS-APIRequest' => 'true'],
 					'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
+					'timeout' => 5,
+					'connect_timeout' => 5,
 					'query' => array_merge($data, ['format' => 'json'])
 				]
 			);
@@ -336,6 +338,8 @@ trait TGlobalScaleService {
 				[
 					'headers' => ['OCS-APIRequest' => 'true'],
 					'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
+					'timeout' => 5,
+					'connect_timeout' => 5,
 					'query' => ['format' => 'json'],
 					'body' => ['jwt' => $jwt],
 				]
