@@ -11,6 +11,7 @@ namespace OCA\GlobalSiteSelector\AppInfo;
 
 use Exception;
 use OC;
+use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Listeners\AddContentSecurityPolicyListener;
 use OCA\GlobalSiteSelector\Listeners\DeletingUser;
@@ -83,6 +84,7 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(UserUpdatedEvent::class, UserChanged::class);
 
 		$context->registerSetupCheck(LongJwtKeySetupCheck::class);
+		$context->registerConfigLexicon(ConfigLexicon::class);
 
 		// registerGlobalScaleService() and IGlobalScaleService only exist since Nextcloud
 		// 34.0.3, but this app still supports 32 and 33, see lib/Service/GlobalScaleService.php
@@ -203,7 +205,13 @@ class Application extends App implements IBootstrap {
 
 		// We should ignore oauth2 token endpoint (oauth can send the credentials as basic auth which will fail with apache auth)
 		$uri = $request->getPathInfo();
-		if (str_starts_with($uri, '/apps/oauth/api/v1/token') || str_starts_with($uri, '/apps/oauth2/authorize') || str_starts_with($uri, '/login/flow')) {
+		if (str_starts_with($uri, '/apps/oauth/api/v1/token')
+			|| str_starts_with($uri, '/apps/oauth2/authorize')
+			|| str_starts_with($uri, '/apps/globalsiteselector/autologout')
+			|| str_starts_with($uri, '/apps/user_saml/saml/sls')
+			|| str_starts_with($uri, '/apps/user_oidc/sls')
+			|| str_starts_with($uri, '/login/flow')
+		) {
 			return;
 		}
 
