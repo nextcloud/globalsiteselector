@@ -23,7 +23,6 @@ class GlobalSiteSelector {
 	public const MASTER = 'master';
 	public const SLAVE = 'slave';
 
-
 	/** @var IConfig */
 	private $config;
 
@@ -59,7 +58,6 @@ class GlobalSiteSelector {
 		return ($this->getMode() === self::SLAVE);
 	}
 
-
 	/**
 	 * get JWT key
 	 *
@@ -69,7 +67,6 @@ class GlobalSiteSelector {
 		// TODO: returns exception if non-existant
 		return $this->config->getSystemValueString('gss.jwt.key', '');
 	}
-
 
 	/**
 	 * get the URL of the global site selector master
@@ -85,7 +82,6 @@ class GlobalSiteSelector {
 
 		return $masterUrl;
 	}
-
 
 	/**
 	 * get lookup server URL

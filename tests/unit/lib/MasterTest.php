@@ -5,7 +5,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
 use OC\Core\Service\LoginFlowV2Service;
@@ -106,7 +105,6 @@ class MasterTest extends TestCase {
 		$master->handleLoginRequest('user', 'password');
 	}
 
-
 	public function testCreateJWT() {
 		$uid = 'user1';
 		$plainPassword = 'password';
@@ -169,7 +167,6 @@ class MasterTest extends TestCase {
 			['localhost/nextcloud', 'https://localhost/nextcloud'],
 			['https://localhost/nextcloud', 'https://localhost/nextcloud'],
 			['http://localhost/nextcloud', 'http://localhost/nextcloud'],
-
 		];
 	}
 }
