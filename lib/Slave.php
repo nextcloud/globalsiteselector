@@ -5,7 +5,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-
 namespace OCA\GlobalSiteSelector;
 
 use Exception;
@@ -33,7 +32,6 @@ class Slave {
 	private GlobalSiteSelector $gss;
 	private IConfig $config;
 	private static array $toRemove = []; // remember users which should be removed
-
 
 	public function __construct(
 		IUserManager $userManager,

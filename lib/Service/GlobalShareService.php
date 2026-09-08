@@ -6,6 +6,7 @@ declare(strict_types=1);
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
 namespace OCA\GlobalSiteSelector\Service;
 
 use Exception;
@@ -49,7 +50,6 @@ class GlobalShareService {
 		private readonly LoggerInterface $logger,
 	) {
 	}
-
 
 	/**
 	 * @return int|null NULL if file not fount
@@ -98,7 +98,6 @@ class GlobalShareService {
 		return $this->getSharedFileRemoteDetails($instance, $fileId);
 	}
 
-
 	/**
 	 * @param string|null $instance set to NULL when assuming local
 	 * @return FederatedShare[]
@@ -140,7 +139,6 @@ class GlobalShareService {
 		// mount point is local, we return the list of shares between the remote instance and the related files
 		return $this->shareRequest->getFederatedSharesRelatedToRemoteInstance($files, $instance);
 	}
-
 
 	/**
 	 * get details about a shared remote file based on the address of the remote

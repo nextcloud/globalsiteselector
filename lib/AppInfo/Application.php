@@ -64,7 +64,6 @@ class Application extends App implements IBootstrap {
 		parent::__construct(self::APP_ID, $urlParams);
 	}
 
-
 	/**
 	 * @param IRegistrationContext $context
 	 */
@@ -103,7 +102,6 @@ class Application extends App implements IBootstrap {
 		);
 	}
 
-
 	/**
 	 * @param IBootContext $context
 	 *
@@ -117,7 +115,6 @@ class Application extends App implements IBootstrap {
 		$context->injectFn(Closure::fromCallable([$this, 'registerUserBackendForSlave']));
 		$context->injectFn(Closure::fromCallable([$this, 'redirectToMasterLogin']));
 	}
-
 
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
@@ -145,7 +142,6 @@ class Application extends App implements IBootstrap {
 
 		$this->logger->debug('gss UserBackend registered', ['app' => self::APP_ID]);
 	}
-
 
 	/**
 	 * Register the Global Scale User Backend if we run in slave mode
