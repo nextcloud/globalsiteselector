@@ -5,6 +5,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.7.5
+
+- set gss token as a non-lazy config value
+
 ## 2.7.4
 
 - redirect WebDAV request on master to slave
