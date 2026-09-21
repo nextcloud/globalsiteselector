@@ -9,6 +9,7 @@ namespace OCA\GlobalSiteSelector;
 
 use Exception;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\Exceptions\LookupServerConfigurationException;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCP\Http\Client\IClientService;
@@ -20,7 +21,6 @@ use Psr\Log\LoggerInterface;
 class Slave {
 	public const SAML_IDP = 'saml_idp';
 	public const OIDC_PROVIDER_ID = 'oidc_provider_id';
-	private string $lookupServer;
 	private readonly string $operationMode;
 	private readonly string $authKey;
 	private static array $toRemove = []; // remember users which should be removed
@@ -34,11 +34,8 @@ class Slave {
 		private readonly LoggerInterface $logger,
 		private readonly IConfig $config,
 	) {
-		$this->lookupServer = $this->gss->getLookupServerUrl();
 		$this->operationMode = $this->gss->getMode();
 		$this->authKey = $this->gss->getJwtKey();
-		$this->lookupServer = rtrim($this->lookupServer, '/');
-		$this->lookupServer .= '/gs/users';
 	}
 
 	public function createUser(array $params): void {
@@ -178,9 +175,11 @@ class Slave {
 		$httpClient = $this->clientService->newClient();
 		try {
 			$httpClient->post(
-				$this->lookupServer,
+				$this->gss->getLookupServerUrl() . '/gs/users',
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
+		} catch (LookupServerConfigurationException) {
+			$this->logger->debug('no lookup server configured to update');
 		} catch (Exception $e) {
 			$this->logger->warning(
 				'Could not send user to lookup server',
@@ -209,9 +208,11 @@ class Slave {
 		$httpClient = $this->clientService->newClient();
 		try {
 			$httpClient->delete(
-				$this->lookupServer,
+				$this->gss->getLookupServerUrl() . '/gs/users',
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
+		} catch (LookupServerConfigurationException) {
+			$this->logger->debug('no lookup server configured to update');
 		} catch (Exception $e) {
 			$this->logger->warning(
 				'Could not remove user from the lookup server',
@@ -228,17 +229,10 @@ class Slave {
 			return false;
 		}
 
-		if (empty($this->lookupServer)
-			|| empty($this->operationMode)
+		if (empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
-			$this->logger->error(
-				'global site selector app not configured correctly',
-				[
-					'app' => Application::APP_ID,
-				]
-			);
-
+			$this->logger->error('global site selector app not configured correctly');
 			return false;
 		}
 
