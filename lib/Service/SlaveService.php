@@ -10,6 +10,7 @@ namespace OCA\GlobalSiteSelector\Service;
 use Exception;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\ConfigurationException;
+use OCA\GlobalSiteSelector\Exceptions\LookupServerConfigurationException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCP\Accounts\IAccountManager;
@@ -24,7 +25,6 @@ use Psr\Log\LoggerInterface;
 class SlaveService {
 	private const CACHE_DISPLAY_NAME = 'gss/displayName';
 	private const CACHE_DISPLAY_NAME_TTL = 3600;
-	private readonly string $lookupServer;
 	private readonly string $operationMode;
 	private readonly string $authKey;
 	private readonly ICache $cacheDisplayName;
@@ -37,10 +37,9 @@ class SlaveService {
 		private readonly IAccountManager $accountManager,
 		private readonly IConfig $config,
 		private readonly Lookup $lookup,
-		GlobalSiteSelector $gss,
+		private readonly GlobalSiteSelector $gss,
 		ICacheFactory $cacheFactory,
 	) {
-		$this->lookupServer = rtrim($gss->getLookupServerUrl(), '/');
 		$this->operationMode = $gss->getMode();
 		$this->authKey = $gss->getJwtKey();
 
@@ -159,9 +158,11 @@ class SlaveService {
 		$httpClient = $this->clientService->newClient();
 		try {
 			$httpClient->post(
-				$this->lookupServer . $path,
+				$this->gss->getLookupServerUrl() . $path,
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
+		} catch (LookupServerConfigurationException) {
+			$this->logger->debug('lookup server not configured');
 		} catch (Exception $e) {
 			$this->logger->warning(
 				'Could not send user to lookup server',
@@ -182,9 +183,11 @@ class SlaveService {
 		$httpClient = $this->clientService->newClient();
 		try {
 			$response = $httpClient->get(
-				$this->lookupServer . $path,
+				$this->gss->getLookupServerUrl() . $path,
 				$this->lookup->configureClient(['body' => json_encode($dataBatch)])
 			);
+		} catch (LookupServerConfigurationException) {
+			$this->logger->debug('lookup server not configured');
 		} catch (Exception $e) {
 			$this->logger->warning(
 				'Could not get data from lookup server',
@@ -201,8 +204,7 @@ class SlaveService {
 	 * @throws ConfigurationException
 	 */
 	protected function checkConfiguration(): void {
-		if (empty($this->lookupServer)
-			|| empty($this->operationMode)
+		if (empty($this->operationMode)
 			|| empty($this->authKey)
 		) {
 			$this->logger->error('app not configured correctly');

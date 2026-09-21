@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\GlobalSiteSelector;
 
 use JsonException;
+use OCA\GlobalSiteSelector\Exceptions\LookupServerConfigurationException;
 use OCP\Federation\ICloudIdManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
@@ -26,7 +27,6 @@ class Lookup {
 		private readonly GlobalSiteSelector $gss,
 		private readonly IConfig $config,
 	) {
-		$this->lookupServerUrl = $this->config->getSystemValueString('lookup_server', '');
 	}
 
 	/**
@@ -40,13 +40,6 @@ class Lookup {
 		$location = '';
 
 		// admin need to specify a lookup server with GSS capabilities
-		if (empty($this->lookupServerUrl)) {
-			$this->logger->error(
-				'Can not lookup user, no lookup server registered',
-				['app' => 'globalsiteselector']
-			);
-			return $location;
-		}
 
 		try {
 			$body = $this->queryLookupServer($uid, $matchUid);
@@ -56,6 +49,9 @@ class Lookup {
 			} else {
 				$this->logger->debug('search: federationId not set for ' . $uid . ' ' . json_encode($body));
 			}
+		} catch (LookupServerConfigurationException) {
+			$this->logger->debug('Can not lookup user, no lookup server registered');
+			return '';
 		} catch (\InvalidArgumentException) {
 			// Nothing to do, assuming we have not found anything
 		}
@@ -67,8 +63,7 @@ class Lookup {
 	/**
 	 * query lookup server and return result
 	 *
-	 * @param $uid
-	 *
+	 * @throws LookupServerConfigurationException
 	 * @throws \Exception
 	 */
 	protected function queryLookupServer(string $uid, bool $matchUid = false): mixed {
@@ -76,7 +71,7 @@ class Lookup {
 		$this->logger->debug('queryLookupServer: asking lookup server for: ' . $uid . ' (matchUid: ' . json_encode($matchUid) . ')');
 		$client = $this->clientService->newClient();
 		$response = $client->get(
-			$this->lookupServerUrl . '/users',
+			$this->gss->getLookupServerUrl() . '/users',
 			$this->configureClient(
 				[
 					'query' => [
@@ -150,7 +145,11 @@ class Lookup {
 	 */
 	public function getInstances(): array {
 		$client = $this->clientService->newClient();
-		$response = $client->get($this->lookupServerUrl . '/gs/instances', $this->configureClient(['body' => json_encode(['authKey' => $this->gss->getJwtKey()])]));
+		try {
+			$response = $client->get($this->gss->getLookupServerUrl() . '/gs/instances', $this->configureClient(['body' => json_encode(['authKey' => $this->gss->getJwtKey()])]));
+		} catch (LookupServerConfigurationException $e) {
+			return [];
+		}
 
 		try {
 			return json_decode($response->getBody(), true, flags: JSON_THROW_ON_ERROR);

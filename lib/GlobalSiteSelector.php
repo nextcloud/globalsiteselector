@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector;
 
+use OCA\GlobalSiteSelector\Exceptions\LookupServerConfigurationException;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCP\IConfig;
 
@@ -77,9 +78,15 @@ class GlobalSiteSelector {
 
 	/**
 	 * get lookup server URL
+	 *
+	 * @throws LookupServerConfigurationException
 	 */
 	public function getLookupServerUrl(): string {
-		// TODO: returns exception if non-existant
-		return $this->config->getSystemValueString('lookup_server', '');
+		$lus = $this->config->getSystemValueString('lookup_server', '');
+		if ($lus === '') {
+			throw new LookupServerConfigurationException();
+		}
+
+		return rtrim($lus, '/');
 	}
 }
