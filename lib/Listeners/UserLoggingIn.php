@@ -14,11 +14,11 @@ use OCA\GlobalSiteSelector\Master;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IRequest;
-use OCP\User\Events\UserLoggedInEvent;
+use OCP\User\Events\BeforeUserLoggedInEvent;
 use Psr\Log\LoggerInterface;
 
 /**
- * @template-implements IEventListener<UserLoggedInEvent>
+ * @template-implements IEventListener<BeforeUserLoggedInEvent>
  */
 class UserLoggingIn implements IEventListener {
 
@@ -32,7 +32,7 @@ class UserLoggingIn implements IEventListener {
 
 	#[\Override]
 	public function handle(Event $event): void {
-		if (!$event instanceof UserLoggedInEvent) {
+		if (!$event instanceof BeforeUserLoggedInEvent) {
 			return;
 		}
 
@@ -47,10 +47,11 @@ class UserLoggingIn implements IEventListener {
 		}
 
 		$this->logger->debug('new BeforeUserLoggedInEvent event');
-		$this->master->handleLoginRequest(
-			$event->getUser(),
-			$event->getPassword(),
-		);
+        $this->master->handleLoginRequest(
+            $event->getUsername(),
+            $event->getPassword(),
+            $event->getBackend()
+        );
 
 		$this->logger->debug('ending BeforeUserLoggedInEvent event');
 	}

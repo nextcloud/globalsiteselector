@@ -38,6 +38,7 @@ use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 use OCP\Server;
 use OCP\User\Events\BeforeUserDeletedEvent;
+use OCP\User\Events\BeforeUserLoggedInEvent;
 use OCP\User\Events\UserChangedEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\User\Events\UserDeletedEvent;
@@ -69,7 +70,7 @@ class Application extends App implements IBootstrap {
 		$context->registerCapability(PublicCapabilities::class);
 
 		// events on master
-		$context->registerEventListener(UserLoggedInEvent::class, UserLoggingIn::class);
+		$context->registerEventListener(BeforeUserLoggedInEvent::class, UserLoggingIn::class);
 		$context->registerEventListener(
 			AddContentSecurityPolicyEvent::class,
 			AddContentSecurityPolicyListener::class
@@ -222,10 +223,12 @@ class Application extends App implements IBootstrap {
 
 		$this->logger->debug('new redirectToSlave');
 		$master->handleLoginRequest(
-			$user,
+			$user->getUID(),
 			'',
+            $user->getBackend(),
 			true,
 		);
+
 
 		$this->logger->debug('ending redirectToSlave');
 	}
