@@ -18,15 +18,16 @@ use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http\StandaloneTemplateResponse;
+use OCP\Authentication\IApacheBackend;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
-use OCP\IUser;
 use OCP\Security\ICrypto;
 use OCP\ServerVersion;
+use OCP\UserInterface;
 use OCP\Util;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -65,15 +66,15 @@ class Master {
 	 * @throws NotFoundExceptionInterface
 	 */
 	public function handleLoginRequest(
-		IUser $user,
+		string $uid,
 		?string $password,
+		null|IApacheBackend|UserInterface $backend = null,
 		bool $ignoreJwt = false,
 	): void {
-		$backend = $user->getBackend();
 		$this->logger->debug(
 			'start handle login request',
 			[
-				'uid' => $user->getUID(),
+				'uid' => $uid,
 				'backend' => ($backend === null) ? null : $backend::class
 			]
 		);
@@ -95,9 +96,14 @@ class Master {
 			'params' => $this->request->getParams(),
 		];
 
+		if ($this->isPath(['/apps/oauth2/authorize'], $target)) {
+			// oauth2 authorization is done on master
+			return;
+		}
+
 		$redirectUrl = $this->request->getParam('redirect_url', '');
 
-		$ssoUserData = $this->globalScaleService->getSsoUserData($user);
+		$ssoUserData = $this->globalScaleService->getSsoUserData($uid, $backend);
 		if ($ssoUserData !== null && $ssoUserData['backend'] === 'saml') {
 			$this->logger->debug('handleLoginRequest: backend is SAML');
 
@@ -151,19 +157,16 @@ class Master {
 		}
 
 		try {
-			$location = $this->globalScaleService->getSecondaryRemoteLocation($user);
+			$location = $this->globalScaleService->getSecondaryRemoteLocation($uid, $backend);
 		} catch (IsLocalAdminException) {
 			return;
 		}
+
 		if ($location !== null) {
-			$this->logger->debug(
-				'handleLoginRequest: redirecting user: ' . $user->getUID() . ' to ' . $location
-			);
-
-			$this->redirectUser($user->getUID(), $password, $location, $options);
+			$this->logger->debug('handleLoginRequest: redirecting user: ' . $uid . ' to ' . $location);
+			$this->redirectUser($uid, $password, $location, $options);
 		} else {
-			$this->logger->debug('handleLoginRequest: Could not find location for account ' . $user->getUID());
-
+			$this->logger->debug('handleLoginRequest: Could not find location for account ' . $uid);
 			throw new HintException('Unknown Account');
 		}
 	}

@@ -102,13 +102,13 @@ class MasterTest extends TestCase {
 		$this->request->method('getParam')->willReturn('');
 
 		$this->globalScaleService->expects($this->once())->method('getSecondaryRemoteLocation')
-			->with($user)
+			->with($user->getUID(), $user->getBackend())
 			->willReturn($location);
 
 		$master->expects($this->once())->method('redirectUser')
 			->with('user', 'password', $location, ['target' => '/', 'params' => []]);
 
-		$master->handleLoginRequest($user, 'password');
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend());
 	}
 
 	public function testHandleLoginRequestException(): void {
@@ -121,13 +121,13 @@ class MasterTest extends TestCase {
 		$this->request->method('getParam')->willReturn('');
 
 		$this->globalScaleService->method('getSecondaryRemoteLocation')
-			->with($user)
+			->with($user->getUID(), $user->getBackend())
 			->willReturn(null);
 
 		$master->expects($this->never())->method('redirectUser');
 
 		$this->expectException(HintException::class);
-		$master->handleLoginRequest($user, 'password');
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend());
 	}
 
 	public function testHandleLoginRequestIgnoresValidJwtUnlessIgnored(): void {
@@ -144,7 +144,7 @@ class MasterTest extends TestCase {
 		$this->globalScaleService->expects($this->never())->method('getSecondaryRemoteLocation');
 		$master->expects($this->never())->method('redirectUser');
 
-		$master->handleLoginRequest($user, 'password');
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend());
 	}
 
 	public function testHandleLoginRequestIgnoreJwtSkipsJwtCheck(): void {
@@ -164,7 +164,7 @@ class MasterTest extends TestCase {
 
 		$master->expects($this->once())->method('redirectUser');
 
-		$master->handleLoginRequest($user, 'password', true);
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend(), true);
 	}
 
 	public function testCreateJWT(): void {
