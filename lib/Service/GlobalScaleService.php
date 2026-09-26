@@ -20,6 +20,7 @@ use OCA\GlobalSiteSelector\UserDiscoveryModules\IUserDiscoveryModule;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\Authentication\IApacheBackend;
 use OCP\Config\IUserConfig;
 use OCP\GlobalScale\IGlobalScaleService;
 use OCP\Http\Client\IClientService;
@@ -30,6 +31,7 @@ use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\Security\ISecureRandom;
 use OCP\Server;
+use OCP\UserInterface;
 use Psr\Log\LoggerInterface;
 
 trait TGlobalScaleService {
@@ -194,15 +196,19 @@ trait TGlobalScaleService {
 	 *
 	 * @return array{backend: 'saml'|'oidc', formatted: array, raw: array}|null
 	 */
-	public function getSsoUserData(IUser $user): ?array {
-		$uid = $user->getUID();
+	public function getSsoUserData(string $uid, null|IApacheBackend|UserInterface $backend): ?array {
+		//$uid = $user->getUID();
 
 		$cached = $this->userConfig->getValueArray($uid, Application::APP_ID, ConfigLexicon::SSO_USER_DATA, [], lazy: true);
 		if ($cached !== []) {
 			return $cached;
 		}
 
-		$backend = $user->getBackend();
+        if ($backend === null) {
+            return null;
+        }
+
+//		$backend = $user->getBackend();
 		$data = null;
 
 		try {
@@ -235,12 +241,12 @@ trait TGlobalScaleService {
 	 *
 	 * @throws IsLocalAdminException If the user is one of the local admin and shouldn't be redirected
 	 */
-	public function getSecondaryRemoteLocation(IUser $user): ?string {
-		$uid = $user->getUID();
+	public function getSecondaryRemoteLocation(string $uid, ?UserInterface $backend): ?string {
+//		$uid = $user->getUID();
 		$discoveryData = [];
 		$isSamlOrOidc = false;
 
-		$ssoUserData = $this->getSsoUserData($user);
+		$ssoUserData = $this->getSsoUserData($uid, $backend);
 		if ($ssoUserData !== null) {
 			$isSamlOrOidc = true;
 			$this->logger->debug('getSecondaryRemoteLocation: backend is ' . $ssoUserData['backend']);
@@ -315,7 +321,7 @@ trait TGlobalScaleService {
 	}
 
 	public function sendToSecondary(IUser $user, string $path, array $payload): string {
-		$location = $this->getSecondaryRemoteLocation($user);
+		$location = $this->getSecondaryRemoteLocation($user->getUID(), $user->getBackend());
 		if ($location === null) {
 			throw new \Exception('Could not send message to secondary. No secondary location found for user with id: ' . $user->getUID());
 		}
