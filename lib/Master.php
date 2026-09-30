@@ -15,6 +15,8 @@ use OC\Core\Service\LoginFlowV2Service;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\IsLocalAdminException;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
+use OCA\GlobalSiteSelector\Service\OAuth2Service;
+use OCA\GlobalSiteSelector\Service\ToolsService;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http\StandaloneTemplateResponse;
@@ -23,6 +25,7 @@ use OCP\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
 use OCP\IConfig;
+use OCP\IInitialStateService;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\Security\ICrypto;
@@ -45,6 +48,7 @@ class Master {
 		private readonly ISession $session,
 		private readonly GlobalSiteSelector $gss,
 		private readonly ICrypto $crypto,
+		private readonly IInitialStateService $initialStateService,
 		private readonly LoginFlowV2Service $loginFlowV2Service,
 		private readonly ServerVersion $serverVersion,
 		private readonly Lookup $lookup,
@@ -54,6 +58,8 @@ class Master {
 		private readonly IConfig $config,
 		private readonly LoggerInterface $logger,
 		private readonly GlobalScaleService $globalScaleService,
+		private readonly ToolsService $toolsService,
+		private readonly OAuth2Service $oauth2Service,
 	) {
 	}
 
@@ -82,7 +88,6 @@ class Master {
 		/** ignoring request from slave with valid jwt */
 		if (!$ignoreJwt && $this->isValidJwt($this->request->getParam('jwt', ''))) {
 			$this->logger->debug('ignore request with valid jwt');
-
 			return;
 		}
 
@@ -96,8 +101,11 @@ class Master {
 			'params' => $this->request->getParams(),
 		];
 
-		if ($this->isPath(['/apps/oauth2/authorize'], $target)) {
-			// oauth2 authorization is done on master
+		if ($this->toolsService->isPath(['/apps/globalsiteselector/oauth2/login/flow'], $target)) {
+			return;
+		}
+
+		if ($this->oauth2Service->manageOauth2($uid, $target)) {
 			return;
 		}
 
@@ -151,7 +159,7 @@ class Master {
 			$this->logger->debug('handleLoginRequest: backend is not SAML or OIDC');
 		}
 
-		if ($this->isPath(['/login/flow', '/login/v2/flow'], $redirectUrl ?? '')) {
+		if ($this->toolsService->isPath(['/login/flow', '/login/v2/flow'], $redirectUrl ?? '')) {
 			$options['target'] = $redirectUrl;
 			$this->logger->debug('handleLoginRequest: overriding target with slave flow path: ' . $options['target']);
 		}
@@ -190,7 +198,7 @@ class Master {
 				'/mirall|csyncoC/', // <-- Support also not compliant Desktop Clients
 				'/^.*\(Android\)$/'
 			]
-		) || $this->isPath(['/login/flow/grant', '/login/v2/grant'], $options['target'] ?? '');
+		) || $this->toolsService->isPath(['/login/flow/grant', '/login/v2/grant'], $options['target'] ?? '');
 
 		$requestUri = $this->request->getRequestUri();
 
@@ -385,25 +393,15 @@ class Master {
 		return $url;
 	}
 
-	private function isPath(array $search, string $path): bool {
-		if ($path === '') {
-			return false;
-		}
-
-		foreach ($search as $entry) {
-			if (str_starts_with($path, (string)$entry) || str_starts_with($path, '/index.php' . $entry)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	private function handleFlowDone(bool $result): StandaloneTemplateResponse {
 		if ($result) {
 			// login flow v2 templates were moved in NC33
 			if ($this->serverVersion->getMajorVersion() >= 33) {
+				Util::addScript('core', 'common');
+				Util::addScript('core', 'main');
+				Util::addTranslations('core');
 				Util::addScript('core', 'login_flow');
+				$this->initialStateService->provideInitialState('core', 'loginFlowState', 'done');
 				return new StandaloneTemplateResponse('core', 'loginflow', renderAs: 'guest');
 			}
 

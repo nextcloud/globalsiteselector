@@ -210,7 +210,8 @@ class Application extends App implements IBootstrap {
 			|| str_starts_with($uri, '/apps/globalsiteselector/autologout')
 			|| str_starts_with($uri, '/apps/user_saml/saml/sls')
 			|| str_starts_with($uri, '/apps/user_oidc/sls')
-			|| str_starts_with($uri, '/login/flow')
+			// we keep hand on /login/flow/grant that will be emulated by the app
+			|| (str_starts_with($uri, '/login/flow') && !str_starts_with($uri, '/login/flow/grant'))
 		) {
 			return;
 		}
