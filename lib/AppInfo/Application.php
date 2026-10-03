@@ -38,10 +38,10 @@ use OCP\IUserSession;
 use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 use OCP\Server;
 use OCP\User\Events\BeforeUserDeletedEvent;
+use OCP\User\Events\BeforeUserLoggedInEvent;
 use OCP\User\Events\UserChangedEvent;
 use OCP\User\Events\UserCreatedEvent;
 use OCP\User\Events\UserDeletedEvent;
-use OCP\User\Events\UserLoggedInEvent;
 use OCP\User\Events\UserLoggedOutEvent;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -69,7 +69,7 @@ class Application extends App implements IBootstrap {
 		$context->registerCapability(PublicCapabilities::class);
 
 		// events on master
-		$context->registerEventListener(UserLoggedInEvent::class, UserLoggingIn::class);
+		$context->registerEventListener(BeforeUserLoggedInEvent::class, UserLoggingIn::class);
 		$context->registerEventListener(
 			AddContentSecurityPolicyEvent::class,
 			AddContentSecurityPolicyListener::class
@@ -210,7 +210,8 @@ class Application extends App implements IBootstrap {
 			|| str_starts_with($uri, '/apps/globalsiteselector/autologout')
 			|| str_starts_with($uri, '/apps/user_saml/saml/sls')
 			|| str_starts_with($uri, '/apps/user_oidc/sls')
-			|| str_starts_with($uri, '/login/flow')
+			// we keep hand on /login/flow/grant that will be emulated by the app
+			|| (str_starts_with($uri, '/login/flow') && !str_starts_with($uri, '/login/flow/grant'))
 		) {
 			return;
 		}
@@ -222,11 +223,11 @@ class Application extends App implements IBootstrap {
 
 		$this->logger->debug('new redirectToSlave');
 		$master->handleLoginRequest(
-			$user,
+			$user->getUID(),
 			'',
+			$user->getBackend(),
 			true,
 		);
-
 		$this->logger->debug('ending redirectToSlave');
 	}
 }
