@@ -10,12 +10,16 @@ namespace OCA\GlobalSiteSelector\Controller;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Master;
+use OCA\GlobalSiteSelector\Service\OAuth2Service;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\Attribute\UseSession;
 use OCP\AppFramework\Http\RedirectResponse;
+use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\OCSController;
 use OCP\IRequest;
 use OCP\IURLGenerator;
@@ -34,9 +38,32 @@ class MasterController extends OCSController {
 		IRequest $request,
 		private readonly IURLGenerator $urlGenerator,
 		private readonly GlobalSiteSelector $gss,
+		private readonly OAuth2Service $oauth2Service,
 		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
+	}
+
+	#[PublicPage]
+	#[FrontpageRoute(verb: 'POST', url: '/test')]
+	public function finalizeOAuthFlow(
+		string $stateToken,
+		string $clientIdentifier = '',
+		string $providedRedirectUri = '',
+	): Response {
+		try {
+			return $this->oauth2Service->finalizeOAuth2(
+				$stateToken,
+				$clientIdentifier,
+				$providedRedirectUri,
+				$this->request->getHeader('user-agent'),
+			);
+		} catch (\Exception $e) {
+			$this->logger->warning('fail to manage oauth2', ['exception' => $e]);
+			$response = new Response();
+			$response->setStatus(Http::STATUS_FORBIDDEN);
+			return $response;
+		}
 	}
 
 	#[PublicPage]

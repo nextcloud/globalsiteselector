@@ -13,12 +13,15 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Master;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
+use OCA\GlobalSiteSelector\Service\OAuth2Service;
+use OCA\GlobalSiteSelector\Service\ToolsService;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\HintException;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
 use OCP\IConfig;
+use OCP\IInitialStateService;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUser;
@@ -32,6 +35,7 @@ use Test\TestCase;
 class MasterTest extends TestCase {
 	private GlobalSiteSelector&MockObject $gss;
 	private ICrypto&MockObject $crypto;
+	private IInitialStateService&MockObject $initialStateService;
 	private Lookup&MockObject $lookup;
 	private IRequest&MockObject $request;
 	private IClientService&MockObject $clientService;
@@ -41,6 +45,8 @@ class MasterTest extends TestCase {
 	private ISession&MockObject $session;
 	private LoginFlowV2Service&MockObject $loginflow;
 	private GlobalScaleService&MockObject $globalScaleService;
+	private ToolsService&MockObject $toolsService;
+	private OAuth2Service&MockObject $oauth2Service;
 	private ServerVersion $serverVersion;
 
 	public function setUp(): void {
@@ -49,6 +55,7 @@ class MasterTest extends TestCase {
 		$this->gss = $this->getMockBuilder(GlobalSiteSelector::class)
 			->disableOriginalConstructor()->getMock();
 		$this->crypto = $this->createMock(ICrypto::class);
+		$this->initialStateService = $this->createMock(IInitialStateService::class);
 		$this->lookup = $this->getMockBuilder(Lookup::class)
 			->disableOriginalConstructor()->getMock();
 		$this->loginflow = $this->createMock(LoginFlowV2Service::class);
@@ -59,8 +66,10 @@ class MasterTest extends TestCase {
 		$this->appConfig = $this->createMock(IAppConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->session = $this->createMock(ISession::class);
-		$this->globalScaleService = $this->getMockBuilder(GlobalScaleService::class)
-			->disableOriginalConstructor()->getMock();
+		$this->globalScaleService = $this->getMockBuilder(GlobalScaleService::class)->disableOriginalConstructor()->getMock();
+		$this->toolsService = $this->createMock(ToolsService::class);
+		$this->oauth2Service = $this->createMock(OAuth2Service::class);
+
 	}
 
 	private function getInstance(array $mockMethods = []): Master&MockObject {
@@ -70,6 +79,7 @@ class MasterTest extends TestCase {
 					$this->session,
 					$this->gss,
 					$this->crypto,
+					$this->initialStateService,
 					$this->loginflow,
 					$this->serverVersion,
 					$this->lookup,
@@ -79,6 +89,8 @@ class MasterTest extends TestCase {
 					$this->config,
 					$this->logger,
 					$this->globalScaleService,
+					$this->toolsService,
+					$this->oauth2Service,
 				]
 			)->onlyMethods($mockMethods)->getMock();
 	}
@@ -102,13 +114,13 @@ class MasterTest extends TestCase {
 		$this->request->method('getParam')->willReturn('');
 
 		$this->globalScaleService->expects($this->once())->method('getSecondaryRemoteLocation')
-			->with($user)
+			->with($user->getUID(), $user->getBackend())
 			->willReturn($location);
 
 		$master->expects($this->once())->method('redirectUser')
 			->with('user', 'password', $location, ['target' => '/', 'params' => []]);
 
-		$master->handleLoginRequest($user, 'password');
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend());
 	}
 
 	public function testHandleLoginRequestException(): void {
@@ -121,13 +133,13 @@ class MasterTest extends TestCase {
 		$this->request->method('getParam')->willReturn('');
 
 		$this->globalScaleService->method('getSecondaryRemoteLocation')
-			->with($user)
+			->with($user->getUID(), $user->getBackend())
 			->willReturn(null);
 
 		$master->expects($this->never())->method('redirectUser');
 
 		$this->expectException(HintException::class);
-		$master->handleLoginRequest($user, 'password');
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend());
 	}
 
 	public function testHandleLoginRequestIgnoresValidJwtUnlessIgnored(): void {
@@ -144,7 +156,7 @@ class MasterTest extends TestCase {
 		$this->globalScaleService->expects($this->never())->method('getSecondaryRemoteLocation');
 		$master->expects($this->never())->method('redirectUser');
 
-		$master->handleLoginRequest($user, 'password');
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend());
 	}
 
 	public function testHandleLoginRequestIgnoreJwtSkipsJwtCheck(): void {
@@ -164,7 +176,7 @@ class MasterTest extends TestCase {
 
 		$master->expects($this->once())->method('redirectUser');
 
-		$master->handleLoginRequest($user, 'password', true);
+		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend(), true);
 	}
 
 	public function testCreateJWT(): void {

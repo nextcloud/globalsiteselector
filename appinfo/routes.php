@@ -23,6 +23,11 @@ return [
 			'verb' => 'GET'
 		],
 		[
+			'name' => 'Master#finalizeOAuthFlow',
+			'url' => '/oauth2/login/flow',
+			'verb' => 'POST'
+		],
+		[
 			'name' => 'Slave#findFile',
 			'url' => '/gf/{token}/{fileId}',
 			'verb' => 'GET',

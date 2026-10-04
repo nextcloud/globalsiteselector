@@ -106,7 +106,8 @@ class GlobalScaleServiceTest extends TestCase {
 
 		$this->expectException(IsLocalAdminException::class);
 
-		$service->getSecondaryRemoteLocation($this->getUser('admin'));
+		$admin = $this->getUser('admin');
+		$service->getSecondaryRemoteLocation($admin->getUID(), $admin->getBackend());
 	}
 
 	public function testGetSecondaryRemoteLocationSkipsLocalAccount(): void {
@@ -121,16 +122,18 @@ class GlobalScaleServiceTest extends TestCase {
 
 		$this->expectException(IsLocalAdminException::class);
 
-		$service->getSecondaryRemoteLocation($this->getUser('localuser'));
+		$user = $this->getUser('localuser');
+		$service->getSecondaryRemoteLocation($user->getUID(), $user->getBackend());
 	}
 
 	public function testGetSecondaryRemoteLocationKeepsSchemeIfAlreadyPresent(): void {
 		$service = $this->getInstance(['queryLookupServer']);
 		$service->method('queryLookupServer')->willReturn('http://nextcloud.example.com');
 
+		$user = $this->getUser('regularuser');
 		$this->assertSame(
 			'http://nextcloud.example.com',
-			$service->getSecondaryRemoteLocation($this->getUser('regularuser'))
+			$service->getSecondaryRemoteLocation($user->getUID(), $user->getBackend())
 		);
 	}
 
@@ -140,7 +143,8 @@ class GlobalScaleServiceTest extends TestCase {
 
 		$this->userConfig->expects($this->never())->method('setValueArray');
 
-		$this->assertNull($service->getSecondaryRemoteLocation($this->getUser('regularuser')));
+		$user = $this->getUser('regularuser');
+		$this->assertNull($service->getSecondaryRemoteLocation($user->getUID(), $user->getBackend()));
 	}
 
 	public function testGetSecondaryRemoteLocationFallsBackToDiscoveryModule(): void {
@@ -156,9 +160,10 @@ class GlobalScaleServiceTest extends TestCase {
 		$this->lookup->expects($this->once())->method('sanitizeUid');
 		$this->request->method('getServerProtocol')->willReturn('https');
 
+		$user = $this->getUser('regularuser');
 		$this->assertSame(
 			'https://discovered.example.com',
-			$service->getSecondaryRemoteLocation($this->getUser('regularuser'))
+			$service->getSecondaryRemoteLocation($user->getUID(), $user->getBackend())
 		);
 	}
 
@@ -175,9 +180,10 @@ class GlobalScaleServiceTest extends TestCase {
 		$this->lookup->expects($this->never())->method('sanitizeUid');
 		$this->request->method('getServerProtocol')->willReturn('https');
 
+		$user = $this->getUser('regularuser');
 		$this->assertSame(
 			'https://nextcloud.example.com',
-			$service->getSecondaryRemoteLocation($this->getUser('regularuser'))
+			$service->getSecondaryRemoteLocation($user->getUID(), $user->getBackend())
 		);
 	}
 

@@ -4,6 +4,21 @@
   - SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <files psalm-version="4.30.0@d0bc6e25d89f649e4f36a534f330f8bb4643dd69">
+	<file src="lib/Service/OAuth2Service.php">
+		<UndefinedClass>
+			<code><![CDATA[$this->accessTokenMapper]]></code>
+			<code><![CDATA[$this->clientMapper]]></code>
+			<code><![CDATA[$this->clientMapper]]></code>
+			<code><![CDATA[AccessToken]]></code>
+			<code><![CDATA[AppPasswordCreatedEvent]]></code>
+			<code><![CDATA[ClientFlowLoginController]]></code>
+			<code><![CDATA[ClientFlowLoginController]]></code>
+			<code><![CDATA[ClientFlowLoginController]]></code>
+			<code><![CDATA[PasswordlessTokenException]]></code>
+			<code><![CDATA[private]]></code>
+			<code><![CDATA[private]]></code>
+		</UndefinedClass>
+	</file>
 	<file src="lib/Slave.php">
 		<UndefinedClass occurrences="1">
 			<code>\OC\User\Database</code>
