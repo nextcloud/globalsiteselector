@@ -19,6 +19,8 @@ class ConfigLexicon implements ILexicon {
 	public const LOCAL_TOKEN = 'localToken';
 	public const REDIRECT_WEBDAV = 'redirectWebDAV';
 	public const MANAGE_OAUTH2 = 'manageOAuth2';
+	public const NOTIFY_REMOTE = 'notifyRemote';
+	public const INSTANCE_MAIN_THREAD = 'requested_instance_main_thread';
 	public const SSO_USER_DATA = 'ssoUserData';
 
 	#[\Override]
@@ -36,6 +38,8 @@ class ConfigLexicon implements ILexicon {
 			new Entry(key: self::LOCAL_TOKEN, type: ValueType::STRING, defaultRaw: '', definition: 'local token to id instance within GlobalScale'),
 			new Entry(key: self::REDIRECT_WEBDAV, type: ValueType::BOOL, defaultRaw: false, definition: 'redirect WebDAV request on Master to Slaves', lazy: false),
 			new Entry(key: self::MANAGE_OAUTH2, type: ValueType::BOOL, defaultRaw: false, definition: 'manage OAuth2 requests from Master', lazy: false),
+			new Entry(key: self::NOTIFY_REMOTE, type: ValueType::BOOL, defaultRaw: false, definition: 'notify remote instance on file changes', lazy: false),
+			new Entry(key: self::INSTANCE_MAIN_THREAD, type: ValueType::INT, defaultRaw: 2, definition: 'when running event requests, maximum number of instances to reach before switching to background job', lazy: false),
 		];
 	}
 

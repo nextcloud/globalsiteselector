@@ -186,6 +186,72 @@ class FileRequest {
 	}
 
 	/**
+	 * returns an array containing user and mountpoint from an external share; based on remote
+	 * instance that owns the file, the shareId on the remote instance and
+	 * the share token.
+	 *
+	 * If not known, user and mountpoint are null in the returned array.
+	 */
+	public function getMountPointFromShare(string $instance, int $remoteId, string $shareToken): array {
+		$qb = $this->connection->getQueryBuilder();
+		$qb->select('user', 'mountpoint')
+			->from('share_external')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->like('remote', $qb->createNamedParameter('%://' . str_replace('%', '', $instance) . '/')),
+					$qb->expr()->eq('remote_id', $qb->createNamedParameter($remoteId, IQueryBuilder::PARAM_INT)),
+					$qb->expr()->eq('share_token', $qb->createNamedParameter($shareToken)),
+				)
+			);
+
+		$result = $qb->executeQuery();
+		$row = $result->fetch();
+		$result->closeCursor();
+
+		if ($row === false) {
+			return [null, null];
+		}
+
+		return [$row['user'], $row['mountpoint']];
+	}
+
+	/**
+	 * returns an array containing a list of local users and mountpoints from an external share made to a circle and
+	 * based on the remote instance that owns the file, the shareId on the remote instance, and
+	 * the share token.
+	 *
+	 * We use the cached/indexed version of the singleId from the 'preferences' table for better efficiency and extract
+	 * the final userid of the user from its singleid stored in the 'circles_mountpoint' table
+	 */
+	public function getTeamMountPointsFromShare(string $instance, int $remoteId, string $shareToken): array {
+		$qb = $this->connection->getQueryBuilder();
+		$qb->select('p.userid', 'mp.mountpoint')
+			->from('circles_mountpoint', 'mp')
+			->from('circles_mount', 'm')
+			->from('preferences', 'p')
+			->where(
+				$qb->expr()->andX(
+					$qb->expr()->eq('m.remote', $qb->createNamedParameter($instance)),
+					$qb->expr()->eq('m.remote_id', $qb->createNamedParameter($remoteId, IQueryBuilder::PARAM_INT)),
+					$qb->expr()->eq('m.token', $qb->createNamedParameter($shareToken)),
+					$qb->expr()->eq('m.mount_id', 'mp.mount_id'),
+					$qb->expr()->eq('p.appid', $qb->createNamedParameter('circles')),
+					$qb->expr()->eq('p.configkey', $qb->createNamedParameter('userSingleId')),
+					$qb->expr()->eq('mp.single_id', 'p.indexed'),
+				)
+			);
+
+		$result = $qb->executeQuery();
+		$mountPoints = [];
+		while ($row = $result->fetch()) {
+			$mountPoints[] = [$row['userid'], $row['mountpoint']];
+		}
+		$result->closeCursor();
+
+		return $mountPoints;
+	}
+
+	/**
 	 * returns the mount using the id of a node,
 	 * userid can then be extracted and used to retrieve the file's root folder
 	 */
