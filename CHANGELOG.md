@@ -5,6 +5,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.8.0
+
+- feat: IGlobalScaleService
+- feat: enforce long JWT key
+- feat: notify remote instance on file changes
+- feat: forwarding OAuth2 login process to nodes
+- feat: allow setup without lookup server
+- fix: removing default HTTP Client options override
+- fix: final template on client login process   
+
 ## 2.7.3
 
 - fix: add brute force protection and avoid saving token on debug log
