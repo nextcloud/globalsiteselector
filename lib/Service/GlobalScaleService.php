@@ -24,6 +24,7 @@ use OCP\Authentication\IApacheBackend;
 use OCP\Config\IUserConfig;
 use OCP\GlobalScale\IGlobalScaleService;
 use OCP\Http\Client\IClientService;
+use OCP\Http\Client\IResponse;
 use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -33,6 +34,7 @@ use OCP\Security\ISecureRandom;
 use OCP\Server;
 use OCP\UserInterface;
 use Psr\Log\LoggerInterface;
+use UnhandledMatchError;
 
 trait TGlobalScaleService {
 	public function __construct(
@@ -323,6 +325,11 @@ trait TGlobalScaleService {
 			throw new \Exception('Could not send message to secondary. No secondary location found for user with id: ' . $user->getUID());
 		}
 
+		$this->sendToLocation('post', $location, $path, $payload);
+		return $location;
+	}
+
+	public function sendToLocation(string $type, string $location, string $path, array $payload, array $options = []): IResponse {
 		if (!isset($payload['exp'])) {
 			$payload['exp'] = $this->time->getTime() + 300; // expires after 5 minutes;
 		}
@@ -333,23 +340,26 @@ trait TGlobalScaleService {
 			'HS256',
 		);
 
+		$options = array_merge([
+			'headers' => ['OCS-APIRequest' => 'true'],
+			'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
+			'timeout' => 10,
+			'connect_timeout' => 5,
+			'query' => ['format' => 'json'],
+			'body' => ['jwt' => $jwt],
+		], $options);
+
+		$client = $this->clientService->newClient();
 		try {
-			$this->clientService->newClient()->post(
-				$location . $path,
-				[
-					'headers' => ['OCS-APIRequest' => 'true'],
-					'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
-					'timeout' => 5,
-					'connect_timeout' => 5,
-					'query' => ['format' => 'json'],
-					'body' => ['jwt' => $jwt],
-				]
-			);
+			return match (strtolower($type)) {
+				'post' => $client->post($this->normalizeLocation($location) . $path, $options),
+				'get' => $client->get($this->normalizeLocation($location) . $path, $options),
+			};
+		} catch (UnhandledMatchError) {
+			throw new \Exception("unknown type '$type'' when calling sendToLocation()");
 		} catch (\Exception $e) {
 			throw new \Exception('Could not send message to secondary due to a network issue :' . $e->getMessage(), previous: $e);
 		}
-
-		return $location;
 	}
 
 	public function decodePayload(string $jwt): array {

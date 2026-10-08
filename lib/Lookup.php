@@ -44,6 +44,7 @@ class Lookup {
 			if (($body['federationId'] ?? '') !== '') {
 				$uid = $body['userid']['value'] ?? $uid;
 				$location = $this->getUserLocation($body['federationId'], $uid);
+				$this->logger->debug('search: location for ' . $uid . ' is ' . $location);
 			} else {
 				$this->logger->debug('search: federationId not set for ' . $uid . ' ' . json_encode($body));
 			}
@@ -54,7 +55,6 @@ class Lookup {
 			// Nothing to do, assuming we have not found anything
 		}
 
-		$this->logger->debug('search: location for ' . $uid . ' is ' . $location);
 		return $location;
 	}
 

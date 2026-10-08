@@ -101,7 +101,10 @@ class Master {
 			'params' => $this->request->getParams(),
 		];
 
-		if ($this->toolsService->isPath(['/apps/globalsiteselector/oauth2/login/flow'], $target)) {
+		if ($this->toolsService->isPath([
+			'/apps/globalsiteselector/oauth2/login/flow',
+			'/ocs/v1.php/apps/globalsiteselector/prepaccount',
+		], $target)) {
 			return;
 		}
 
@@ -189,7 +192,7 @@ class Master {
 	 *
 	 * @throws Exception
 	 */
-	protected function redirectUser($uid, $password, $location, array $options = []) {
+	protected function redirectUser(string $uid, string $password, string $location, array $options = []) {
 		$isClient = $this->request->isUserAgent(
 			[
 				IRequest::USER_AGENT_CLIENT_IOS,
@@ -273,7 +276,7 @@ class Master {
 	 * @param array $options
 	 *
 	 */
-	protected function createJwt($uid, string $password, $options): string {
+	public function createJwt(string $uid, string $password, array $options): string {
 		if (!$this->gss->isJwtKeyValid()) {
 			$this->logger->error(
 				'gss.jwt.key is too short: HS256 requires at least '

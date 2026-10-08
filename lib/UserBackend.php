@@ -7,7 +7,9 @@
 
 namespace OCA\GlobalSiteSelector;
 
+use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCP\Cache\CappedMemoryCache;
+use OCP\Config\IUserConfig;
 use OCP\EventDispatcher\GenericEvent;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\IRootFolder;
@@ -27,6 +29,7 @@ use OCP\User\Events\UserChangedEvent;
 use OCP\User\Events\UserFirstTimeLoggedInEvent;
 use OCP\UserInterface;
 use Override;
+use Psr\Log\LoggerInterface;
 
 class UserBackend extends ABackend implements IUserBackend, UserInterface, ICheckPasswordBackend, IGetDisplayNameBackend, ISetDisplayNameBackend, ILimitAwareCountUsersBackend {
 	private string $dbName = 'global_scale_users';
@@ -38,8 +41,10 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		private readonly IDBConnection $db,
 		private readonly ISession $session,
 		private readonly IEventDispatcher $eventDispatcher,
+		private readonly IUserConfig $userConfig,
 		private readonly IGroupManager $groupManager,
 		private readonly IUserManager $userManager,
+		private readonly LoggerInterface $logger,
 		private readonly IRootFolder $rootFolder,
 	) {
 		$this->cache = new CappedMemoryCache();
@@ -53,21 +58,20 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 	/**
 	 * Creates a user if it does not exist.
 	 */
-	public function createUserIfNotExists(string $uid, array $attributes): void {
-		if ($this->loadUser($uid)) {
-			return;
-		}
+	public function createUserIfNotExists(string $uid, bool $firstLoginIfNeeded = true): void {
+		if (!$this->loadUser($uid)) {
+			$values = [
+				'uid' => $uid,
+			];
 
-		$values = [
-			'uid' => $uid,
-		];
-
-		$qb = $this->db->getQueryBuilder();
-		$qb->insert($this->dbName);
-		foreach ($values as $column => $value) {
-			$qb->setValue($column, $qb->createNamedParameter($value));
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert($this->dbName);
+			foreach ($values as $column => $value) {
+				$qb->setValue($column, $qb->createNamedParameter($value));
+			}
+			$qb->executeStatement();
+			unset($this->cache[$uid]);
 		}
-		$qb->executeStatement();
 
 		### Code taken from lib/private/User/Session.php - function prepareUserLogin() ###
 		//trigger creation of user home and /files folder
@@ -79,30 +83,38 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 			// read only uses
 		}
 
-		// trigger any other initialization
-		$user = $this->userManager->get($uid);
-		$this->eventDispatcher->dispatch(IUser::class . '::firstLogin', new GenericEvent($user));
-		$this->eventDispatcher->dispatchTyped(new UserFirstTimeLoggedInEvent($user));
+		// emulate first login if needed
+		if ($firstLoginIfNeeded
+			&& !$this->userConfig->getValueBool($uid, Application::APP_ID, ConfigLexicon::FIRST_LOGIN)) {
+			// trigger any other initialization
+			$user = $this->userManager->get($uid);
+			$this->eventDispatcher->dispatch(IUser::class . '::firstLogin', new GenericEvent($user));
+			$this->eventDispatcher->dispatchTyped(new UserFirstTimeLoggedInEvent($user));
 
+			$this->userConfig->setValueBool($uid, Application::APP_ID, ConfigLexicon::FIRST_LOGIN, true);
+		}
+	}
+
+	public function updateAttributes(string $uid, array $attributes): void {
 		$user = $this->userManager->get($uid);
 
 		$userData = $attributes['userData'];
 
-		$newEmail = $userData['email'];
-		$newDisplayName = $userData['displayName'];
-		$newQuota = $userData['quota'];
-		$newGroups = $userData['groups'];
+		$newEmail = $userData['email'] ?? null;
+		$newDisplayName = $userData['displayName'] ?? null;
+		$newQuota = $userData['quota'] ?? null;
+		$newGroups = $userData['groups'] ?? null;
 
-		$this->cache[$uid] = ['displayname' => $newDisplayName];
-
-		$currentEmail = (string)$user->getEMailAddress();
+		$currentEmail = $user?->getEMailAddress();
 		if ($newEmail !== null
 			&& $currentEmail !== $newEmail) {
 			$user->setEMailAddress($newEmail);
 		}
 		$currentDisplayName = $this->getDisplayName($uid);
-		if ($newDisplayName !== null && $currentDisplayName !== $newDisplayName) {
-			$this->eventDispatcher->dispatchTyped(new UserChangedEvent($user, 'displayname', $newDisplayName));
+		if ($user !== null && $newDisplayName !== null && $currentDisplayName !== $newDisplayName) {
+			$this->setDisplayName($uid, $newDisplayName);
+			$user->setDisplayName($newDisplayName);
+			$this->eventDispatcher->dispatchTyped(new UserChangedEvent($user, 'displayname', $newDisplayName, $currentDisplayName));
 			\OC_Hook::emit(
 				'OC_User', 'changeUser',
 				[
@@ -111,7 +123,6 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 					'value' => $newDisplayName
 				]
 			);
-			$this->setDisplayName($uid, $newDisplayName);
 		}
 
 		if ($newQuota !== null) {
@@ -288,7 +299,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		return false;
 	}
 
-	private function loadUser(string $loginName): bool {
+	public function loadUser(string $loginName): bool {
 		if (isset($this->cache[$loginName])) {
 			return $this->cache[$loginName] !== false;
 		}
