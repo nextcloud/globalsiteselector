@@ -8,12 +8,13 @@
 namespace OCA\GlobalSiteSelector\Service;
 
 use Exception;
-use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\GlobalSiteSelector\Exceptions\ConfigurationException;
 use OCA\GlobalSiteSelector\Exceptions\LookupServerConfigurationException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCP\Accounts\IAccountManager;
+use OCP\AppFramework\Services\IAppConfig;
 use OCP\Http\Client\IClientService;
 use OCP\ICache;
 use OCP\ICacheFactory;
@@ -35,6 +36,7 @@ class SlaveService {
 		private readonly IClientService $clientService,
 		private readonly IUserManager $userManager,
 		private readonly IAccountManager $accountManager,
+		private readonly IAppConfig $appConfig,
 		private readonly IConfig $config,
 		private readonly Lookup $lookup,
 		private readonly GlobalSiteSelector $gss,
@@ -228,11 +230,12 @@ class SlaveService {
 		];
 
 		// we ignore properties (like mail address) if instance is set as not priority
-		if ((string)$this->config->getAppValue(Application::APP_ID, 'ignore_properties', '0') === '1') {
+		if ($this->appConfig->getAppValueBool(ConfigLexicon::IGNORE_USER_PROPERTIES)) {
 			return $data;
 		}
 
 		$properties = $this->accountManager->getAccount($user)->getProperties();
+
 		foreach ($properties as $property) {
 			// display name can be wrong in account properties ...
 			if ($property->getName() !== IAccountManager::PROPERTY_DISPLAYNAME) {

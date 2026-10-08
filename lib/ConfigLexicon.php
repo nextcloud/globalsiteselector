@@ -22,6 +22,8 @@ class ConfigLexicon implements ILexicon {
 	public const NOTIFY_REMOTE = 'notifyRemote';
 	public const INSTANCE_MAIN_THREAD = 'requested_instance_main_thread';
 	public const SSO_USER_DATA = 'ssoUserData';
+	public const FIRST_LOGIN = 'firstLogin';
+	public const IGNORE_USER_PROPERTIES = 'ignore_properties';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
@@ -36,6 +38,7 @@ class ConfigLexicon implements ILexicon {
 		return [
 			new Entry(key: self::GS_TOKENS, type: ValueType::ARRAY, defaultRaw: [], definition: 'list of token+host to navigate through GlobalScale', lazy: true),
 			new Entry(key: self::LOCAL_TOKEN, type: ValueType::STRING, defaultRaw: '', definition: 'local token to id instance within GlobalScale'),
+			new Entry(key: self::IGNORE_USER_PROPERTIES, type: ValueType::BOOL, defaultRaw: false, definition: 'ignore local user properties when updating lookup server'),
 			new Entry(key: self::REDIRECT_WEBDAV, type: ValueType::BOOL, defaultRaw: false, definition: 'redirect WebDAV request on Master to Slaves', lazy: false),
 			new Entry(key: self::MANAGE_OAUTH2, type: ValueType::BOOL, defaultRaw: false, definition: 'manage OAuth2 requests from Master', lazy: false),
 			new Entry(key: self::NOTIFY_REMOTE, type: ValueType::BOOL, defaultRaw: false, definition: 'notify remote instance on file changes', lazy: false),
@@ -50,6 +53,7 @@ class ConfigLexicon implements ILexicon {
 	public function getUserConfigs(): array {
 		return [
 			new Entry(key: self::SSO_USER_DATA, type: ValueType::ARRAY, defaultRaw: [], definition: 'formatted SAML/OIDC identity data, cached from the last login with an active SSO session', lazy: true),
+			new Entry(key: self::FIRST_LOGIN, type: ValueType::BOOL, defaultRaw: false, definition: 'confirm user already logged in', lazy: true),
 		];
 	}
 }
