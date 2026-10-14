@@ -27,6 +27,7 @@ use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\BruteForceProtection;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
@@ -123,6 +124,29 @@ class SlaveController extends OCSController {
 			// the file is not local and returns the shared folder and the path to the file
 			return new DataResponse($e->getFederatedShare(), Http::STATUS_MOVED_PERMANENTLY);
 		}
+	}
+
+	#[PublicPage]
+	#[NoCSRFRequired]
+	#[UseSession]
+	#[BruteForceProtection(action: 'initAccount')]
+	#[FrontpageRoute(verb: 'POST', url: '/initaccount')]
+	public function initAccount(string $jwt): DataResponse {
+		$key = $this->gss->getJwtKey();
+		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
+		// JWT store data as stdClass, not array
+		$decoded = json_decode(json_encode($decoded), true);
+
+		$uid = $decoded['uid'] ?? '';
+		if ($uid === '' || $this->userBackend->userExists($uid) === true) {
+			return new DataResponse(['invalid or already existing uid'], Http::STATUS_BAD_REQUEST);
+		}
+
+		$attributes['userData']['displayName'] = $decoded['displayName'] ?? '';
+		$this->userBackend->createUserIfNotExists($uid, $attributes, false);
+		$this->slaveService->updateUserById($uid);
+
+		return new DataResponse([], Http::STATUS_OK);
 	}
 
 	/**

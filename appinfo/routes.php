@@ -7,6 +7,7 @@
 
 return [
 	'ocs' => [
+		['name' => 'Master#prepAccount', 'url' => '/prepaccount', 'verb' => 'POST'],
 		['name' => 'Slave#createAppToken', 'url' => '/v1/createapptoken', 'verb' => 'GET'],
 		['name' => 'Slave#discovery', 'url' => '/discovery', 'verb' => 'GET'],
 		['name' => 'Slave#sharedFile', 'url' => '/sharedfile', 'verb' => 'GET'],
@@ -17,6 +18,11 @@ return [
 			'name' => 'Slave#autoLogin',
 			'url' => '/autologin',
 			'verb' => 'GET'
+		],
+		[
+			'name' => 'Slave#initAccount',
+			'url' => '/initaccount',
+			'verb' => 'POST'
 		],
 		[
 			'name' => 'Master#autoLogout',
