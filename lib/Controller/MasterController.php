@@ -13,13 +13,11 @@ use OCA\GlobalSiteSelector\Exceptions\GlobalScaleModeratorException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
-use OCA\GlobalSiteSelector\Service\OAuth2Service;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\BruteForceProtection;
-use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
@@ -52,7 +50,6 @@ class MasterController extends OCSController {
 		private readonly IGroupManager $groupManager,
 		private readonly GlobalSiteSelector $gss,
 		private readonly GlobalScaleService $globalScaleService,
-		private readonly OAuth2Service $oauth2Service,
 		private readonly IConfig $config,
 		private readonly IAppConfig $appConfig,
 		private readonly Lookup $lookup,
@@ -120,28 +117,6 @@ class MasterController extends OCSController {
 
 		$this->logger->warning('fail to create account on remote node', ['status' => $status, 'node' => $instance]);
 		return new Response($status);
-	}
-
-	#[PublicPage]
-	#[FrontpageRoute(verb: 'POST', url: '/test')]
-	public function finalizeOAuthFlow(
-		string $stateToken,
-		string $clientIdentifier = '',
-		string $providedRedirectUri = '',
-	): Response {
-		try {
-			return $this->oauth2Service->finalizeOAuth2(
-				$stateToken,
-				$clientIdentifier,
-				$providedRedirectUri,
-				$this->request->getHeader('user-agent'),
-			);
-		} catch (\Exception $e) {
-			$this->logger->warning('fail to manage oauth2', ['exception' => $e]);
-			$response = new Response();
-			$response->setStatus(Http::STATUS_FORBIDDEN);
-			return $response;
-		}
 	}
 
 	#[PublicPage]

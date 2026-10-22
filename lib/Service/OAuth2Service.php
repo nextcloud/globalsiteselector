@@ -11,7 +11,6 @@ namespace OCA\GlobalSiteSelector\Service;
 
 use Exception;
 use OC\Authentication\Events\AppPasswordCreatedEvent;
-use OC\Authentication\Exceptions\PasswordlessTokenException;
 use OC\Authentication\Token\IProvider;
 use OC\Core\Controller\ClientFlowLoginController;
 use OCA\GlobalSiteSelector\AppInfo\Application;
@@ -20,26 +19,16 @@ use OCA\OAuth2\Db\AccessToken;
 use OCA\OAuth2\Db\AccessTokenMapper;
 use OCA\OAuth2\Db\ClientMapper;
 use OCP\App\IAppManager;
-use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\ContentSecurityPolicy;
-use OCP\AppFramework\Http\RedirectResponse;
-use OCP\AppFramework\Http\Response;
-use OCP\AppFramework\Http\StandaloneTemplateResponse;
-use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Authentication\Token\IToken;
-use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IAppConfig;
 use OCP\IConfig;
-use OCP\IInitialStateService;
 use OCP\IRequest;
 use OCP\ISession;
-use OCP\IURLGenerator;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
 use OCP\Security\ISecureRandom;
-use OCP\Util;
 use Psr\Log\LoggerInterface;
 use ReflectionProperty;
 
@@ -52,8 +41,6 @@ class OAuth2Service {
 		private readonly ISession $session,
 		private readonly IUserSession $userSession,
 		private readonly IAppConfig $appConfig,
-		private readonly IInitialStateService $initialStateService,
-		private readonly Defaults $defaults,
 		private readonly IProvider $tokenProvider,
 		private readonly ISecureRandom $random,
 		private readonly AccessTokenMapper $accessTokenMapper,
@@ -61,7 +48,6 @@ class OAuth2Service {
 		private readonly IEventDispatcher $eventDispatcher,
 		private readonly ITimeFactory $timeFactory,
 		private readonly IConfig $config,
-		private readonly IURLGenerator $urlGenerator,
 		private readonly ClientMapper $clientMapper,
 		private readonly LoggerInterface $logger,
 	) {
@@ -81,18 +67,16 @@ class OAuth2Service {
 			return true;
 		}
 
-		// we emulate login flow grant
+		// if logged and requesting login flow grant, we redirect to client
 		if ($this->toolsService->isPath(['/login/flow/grant'], $target)
 			&& $this->userSession->isLoggedIn()) {
-			echo $this->handleFlowGrant(
+			$this->finalizeOAuth2(
+				$uid,
 				$this->request->getParam('stateToken', ''),
 				$this->request->getParam('clientIdentifier', ''),
-				(int)$this->request->getParam('direct', 0),
 				$this->request->getParam('providedRedirectUri', ''),
 				$this->request->getHeader('user-agent'),
-				$uid,
-			)->render();
-			die();
+			);
 		}
 
 		return false;
@@ -101,78 +85,16 @@ class OAuth2Service {
 	/**
 	 * use of ReflectionProperty can be removed once we hit min-version=36
 	 */
-	private function handleFlowGrant(
-		string $stateToken,
-		string $clientIdentifier,
-		int $direct,
-		string $providedRedirectUri,
-		string $userAgent,
-		string $userId,
-	): Response {
-		if (!$this->isValidToken($stateToken)) {
-			$this->logger->warning('State token does not match');
-			return new StandaloneTemplateResponse(
-				'core',
-				'403',
-				['message' => 'State token does not match'],
-				'guest',
-				Http::STATUS_FORBIDDEN
-			);
-		}
-
-		$clientName = ($userAgent !== '') ? $userAgent : 'unknown';
-
-		$client = null;
-		if ($clientIdentifier !== '') {
-			$client = $this->clientMapper->getByIdentifier($clientIdentifier);
-			$clientName = ((new ReflectionProperty($client, 'name'))->isPublic()) ? $client->name : $client->getName();
-		}
-
-		$csp = new ContentSecurityPolicy();
-		if ($client) {
-			$csp->addAllowedFormActionDomain(((new ReflectionProperty($client, 'redirectUri'))->isPublic()) ? $client->redirectUri : $client->getRedirectUri());
-		} else {
-			$csp->addAllowedFormActionDomain('nc://*');
-		}
-
-		$this->initialStateService->provideInitialState('core', 'loginFlowState', 'grant');
-		$this->initialStateService->provideInitialState('core', 'loginFlowGrant', [
-			// the last step is host by the app instead of core to keep current session active
-			'actionUrl' => $this->urlGenerator->linkToRouteAbsolute('globalsiteselector.Master.finalizeOAuthFlow'),
-			'client' => $clientName,
-			'clientIdentifier' => $clientIdentifier,
-			'instanceName' => $this->defaults->getName(),
-			'stateToken' => $stateToken,
-			'serverHost' => $this->getServerPath(),
-			'oauthState' => $this->session->get('oauth.state'),
-			'direct' => $direct,
-			'providedRedirectUri' => $providedRedirectUri,
-			'userDisplayName' => $userId,
-			'userId' => $userId,
-		]);
-
-		// we need to load basic scripts
-		Util::addScript('core', 'common');
-		Util::addScript('core', 'main');
-		Util::addTranslations('core');
-		Util::addScript('core', 'login_flow');
-		$response = new TemplateResponse('core', 'loginflow', renderAs: 'guest');
-		$response->setContentSecurityPolicy($csp);
-
-		return $response;
-	}
-
-	/**
-	 * use of ReflectionProperty can be removed once we hit min-version=36
-	 */
 	public function finalizeOAuth2(
+		string $uid,
 		string $stateToken,
 		string $clientIdentifier,
 		string $providedRedirectUri,
 		string $userAgent,
-	): Response {
+	): void {
 		if (!$this->appManager->isAppLoaded('oauth2')
 			|| !$this->appConfig->getValueBool(Application::APP_ID, ConfigLexicon::MANAGE_OAUTH2)) {
+			$this->session->remove(ClientFlowLoginController::STATE_NAME);
 			throw new \Exception('feature not available');
 		}
 
@@ -182,20 +104,6 @@ class OAuth2Service {
 		}
 
 		$this->session->remove(ClientFlowLoginController::STATE_NAME);
-
-		$sessionId = $this->session->getId();
-		$sessionToken = $this->tokenProvider->getToken($sessionId);
-		$loginName = $sessionToken->getLoginName();
-		$uid = $sessionToken->getUID();
-		if ($uid === '') {
-			throw new \Exception('missing uid');
-		}
-
-		try {
-			$password = $this->tokenProvider->getPassword($sessionToken, $sessionId);
-		} catch (PasswordlessTokenException) {
-			$password = null;
-		}
 
 		$clientName = ($userAgent !== '') ? $userAgent : 'unknown';
 		$client = false;
@@ -208,8 +116,8 @@ class OAuth2Service {
 		$generatedToken = $this->tokenProvider->generateToken(
 			$token,
 			$uid,
-			$loginName,
-			$password,
+			$uid,
+			null,
 			$clientName,
 			IToken::PERMANENT_TOKEN,
 			IToken::DO_NOT_REMEMBER
@@ -258,20 +166,18 @@ class OAuth2Service {
 			);
 			$this->session->remove('oauth.state');
 		} else {
-			$redirectUri = 'nc://login/server:' . $this->getServerPath() . '&user:' . urlencode($loginName) . '&password:' . urlencode($token);
-
-			// Clear the token from the login here
-			$this->tokenProvider->invalidateToken($sessionId);
+			$redirectUri = 'nc://login/server:' . $this->getServerPath() . '&user:' . urlencode($uid) . '&password:' . urlencode($token);
 		}
 
 		$this->eventDispatcher->dispatchTyped(new AppPasswordCreatedEvent($generatedToken));
 
-		return new RedirectResponse($redirectUri);
+		header('Location: ' . $redirectUri);
+		die();
 	}
 
 	private function isValidToken(string $stateToken): bool {
 		$currentToken = $this->session->get(ClientFlowLoginController::STATE_NAME);
-		if (!is_string($currentToken)) {
+		if (empty($stateToken) || !is_string($currentToken)) {
 			return false;
 		}
 		return hash_equals($currentToken, $stateToken);

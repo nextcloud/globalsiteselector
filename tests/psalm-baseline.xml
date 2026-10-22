@@ -8,13 +8,12 @@
 		<UndefinedClass>
 			<code><![CDATA[$this->accessTokenMapper]]></code>
 			<code><![CDATA[$this->clientMapper]]></code>
-			<code><![CDATA[$this->clientMapper]]></code>
 			<code><![CDATA[AccessToken]]></code>
 			<code><![CDATA[AppPasswordCreatedEvent]]></code>
 			<code><![CDATA[ClientFlowLoginController]]></code>
 			<code><![CDATA[ClientFlowLoginController]]></code>
 			<code><![CDATA[ClientFlowLoginController]]></code>
-			<code><![CDATA[PasswordlessTokenException]]></code>
+			<code><![CDATA[ClientFlowLoginController]]></code>
 			<code><![CDATA[private]]></code>
 			<code><![CDATA[private]]></code>
 		</UndefinedClass>
