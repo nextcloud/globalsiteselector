@@ -33,7 +33,6 @@ class Lookup {
 	 * try to find the exact user at the lookup server, we allow to search for
 	 * email addresses and federated cloud ids and internal UIDs.
 	 *
-	 *
 	 * @return string the url of the server where the user is located
 	 */
 	public function search(string &$uid, bool $matchUid = false): string {

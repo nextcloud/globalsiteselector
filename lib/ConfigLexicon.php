@@ -21,9 +21,10 @@ class ConfigLexicon implements ILexicon {
 	public const MANAGE_OAUTH2 = 'manageOAuth2';
 	public const NOTIFY_REMOTE = 'notifyRemote';
 	public const INSTANCE_MAIN_THREAD = 'requested_instance_main_thread';
+	public const ENABLE_PREP_ACCOUNTS = 'prepAccounts';
+	public const IGNORE_USER_PROPERTIES = 'ignore_properties';
 	public const SSO_USER_DATA = 'ssoUserData';
 	public const FIRST_LOGIN = 'firstLogin';
-	public const IGNORE_USER_PROPERTIES = 'ignore_properties';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
@@ -43,6 +44,7 @@ class ConfigLexicon implements ILexicon {
 			new Entry(key: self::MANAGE_OAUTH2, type: ValueType::BOOL, defaultRaw: false, definition: 'manage OAuth2 requests from Master', lazy: false),
 			new Entry(key: self::NOTIFY_REMOTE, type: ValueType::BOOL, defaultRaw: false, definition: 'notify remote instance on file changes', lazy: false),
 			new Entry(key: self::INSTANCE_MAIN_THREAD, type: ValueType::INT, defaultRaw: 2, definition: 'when running event requests, maximum number of instances to reach before switching to background job', lazy: false),
+			new Entry(key: self::ENABLE_PREP_ACCOUNTS, type: ValueType::BOOL, defaultRaw: false, definition: 'open an OCS endpoint to allow specific accounts on master to prepare accounts on slaves', lazy: true),
 		];
 	}
 

@@ -8,21 +8,32 @@
 namespace OCA\GlobalSiteSelector\Controller;
 
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\ConfigLexicon;
+use OCA\GlobalSiteSelector\Exceptions\GlobalScaleModeratorException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
-use OCA\GlobalSiteSelector\Master;
+use OCA\GlobalSiteSelector\Lookup;
+use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Service\OAuth2Service;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\Key;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\ApiRoute;
+use OCP\AppFramework\Http\Attribute\BruteForceProtection;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\Attribute\UseSession;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\OCSController;
+use OCP\AppFramework\Services\IAppConfig;
+use OCP\IConfig;
+use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IURLGenerator;
+use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -37,11 +48,78 @@ class MasterController extends OCSController {
 		$appName,
 		IRequest $request,
 		private readonly IURLGenerator $urlGenerator,
+		private readonly IUserSession $userSession,
+		private readonly IGroupManager $groupManager,
 		private readonly GlobalSiteSelector $gss,
+		private readonly GlobalScaleService $globalScaleService,
 		private readonly OAuth2Service $oauth2Service,
+		private readonly IConfig $config,
+		private readonly IAppConfig $appConfig,
+		private readonly Lookup $lookup,
 		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
+	}
+
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	#[UseSession]
+	#[BruteForceProtection(action: 'prepAccount')]
+	#[ApiRoute(verb: 'POST', url: '/prepaccount')]
+	public function prepAccount(
+		string $uid,
+		string $instance,
+		string $displayName = '',
+	): Response {
+		try {
+			$this->confirmGssModerator(ConfigLexicon::ENABLE_PREP_ACCOUNTS);
+		} catch (GlobalScaleModeratorException $e) {
+			$this->logger->warning('prepAccount failed due to GlobalScaleModeratorException', ['exception' => $e]);
+			return new Response(Http::STATUS_NOT_FOUND);
+		}
+
+		// check user is not already on lus
+		$location = $this->lookup->search($uid, true);
+		if ($location !== '') {
+			return new DataResponse(['already existing user'], Http::STATUS_BAD_REQUEST);
+		}
+
+		// confirm instance is known to lus
+		$instance = strtolower($instance);
+		$knownInstances = $this->lookup->getInstances();
+		if (empty($knownInstances)) {
+			$this->logger->warning('prepAccount require a configured lookup server');
+		}
+
+		$found = false;
+		foreach ($knownInstances as $address) {
+			if (strtolower($address) === $instance) {
+				$found = true;
+				break;
+			}
+		}
+		if (!$found) {
+			return new DataResponse(['instance not found'], Http::STATUS_BAD_REQUEST);
+		}
+
+		$response = $this->globalScaleService->sendToLocation(
+			'post',
+			$instance,
+			'/apps/globalsiteselector/initaccount',
+			['uid' => $uid, 'displayName' => $displayName],
+			[
+				'timeout' => 60,
+				'connect_timeout' => 10,
+			]
+		);
+
+		$status = $response->getStatusCode();
+		if ($status === Http::STATUS_OK) {
+			return new DataResponse(['node' => $instance], Http::STATUS_OK);
+		}
+
+		$this->logger->warning('fail to create account on remote node', ['status' => $status, 'node' => $instance]);
+		return new Response($status);
 	}
 
 	#[PublicPage]
@@ -105,5 +183,26 @@ class MasterController extends OCSController {
 		$home = $this->urlGenerator->getAbsoluteURL('/');
 
 		return new RedirectResponse($home);
+	}
+
+	/**
+	 * check the current user is globalscale moderator and the feature is enabled
+	 *
+	 * @throws GlobalScaleModeratorException
+	 */
+	private function confirmGssModerator(?string $configKey = null): void {
+		if (!$this->gss->isMaster()) {
+			throw new GlobalScaleModeratorException('not master');
+		}
+
+		if ($configKey !== null && !$this->appConfig->getAppValueBool($configKey)) {
+			throw new GlobalScaleModeratorException('feature not available');
+		}
+
+		$user = $this->userSession->getUser();
+		$gssModeratorsGroup = $this->config->getSystemValueString('gss.moderators', '');
+		if ($gssModeratorsGroup === '' || !$this->groupManager->isInGroup($user->getUID(), $gssModeratorsGroup)) {
+			throw new GlobalScaleModeratorException('account is not moderator');
+		}
 	}
 }
