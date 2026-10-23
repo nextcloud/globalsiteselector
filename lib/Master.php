@@ -319,11 +319,11 @@ class Master {
 					'headers' => [
 						'OCS-APIRequest' => 'true'
 					],
-					'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
 					'query' => [
 						'format' => 'json',
 						'jwt' => $jwt
-					]
+					],
+					'timeout' => 30,
 				]
 			)
 		);

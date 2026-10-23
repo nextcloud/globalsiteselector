@@ -183,11 +183,12 @@ class Lookup {
 
 	public function configureClient(array $options): array {
 		return array_merge(
-			$options,
 			[
+				'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
 				'timeout' => 10,
 				'connect_timeout' => 3,
-			]
+			],
+			$options
 		);
 	}
 }
