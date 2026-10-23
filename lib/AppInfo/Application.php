@@ -182,22 +182,16 @@ class Application extends App implements IBootstrap {
 
 			$redirectUrl = $params['redirect_url'] ?? null;
 			if ($redirectUrl === null) {
-				$masterUrl = rtrim($masterUrl, '/') . '/index.php' . $pathInfo;
+				$masterUrl .= '/index.php' . $pathInfo;
 			} else {
-				$masterUrl = rtrim($masterUrl, '/') . '/index.php/login?redirect_url=' . urlencode($redirectUrl);
+				$masterUrl .= '/index.php/login?redirect_url=' . urlencode($redirectUrl);
 			}
 
 			$this->logger->debug('Redirecting client to ' . $masterUrl, ['app' => self::APP_ID]);
 			header('Location: ' . $masterUrl);
 			exit();
 		} catch (Exception|ContainerExceptionInterface|NotFoundExceptionInterface $e) {
-			$this->logger->warning(
-				'issue during redirectToMasterLogin',
-				[
-					'exception' => $e,
-					'app' => self::APP_ID
-				]
-			);
+			$this->logger->warning('issue during redirectToMasterLogin', ['exception' => $e]);
 		}
 	}
 
