@@ -102,7 +102,6 @@ class Master {
 		];
 
 		if ($this->toolsService->isPath([
-			'/apps/globalsiteselector/oauth2/login/flow',
 			'/ocs/v1.php/apps/globalsiteselector/prepaccount',
 		], $target)) {
 			return;
