@@ -10,6 +10,7 @@ namespace OCA\GlobalSiteSelector;
 use Exception;
 use OCA\GlobalSiteSelector\AppInfo\Application;
 use OCA\GlobalSiteSelector\Exceptions\LookupServerConfigurationException;
+use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCP\Http\Client\IClientService;
@@ -285,16 +286,10 @@ class Slave {
 		}
 
 		$jwt = JWT::encode($token, $this->gss->getJwtKey(), Application::JWT_ALGORITHM);
-		$location = $this->config->getSystemValueString('gss.master.url', '');
-
-		if ($location === '') {
-			$this->logger->error(
-				'Can not redirect to master for logout, "gss.master.url" not set in config.php',
-				[
-					'app' => Application::APP_ID,
-				]
-			);
-
+		try {
+			$location = $this->gss->getMasterUrl();
+		} catch (MasterUrlException $e) {
+			$this->logger->error('Can not redirect to master for logout, "gss.master.url" not set in config.php', ['exception' => $e]);
 			return;
 		}
 

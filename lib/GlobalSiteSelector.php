@@ -92,7 +92,7 @@ class GlobalSiteSelector {
 			throw new MasterUrlException('missing gss.master.url in config');
 		}
 
-		return $masterUrl;
+		return rtrim($masterUrl, '/');
 	}
 
 	/**
