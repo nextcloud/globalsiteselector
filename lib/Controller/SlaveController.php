@@ -10,12 +10,14 @@ namespace OCA\GlobalSiteSelector\Controller;
 use OC\Authentication\Token\IProvider;
 use OC\User\DisabledUserException;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\AuditLog\Operation;
 use OCA\GlobalSiteSelector\Exceptions\LocalFederatedShareException;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCA\GlobalSiteSelector\Exceptions\SharedFileException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Model\FederatedShare;
 use OCA\GlobalSiteSelector\Model\LocalFile;
+use OCA\GlobalSiteSelector\Service\AuditLogService;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Service\GlobalShareService;
 use OCA\GlobalSiteSelector\Service\SlaveService;
@@ -71,6 +73,7 @@ class SlaveController extends OCSController {
 		private readonly GlobalShareService $globalShareService,
 		private readonly IConfig $config,
 		private readonly IProvider $authTokenProvider,
+		private readonly AuditLogService $auditLogService,
 		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
@@ -203,6 +206,7 @@ class SlaveController extends OCSController {
 			return $response;
 		}
 
+		$uid = null;
 		try {
 			[$uid, $password, $options] = $this->decodeJwt($jwt);
 			$this->logger->debug('uid: ' . $uid . ', options: ' . json_encode($options));
@@ -242,6 +246,7 @@ class SlaveController extends OCSController {
 			} else {
 				$this->logger->debug('testing normal login process');
 				$result = $this->userSession->login($uid, $password);
+				$backend = 'password';
 			}
 
 			$this->logger->notice('auth result: ' . json_encode($result));
@@ -258,9 +263,11 @@ class SlaveController extends OCSController {
 			$params = ['uid' => $uid];
 			$this->slave->preDeleteUser($params);
 			$this->slave->deleteUser($params);
+			$this->logFailedAutoLogin($uid, 'account_disabled');
 			return new RedirectResponse($masterUrl);
 		} catch (\Exception $e) {
 			$this->logger->warning('issue during login process', ['exception' => $e]);
+			$this->logFailedAutoLogin($uid, ($uid === null) ? 'invalid_jwt' : 'login_failed');
 			$response = new RedirectResponse($masterUrl);
 			$response->throttle();
 			return $response;
@@ -276,6 +283,11 @@ class SlaveController extends OCSController {
 		$scope[IToken::SCOPE_SKIP_PASSWORD_VALIDATION] = true;
 		$token->setScope($scope);
 		$this->authTokenProvider->updateToken($token);
+
+		$this->auditLogService->log(Operation::AutoLoginSucceeded, 'User "%s" logged in via global scale autologin (%s)', [
+			'userId' => $uid,
+			'backend' => $backend,
+		]);
 
 		$this->slaveService->updateUserById($uid);
 		$this->logger->debug('userdata updated on lus');
@@ -304,6 +316,7 @@ class SlaveController extends OCSController {
 			return $response;
 		}
 
+		$uid = null;
 		try {
 			[$uid, $password, $options] = $this->decodeJwt($jwt);
 			$samlOrOidc = in_array($options['backend'] ?? '', ['saml', 'oidc']);
@@ -319,11 +332,15 @@ class SlaveController extends OCSController {
 
 					return new DataResponse($token);
 				}
+				$this->logFailedAppTokenCreation($uid, 'login_failed');
+			} else {
+				$this->logFailedAppTokenCreation($uid, 'user_not_found');
 			}
 		} catch (ExpiredException) {
 			$this->logger->info('Create app password: JWT token expired');
 		} catch (\Exception $e) {
 			$this->logger->info('issue while token creation', ['exception' => $e]);
+			$this->logFailedAppTokenCreation($uid, ($uid === null) ? 'invalid_jwt' : 'login_failed');
 		}
 
 		$response = new DataResponse([], Http::STATUS_BAD_REQUEST);
@@ -368,5 +385,19 @@ class SlaveController extends OCSController {
 
 		$this->userBackend->createUserIfNotExists($uid, true);
 		$this->userBackend->updateAttributes($uid, $options);
+	}
+
+	private function logFailedAutoLogin(?string $uid, string $reason): void {
+		$this->auditLogService->log(Operation::AutoLoginFailed, 'Global scale autologin for "%s" rejected: %s', [
+			'userId' => $uid ?? '',
+			'reason' => $reason,
+		]);
+	}
+
+	private function logFailedAppTokenCreation(?string $uid, string $reason): void {
+		$this->auditLogService->log(Operation::AppPasswordRequestFailed, 'Global scale app password creation for "%s" rejected: %s', [
+			'userId' => $uid ?? '',
+			'reason' => $reason,
+		]);
 	}
 }
