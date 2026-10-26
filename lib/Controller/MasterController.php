@@ -8,10 +8,12 @@
 namespace OCA\GlobalSiteSelector\Controller;
 
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\AuditLog\Operation;
 use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\GlobalSiteSelector\Exceptions\GlobalScaleModeratorException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
+use OCA\GlobalSiteSelector\Service\AuditLogService;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Service\OAuth2Service;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
@@ -56,6 +58,7 @@ class MasterController extends OCSController {
 		private readonly IConfig $config,
 		private readonly IAppConfig $appConfig,
 		private readonly Lookup $lookup,
+		private readonly AuditLogService $auditLogService,
 		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
@@ -115,6 +118,10 @@ class MasterController extends OCSController {
 
 		$status = $response->getStatusCode();
 		if ($status === Http::STATUS_OK) {
+			$this->auditLogService->log(Operation::AccountPrepared, 'Account "%s" prepared on instance %s', [
+				'userId' => $uid,
+				'instance' => $instance,
+			]);
 			return new DataResponse(['node' => $instance], Http::STATUS_OK);
 		}
 
