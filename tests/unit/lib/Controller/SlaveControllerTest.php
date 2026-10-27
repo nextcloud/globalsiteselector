@@ -8,23 +8,30 @@
 namespace OCA\GlobalSiteSelector\Tests\Unit\Controller;
 
 use OC\Authentication\Token\IProvider;
+use OC\Authentication\Token\IToken;
+use OC\User\Session;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\AuditLog\Operation;
 use OCA\GlobalSiteSelector\Controller\SlaveController;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
+use OCA\GlobalSiteSelector\Service\AuditLogService;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
 use OCA\GlobalSiteSelector\Service\GlobalShareService;
 use OCA\GlobalSiteSelector\Service\SlaveService;
 use OCA\GlobalSiteSelector\Slave;
 use OCA\GlobalSiteSelector\TokenHandler;
 use OCA\GlobalSiteSelector\UserBackend;
+use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\ExpiredException;
 use OCA\GlobalSiteSelector\Vendor\Firebase\JWT\JWT;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IURLGenerator;
+use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
@@ -46,6 +53,7 @@ class SlaveControllerTest extends TestCase {
 	private MockObject&SlaveService $slaveService;
 	private MockObject&IConfig $config;
 	private MockObject&IProvider $tokenProvider;
+	private MockObject&AuditLogService $auditLogService;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -69,6 +77,7 @@ class SlaveControllerTest extends TestCase {
 		$this->globalShareService = $this->createMock(GlobalShareService::class);
 		$this->config = $this->createMock(IConfig::class);
 		$this->tokenProvider = $this->createMock(IProvider::class);
+		$this->auditLogService = $this->createMock(AuditLogService::class);
 	}
 
 	private function getInstance(array $mockMathods = []): SlaveController&MockObject {
@@ -91,6 +100,7 @@ class SlaveControllerTest extends TestCase {
 					$this->globalShareService,
 					$this->config,
 					$this->tokenProvider,
+					$this->auditLogService,
 					$this->logger
 				]
 			)->onlyMethods($mockMathods)->getMock();
@@ -120,5 +130,174 @@ class SlaveControllerTest extends TestCase {
 		$this->assertSame('user', $uid);
 		$this->assertSame($plainPassword, $password);
 		$this->assertSame($options, ['option1' => 'foo']);
+	}
+
+	private function prepareAutoLogin(): void {
+		$this->gss->method('getMasterUrl')->willReturn('https://master.example');
+		$this->gss->method('isMaster')->willReturn(false);
+	}
+
+	private function prepareSessionCreation(): void {
+		$this->userSession = $this->createMock(Session::class);
+		$this->session->method('getId')->willReturn('session-id');
+		$sessionToken = $this->createMock(IToken::class);
+		$sessionToken->method('getScopeAsArray')->willReturn([]);
+		$this->tokenProvider->method('getToken')->with('session-id')->willReturn($sessionToken);
+		$this->urlGenerator->method('getAbsoluteURL')->willReturnArgument(0);
+	}
+
+	private function mockUser(bool $enabled): IUser&MockObject {
+		$user = $this->createMock(IUser::class);
+		$user->method('getUID')->willReturn('alice');
+		$user->method('isEnabled')->willReturn($enabled);
+		return $user;
+	}
+
+	private function expectAuditLog(Operation $operation, string $message, array $parameters): void {
+		$this->auditLogService->expects($this->once())
+			->method('log')
+			->with($operation, $message, $parameters);
+	}
+
+	private function expectNoAuditLog(): void {
+		$this->auditLogService->expects($this->never())->method('log');
+	}
+
+	public static function dataAutoLoginSucceeded(): array {
+		return [
+			'saml' => ['saml', 'saml'],
+			'oidc' => ['oidc', 'oidc'],
+			'password' => ['', 'password'],
+		];
+	}
+
+	#[DataProvider('dataAutoLoginSucceeded')]
+	public function testAutoLoginSucceededWritesAuditLog(string $backend, string $expectedBackend): void {
+		$this->prepareAutoLogin();
+		$this->prepareSessionCreation();
+		$this->userManager->method('get')->with('alice')->willReturn($this->mockUser(true));
+		$this->userSession->method('login')->with('alice', 'password')->willReturn(true);
+		$this->expectAuditLog(Operation::AutoLoginSucceeded, 'User "%s" logged in via global scale autologin (%s)', [
+			'userId' => 'alice',
+			'backend' => $expectedBackend,
+		]);
+
+		$controller = $this->getInstance(['decodeJwt', 'autoprovisionIfNeeded']);
+		$controller->method('decodeJwt')->willReturn(['alice', 'password', ['target' => '/apps/files', 'backend' => $backend]]);
+
+		$controller->autoLogin('jwt');
+	}
+
+	public function testAutoLoginWithInvalidJwtWritesAuditLog(): void {
+		$this->prepareAutoLogin();
+		$this->expectAuditLog(Operation::AutoLoginFailed, 'Global scale autologin for "%s" rejected: %s', [
+			'userId' => '',
+			'reason' => 'invalid_jwt',
+		]);
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->method('decodeJwt')->willThrowException(new \UnexpectedValueException('Signature verification failed'));
+
+		$controller->autoLogin('jwt');
+	}
+
+	public function testAutoLoginWithWrongPasswordWritesAuditLog(): void {
+		$this->prepareAutoLogin();
+		$this->userSession->method('login')->with('alice', 'wrong')->willReturn(false);
+		$this->expectAuditLog(Operation::AutoLoginFailed, 'Global scale autologin for "%s" rejected: %s', [
+			'userId' => 'alice',
+			'reason' => 'login_failed',
+		]);
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->method('decodeJwt')->willReturn(['alice', 'wrong', ['target' => '/']]);
+
+		$controller->autoLogin('jwt');
+	}
+
+	public function testAutoLoginWithDisabledAccountWritesAuditLog(): void {
+		$this->prepareAutoLogin();
+		$this->userManager->method('get')->with('alice')->willReturn($this->mockUser(false));
+		$this->slave->expects($this->once())->method('deleteUser')->with(['uid' => 'alice']);
+		$this->expectAuditLog(Operation::AutoLoginFailed, 'Global scale autologin for "%s" rejected: %s', [
+			'userId' => 'alice',
+			'reason' => 'account_disabled',
+		]);
+		$controller = $this->getInstance(['decodeJwt', 'autoprovisionIfNeeded']);
+		$controller->method('decodeJwt')->willReturn(['alice', '', ['target' => '/', 'backend' => 'saml']]);
+
+		$controller->autoLogin('jwt');
+	}
+
+	public function testAutoLoginWithExpiredJwtWritesNoAuditLog(): void {
+		$this->prepareAutoLogin();
+		$this->expectNoAuditLog();
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->method('decodeJwt')->willThrowException(new ExpiredException('Expired token'));
+
+		$controller->autoLogin('jwt');
+	}
+
+	public function testAutoLoginWithoutJwtWritesNoAuditLog(): void {
+		$this->prepareAutoLogin();
+		$this->expectNoAuditLog();
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->expects($this->never())->method('decodeJwt');
+
+		$controller->autoLogin('');
+	}
+
+	public function testCreateAppTokenSucceededWritesNoFailureAuditLog(): void {
+		$this->gss->method('getMode')->willReturn('slave');
+		$this->userManager->method('userExists')->with('alice')->willReturn(true);
+		$this->userSession->method('login')->with('alice', 'password')->willReturn(true);
+		$this->tokenHandler->expects($this->once())->method('generateAppToken')->with('alice')->willReturn(['token' => 'secret']);
+		$this->expectNoAuditLog();
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->method('decodeJwt')->willReturn(['alice', 'password', []]);
+
+		$controller->createAppToken('jwt');
+	}
+
+	public static function dataCreateAppTokenRejected(): array {
+		return [
+			'wrong password' => [true, false, 'login_failed'],
+			'unknown account' => [false, true, 'user_not_found'],
+		];
+	}
+
+	#[DataProvider('dataCreateAppTokenRejected')]
+	public function testCreateAppTokenRejectedWritesAuditLog(bool $userExists, bool $loginResult, string $reason): void {
+		$this->gss->method('getMode')->willReturn('slave');
+		$this->userManager->method('userExists')->with('alice')->willReturn($userExists);
+		$this->userSession->method('login')->willReturn($loginResult);
+		$this->tokenHandler->expects($this->never())->method('generateAppToken');
+		$this->expectAuditLog(Operation::AppPasswordRequestFailed, 'Global scale app password creation for "%s" rejected: %s', [
+			'userId' => 'alice',
+			'reason' => $reason,
+		]);
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->method('decodeJwt')->willReturn(['alice', 'password', []]);
+
+		$controller->createAppToken('jwt');
+	}
+
+	public function testCreateAppTokenWithInvalidJwtWritesAuditLog(): void {
+		$this->gss->method('getMode')->willReturn('slave');
+		$this->expectAuditLog(Operation::AppPasswordRequestFailed, 'Global scale app password creation for "%s" rejected: %s', [
+			'userId' => '',
+			'reason' => 'invalid_jwt',
+		]);
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->method('decodeJwt')->willThrowException(new \UnexpectedValueException('Signature verification failed'));
+
+		$controller->createAppToken('jwt');
+	}
+
+	public function testCreateAppTokenWithExpiredJwtWritesNoAuditLog(): void {
+		$this->gss->method('getMode')->willReturn('slave');
+		$this->expectNoAuditLog();
+		$controller = $this->getInstance(['decodeJwt']);
+		$controller->method('decodeJwt')->willThrowException(new ExpiredException('Expired token'));
+
+		$controller->createAppToken('jwt');
 	}
 }

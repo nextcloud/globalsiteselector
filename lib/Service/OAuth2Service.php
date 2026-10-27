@@ -15,6 +15,7 @@ use OC\Authentication\Exceptions\PasswordlessTokenException;
 use OC\Authentication\Token\IProvider;
 use OC\Core\Controller\ClientFlowLoginController;
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\AuditLog\Operation;
 use OCA\GlobalSiteSelector\ConfigLexicon;
 use OCA\OAuth2\Db\AccessToken;
 use OCA\OAuth2\Db\AccessTokenMapper;
@@ -63,6 +64,7 @@ class OAuth2Service {
 		private readonly IConfig $config,
 		private readonly IURLGenerator $urlGenerator,
 		private readonly ClientMapper $clientMapper,
+		private readonly AuditLogService $auditLogService,
 		private readonly LoggerInterface $logger,
 	) {
 	}
@@ -215,17 +217,19 @@ class OAuth2Service {
 			IToken::DO_NOT_REMEMBER
 		);
 
+		$oauthClientId = null;
 		if ($client) {
+			$oauthClientId = ((new ReflectionProperty($client, 'id'))->isPublic()) ? $client->id : $client->getId();
 			$code = $this->random->generate(128, ISecureRandom::CHAR_UPPER . ISecureRandom::CHAR_LOWER . ISecureRandom::CHAR_DIGITS);
 			$accessToken = new AccessToken();
 			if ((new ReflectionProperty($accessToken, 'clientId'))->isPublic()) {
-				$accessToken->clientId = ((new ReflectionProperty($client, 'id'))->isPublic()) ? $client->id : $client->getId();
+				$accessToken->clientId = $oauthClientId;
 				$accessToken->encryptedToken = $this->crypto->encrypt($token, $code);
 				$accessToken->hashedCode = hash('sha512', $code);
 				$accessToken->tokenId = $generatedToken->getId();
 				$accessToken->codeCreatedAt = $this->timeFactory->now()->getTimestamp();
 			} else {
-				$accessToken->setClientId(((new ReflectionProperty($client, 'id'))->isPublic()) ? $client->id : $client->getId());
+				$accessToken->setClientId($oauthClientId);
 				$accessToken->setEncryptedToken($this->crypto->encrypt($token, $code));
 				$accessToken->setHashedCode(hash('sha512', $code));
 				$accessToken->setTokenId($generatedToken->getId());
@@ -265,6 +269,14 @@ class OAuth2Service {
 		}
 
 		$this->eventDispatcher->dispatchTyped(new AppPasswordCreatedEvent($generatedToken));
+		$message = ($oauthClientId === null)
+			? 'Login flow granted for "%s": app password %s created'
+			: 'Login flow granted for "%s": app password %s created for OAuth2 client %s';
+		$this->auditLogService->log(Operation::LoginFlowGranted, $message, [
+			'userId' => $uid,
+			'tokenId' => $generatedToken->getId(),
+			'oauthClientId' => $oauthClientId,
+		]);
 
 		return new RedirectResponse($redirectUri);
 	}

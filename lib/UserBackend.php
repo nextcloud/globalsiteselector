@@ -8,6 +8,8 @@
 namespace OCA\GlobalSiteSelector;
 
 use OCA\GlobalSiteSelector\AppInfo\Application;
+use OCA\GlobalSiteSelector\AuditLog\Operation;
+use OCA\GlobalSiteSelector\Service\AuditLogService;
 use OCP\Cache\CappedMemoryCache;
 use OCP\Config\IUserConfig;
 use OCP\EventDispatcher\GenericEvent;
@@ -46,6 +48,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 		private readonly IUserManager $userManager,
 		private readonly LoggerInterface $logger,
 		private readonly IRootFolder $rootFolder,
+		private readonly AuditLogService $auditLogService,
 	) {
 		$this->cache = new CappedMemoryCache();
 	}
@@ -71,6 +74,10 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 			}
 			$qb->executeStatement();
 			unset($this->cache[$uid]);
+
+			$this->auditLogService->log(Operation::AccountProvisioned, 'Account "%s" provisioned by global scale', [
+				'userId' => $uid,
+			]);
 		}
 
 		### Code taken from lib/private/User/Session.php - function prepareUserLogin() ###
@@ -135,6 +142,7 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 
 			$groupsToAdd = array_unique(array_diff($newGroups, $oldGroups));
 			$groupsToRemove = array_diff($oldGroups, $newGroups);
+			$groupsAdded = [];
 
 			foreach ($groupsToAdd as $group) {
 				if (strtolower((string)$group) === 'admin') {
@@ -145,10 +153,19 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 					$groupManager->createGroup($group);
 				}
 				$groupManager->get($group)->addUser($user);
+				$groupsAdded[] = $group;
 			}
 
 			foreach ($groupsToRemove as $group) {
 				$groupManager->get($group)->removeUser($user);
+			}
+
+			if ($groupsAdded !== [] || $groupsToRemove !== []) {
+				$this->auditLogService->log(Operation::UserGroupsSynchronized, 'Group memberships of "%s" synchronized by global scale provisioning', [
+					'userId' => $uid,
+					'groupsAdded' => (string)json_encode($groupsAdded, JSON_UNESCAPED_UNICODE),
+					'groupsRemoved' => (string)json_encode(array_values($groupsToRemove), JSON_UNESCAPED_UNICODE),
+				]);
 			}
 		}
 	}

@@ -9,6 +9,8 @@ namespace OCA\GlobalSiteSelector;
 
 use OC\Authentication\Token\IProvider;
 use OC\Authentication\Token\IToken;
+use OCA\GlobalSiteSelector\AuditLog\Operation;
+use OCA\GlobalSiteSelector\Service\AuditLogService;
 use OCP\Security\ISecureRandom;
 
 /**
@@ -23,6 +25,7 @@ class TokenHandler {
 	public function __construct(
 		private readonly IProvider $tokenProvider,
 		private readonly ISecureRandom $random,
+		private readonly AuditLogService $auditLogService,
 	) {
 	}
 
@@ -36,6 +39,11 @@ class TokenHandler {
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER . ISecureRandom::CHAR_LOWER . ISecureRandom::CHAR_DIGITS);
 		$deviceToken = $this->tokenProvider->generateToken($token, $uid, $uid, null, 'Client login', IToken::PERMANENT_TOKEN);
 		$tokenData = $deviceToken->jsonSerialize();
+
+		$this->auditLogService->log(Operation::AppPasswordCreated, 'App password %s created for "%s" via global scale client login', [
+			'tokenId' => $deviceToken->getId(),
+			'userId' => (string)$uid,
+		]);
 
 		return [
 			'token' => $token,
