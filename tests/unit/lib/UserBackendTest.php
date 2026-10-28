@@ -95,6 +95,18 @@ class UserBackendTest extends TestCase {
 		$this->getBackend(true)->createUserIfNotExists('alice', false);
 	}
 
+	public function testCreateUserKnownToOtherBackendInsertsNothing(): void {
+		$this->userManager->expects($this->once())
+			->method('userExists')
+			->with('alice')
+			->willReturn(true);
+		$this->db->expects($this->never())->method('getQueryBuilder');
+		$this->auditLogService->expects($this->never())->method('log');
+		$this->stopAtHomeSetup();
+
+		$this->getBackend(false)->createUserIfNotExists('alice', false);
+	}
+
 	private function prepareGroups(array $currentGroups): void {
 		$user = $this->createMock(IUser::class);
 		$user->method('getUID')->willReturn('alice');
