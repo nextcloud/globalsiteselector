@@ -132,6 +132,38 @@ class SlaveControllerTest extends TestCase {
 		$this->assertSame($options, ['option1' => 'foo']);
 	}
 
+	public static function dataInitAccountWithInvalidJwt(): array {
+		$jwtKey = 'jwtkeybutlongenoughforsecurityasthisisnowimportant';
+		$header = JWT::urlsafeB64Encode(json_encode(['alg' => ['HS256']]));
+		return [
+			'invalid' => ['invalid', 'invalid_jwt', \UnexpectedValueException::class],
+			'expired' => [JWT::encode(['uid' => 'alice', 'exp' => time() - 300], $jwtKey, Application::JWT_ALGORITHM), 'expired_jwt', \UnexpectedValueException::class],
+			'malformed header' => [$header . '.' . $header . '.signature', 'invalid_jwt', \TypeError::class],
+		];
+	}
+
+	#[DataProvider('dataInitAccountWithInvalidJwt')]
+	public function testInitAccountWithInvalidJwtWritesAuditLog(string $jwt, string $reason, string $exception): void {
+		$this->gss->method('isSlave')->willReturn(true);
+		$this->gss->method('getJwtKey')->willReturn('jwtkeybutlongenoughforsecurityasthisisnowimportant');
+		$this->userBackend->expects($this->never())->method('createUserIfNotExists');
+		$this->expectAuditLog(Operation::AccountProvisioningFailed, 'Global scale account provisioning rejected: %s', [
+			'reason' => $reason,
+		]);
+
+		$this->expectException($exception);
+		$this->getInstance()->initAccount($jwt);
+	}
+
+	public function testInitAccountWithoutJwtKeyWritesNoAuditLog(): void {
+		$this->gss->method('isSlave')->willReturn(true);
+		$this->gss->method('getJwtKey')->willReturn('');
+		$this->expectNoAuditLog();
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->getInstance()->initAccount('invalid');
+	}
+
 	private function prepareAutoLogin(): void {
 		$this->gss->method('getMasterUrl')->willReturn('https://master.example');
 		$this->gss->method('isMaster')->willReturn(false);
@@ -227,9 +259,12 @@ class SlaveControllerTest extends TestCase {
 		$controller->autoLogin('jwt');
 	}
 
-	public function testAutoLoginWithExpiredJwtWritesNoAuditLog(): void {
+	public function testAutoLoginWithExpiredJwtWritesAuditLog(): void {
 		$this->prepareAutoLogin();
-		$this->expectNoAuditLog();
+		$this->expectAuditLog(Operation::AutoLoginFailed, 'Global scale autologin for "%s" rejected: %s', [
+			'userId' => '',
+			'reason' => 'expired_jwt',
+		]);
 		$controller = $this->getInstance(['decodeJwt']);
 		$controller->method('decodeJwt')->willThrowException(new ExpiredException('Expired token'));
 
@@ -292,9 +327,12 @@ class SlaveControllerTest extends TestCase {
 		$controller->createAppToken('jwt');
 	}
 
-	public function testCreateAppTokenWithExpiredJwtWritesNoAuditLog(): void {
+	public function testCreateAppTokenWithExpiredJwtWritesAuditLog(): void {
 		$this->gss->method('getMode')->willReturn('slave');
-		$this->expectNoAuditLog();
+		$this->expectAuditLog(Operation::AppPasswordRequestFailed, 'Global scale app password creation for "%s" rejected: %s', [
+			'userId' => '',
+			'reason' => 'expired_jwt',
+		]);
 		$controller = $this->getInstance(['decodeJwt']);
 		$controller->method('decodeJwt')->willThrowException(new ExpiredException('Expired token'));
 

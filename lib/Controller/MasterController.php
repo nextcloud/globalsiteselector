@@ -184,6 +184,9 @@ class MasterController extends OCSController {
 		$user = $this->userSession->getUser();
 		$gssModeratorsGroup = $this->config->getSystemValueString('gss.moderators', '');
 		if ($gssModeratorsGroup === '' || !$this->groupManager->isInGroup($user->getUID(), $gssModeratorsGroup)) {
+			$this->auditLogService->log(Operation::ModeratorAccessDenied, 'Global scale moderator access denied for "%s"', [
+				'userId' => $user->getUID(),
+			]);
 			throw new GlobalScaleModeratorException('account is not moderator');
 		}
 	}

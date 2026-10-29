@@ -140,7 +140,14 @@ class SlaveController extends OCSController {
 		}
 
 		$key = $this->gss->getJwtKey();
-		$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
+		try {
+			$decoded = (array)JWT::decode($jwt, new Key($key, Application::JWT_ALGORITHM));
+		} catch (\UnexpectedValueException|\DomainException|\TypeError $e) {
+			$this->auditLogService->log(Operation::AccountProvisioningFailed, 'Global scale account provisioning rejected: %s', [
+				'reason' => ($e instanceof ExpiredException) ? 'expired_jwt' : 'invalid_jwt',
+			]);
+			throw $e;
+		}
 		// JWT store data as stdClass, not array
 		$decoded = json_decode(json_encode($decoded), true);
 
@@ -255,6 +262,7 @@ class SlaveController extends OCSController {
 			}
 		} catch (ExpiredException) {
 			$this->logger->info('token expired');
+			$this->logFailedAutoLogin($uid, 'expired_jwt');
 			$response = new RedirectResponse($masterUrl);
 			$response->throttle();
 			return $response;
@@ -338,6 +346,7 @@ class SlaveController extends OCSController {
 			}
 		} catch (ExpiredException) {
 			$this->logger->info('Create app password: JWT token expired');
+			$this->logFailedAppTokenCreation($uid, 'expired_jwt');
 		} catch (\Exception $e) {
 			$this->logger->info('issue while token creation', ['exception' => $e]);
 			$this->logFailedAppTokenCreation($uid, ($uid === null) ? 'invalid_jwt' : 'login_failed');

@@ -112,9 +112,23 @@ class MasterControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_INTERNAL_SERVER_ERROR, $response->getStatus());
 	}
 
-	public function testPrepAccountByNonModeratorWritesNoAuditLog(): void {
+	public function testPrepAccountByNonModeratorWritesAuditLog(): void {
 		$this->prepareModerator(false);
 		$this->globalScaleService->expects($this->never())->method('sendToLocation');
+		$this->auditLogService->expects($this->once())
+			->method('log')
+			->with(Operation::ModeratorAccessDenied, 'Global scale moderator access denied for "%s"', [
+				'userId' => 'moderator',
+			]);
+
+		$response = $this->controller->prepAccount('alice', 'node1.example');
+
+		$this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+	}
+
+	public function testPrepAccountWithDisabledFeatureWritesNoAuditLog(): void {
+		$this->gss->method('isMaster')->willReturn(true);
+		$this->appConfig->method('getAppValueBool')->willReturn(false);
 		$this->auditLogService->expects($this->never())->method('log');
 
 		$response = $this->controller->prepAccount('alice', 'node1.example');
