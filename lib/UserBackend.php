@@ -59,10 +59,12 @@ class UserBackend extends ABackend implements IUserBackend, UserInterface, IChec
 	}
 
 	/**
-	 * Creates a user if it does not exist.
+	 * Creates a user if it does not exist in this or any other user backend.
 	 */
 	public function createUserIfNotExists(string $uid, bool $firstLoginIfNeeded = true): void {
-		if (!$this->loadUser($uid)) {
+		if (!$this->loadUser($uid) && $this->userManager->userExists($uid)) {
+			$this->logger->warning('Account "' . $uid . '" exists in another user backend, not provisioning it by global scale', ['app' => Application::APP_ID]);
+		} elseif (!$this->loadUser($uid)) {
 			$values = [
 				'uid' => $uid,
 			];
