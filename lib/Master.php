@@ -322,7 +322,7 @@ class Master {
 						'format' => 'json',
 						'jwt' => $jwt
 					],
-					'timeout' => 30,
+					'timeout' => 60,
 				]
 			)
 		);
