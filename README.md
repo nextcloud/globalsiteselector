@@ -94,6 +94,12 @@ the exact URL to the slave target server. The name of the parameter can be defin
 'gss.discovery.saml.slave.mapping' => 'idp-parameter'
 ````
 
+The IDP-Parameter needs to be a key in the SAML server and the value of the key:value pair needs to be the hostname of the assigned worker/slave node. The key itself is flexible depending on the IDP provider, but should be set per user such that each is mapped to a respective Nextcloud worker/slave node domain name - i.e. nc1.local, nc2.local, etc.
+
+The SAML connection only needs to be attached to the master node, the slaves receive the authentication key from the master and then can respect the login/access. 
+The slaves should not have the SAML service attached nor the user_saml app enabled as the token is passed from the Global Scale master node to them via the session.
+
+
 #### UserDiscoveryOIDC
 
 This module is similar to UserDiscoverySAML.
