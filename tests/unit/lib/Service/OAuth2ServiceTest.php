@@ -21,15 +21,11 @@ use OCA\OAuth2\Db\Client;
 use OCA\OAuth2\Db\ClientMapper;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\Authentication\Token\IToken as OCPIToken;
-use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IAppConfig;
 use OCP\IConfig;
-use OCP\IInitialStateService;
 use OCP\IRequest;
 use OCP\ISession;
-use OCP\IURLGenerator;
 use OCP\IUserSession;
 use OCP\Security\ICrypto;
 use OCP\Security\ISecureRandom;
@@ -76,8 +72,6 @@ class OAuth2ServiceTest extends TestCase {
 			$this->session,
 			$this->createMock(IUserSession::class),
 			$this->appConfig,
-			$this->createMock(IInitialStateService::class),
-			$this->createMock(Defaults::class),
 			$this->tokenProvider,
 			$this->random,
 			$this->accessTokenMapper,
@@ -85,7 +79,6 @@ class OAuth2ServiceTest extends TestCase {
 			$this->createMock(IEventDispatcher::class),
 			$this->timeFactory,
 			$this->config,
-			$this->createMock(IURLGenerator::class),
 			$this->clientMapper,
 			$this->auditLogService,
 			$this->createMock(LoggerInterface::class),
@@ -102,13 +95,6 @@ class OAuth2ServiceTest extends TestCase {
 			[ClientFlowLoginController::STATE_NAME, 'state-token'],
 			['oauth.state', 'oauth-state'],
 		]);
-		$this->session->method('getId')->willReturn('session-id');
-
-		$sessionToken = $this->createMock(OCPIToken::class);
-		$sessionToken->method('getLoginName')->willReturn('alice');
-		$sessionToken->method('getUID')->willReturn('alice');
-		$this->tokenProvider->method('getToken')->with('session-id')->willReturn($sessionToken);
-		$this->tokenProvider->method('getPassword')->willReturn('password');
 
 		$generatedToken = $this->createMock(IToken::class);
 		$generatedToken->method('getId')->willReturn(42);
@@ -146,7 +132,7 @@ class OAuth2ServiceTest extends TestCase {
 				'oauthClientId' => null,
 			]);
 
-		$this->service->finalizeOAuth2('state-token', '', '', 'Desktop client');
+		$this->service->finalizeOAuth2('alice', 'state-token', '', '', 'Desktop client');
 	}
 
 	public function testFinalizeWithClientWritesAuditLog(): void {
@@ -165,7 +151,7 @@ class OAuth2ServiceTest extends TestCase {
 				'oauthClientId' => 7,
 			]);
 
-		$this->service->finalizeOAuth2('state-token', 'client-identifier', '', 'Desktop client');
+		$this->service->finalizeOAuth2('alice', 'state-token', 'client-identifier', '', 'Desktop client');
 	}
 
 	public function testFinalizeWithInvalidStateTokenWritesNoAuditLog(): void {
@@ -175,7 +161,7 @@ class OAuth2ServiceTest extends TestCase {
 		$this->auditLogService->expects($this->never())->method('log');
 
 		try {
-			$this->service->finalizeOAuth2('wrong-token', '', '', 'Desktop client');
+			$this->service->finalizeOAuth2('alice', 'wrong-token', '', '', 'Desktop client');
 			$this->fail('Expected exception');
 		} catch (\Exception $e) {
 			$this->assertSame('invalid token', $e->getMessage());
@@ -188,7 +174,7 @@ class OAuth2ServiceTest extends TestCase {
 		$this->auditLogService->expects($this->never())->method('log');
 
 		try {
-			$this->service->finalizeOAuth2('state-token', '', '', 'Desktop client');
+			$this->service->finalizeOAuth2('alice', 'state-token', '', '', 'Desktop client');
 			$this->fail('Expected exception');
 		} catch (\Exception $e) {
 			$this->assertSame('feature not available', $e->getMessage());

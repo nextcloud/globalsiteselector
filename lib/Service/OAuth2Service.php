@@ -72,19 +72,22 @@ class OAuth2Service {
 		// if logged and requesting login flow grant, we redirect to client
 		if ($this->toolsService->isPath(['/login/flow/grant'], $target)
 			&& $this->userSession->isLoggedIn()) {
-			$this->finalizeOAuth2(
+			$redirectUri = $this->finalizeOAuth2(
 				$uid,
 				$this->request->getParam('stateToken', ''),
 				$this->request->getParam('clientIdentifier', ''),
 				$this->request->getParam('providedRedirectUri', ''),
 				$this->request->getHeader('user-agent'),
 			);
+			header('Location: ' . $redirectUri);
+			die();
 		}
 
 		return false;
 	}
 
 	/**
+	 * returns the uri to redirect the client to
 	 * use of ReflectionProperty can be removed once we hit min-version=36
 	 */
 	public function finalizeOAuth2(
@@ -93,7 +96,7 @@ class OAuth2Service {
 		string $clientIdentifier,
 		string $providedRedirectUri,
 		string $userAgent,
-	): void {
+	): string {
 		if (!$this->appManager->isAppLoaded('oauth2')
 			|| !$this->appConfig->getValueBool(Application::APP_ID, ConfigLexicon::MANAGE_OAUTH2)) {
 			$this->session->remove(ClientFlowLoginController::STATE_NAME);
@@ -183,8 +186,7 @@ class OAuth2Service {
 			'oauthClientId' => $oauthClientId,
 		]);
 
-		header('Location: ' . $redirectUri);
-		die();
+		return $redirectUri;
 	}
 
 	private function isValidToken(string $stateToken): bool {

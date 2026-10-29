@@ -25,6 +25,7 @@ enum Operation: string {
 	case AccountPrepared = 'globalsiteselector.account.prepared';
 	case ModeratorAccessDenied = 'globalsiteselector.moderator_access.denied';
 	case UserGroupsSynchronized = 'globalsiteselector.user_groups.synchronized';
+	case SharedFileRequestFailed = 'globalsiteselector.shared_file.request_failed';
 
 	public function description(): string {
 		return match ($this) {
@@ -38,6 +39,7 @@ enum Operation: string {
 			self::AccountPrepared => 'A global scale moderator on the master prepared an account on a slave.',
 			self::ModeratorAccessDenied => 'An account that is not a global scale moderator tried to use a moderator feature on the master.',
 			self::UserGroupsSynchronized => 'Global scale provisioning added or removed group memberships of an account based on the data sent by the master.',
+			self::SharedFileRequestFailed => 'An instance rejected a request from another instance about a shared file.',
 		};
 	}
 }

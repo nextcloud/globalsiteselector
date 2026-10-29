@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\GlobalSiteSelector;
 
+use OCA\GlobalSiteSelector\Exceptions\ConfigurationException;
 use OCA\GlobalSiteSelector\Exceptions\LookupServerConfigurationException;
 use OCA\GlobalSiteSelector\Exceptions\MasterUrlException;
 use OCP\IConfig;
@@ -58,8 +59,26 @@ class GlobalSiteSelector {
 	 * HS256 requires a key of at least 256 bits (32 bytes) per RFC 7518 §3.2.
 	 */
 	public function isJwtKeyValid(): bool {
+		try {
+			$this->getValidJwtKey();
+			return true;
+		} catch (ConfigurationException) {
+			return false;
+		}
+	}
+
+	/**
+	 * get JWT key, after validating it meets minimum length requirements
+	 *
+	 * @throws ConfigurationException if the key is missing or too short
+	 */
+	public function getValidJwtKey(): string {
 		$key = $this->getJwtKey();
-		return $key !== '' && strlen($key) >= self::MIN_JWT_KEY_LENGTH;
+		if (strlen($key) < self::MIN_JWT_KEY_LENGTH) {
+			throw new ConfigurationException('gss.jwt.key is missing or shorter than ' . self::MIN_JWT_KEY_LENGTH . ' characters');
+		}
+
+		return $key;
 	}
 
 	/**

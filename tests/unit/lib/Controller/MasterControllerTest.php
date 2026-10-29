@@ -15,7 +15,6 @@ use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCA\GlobalSiteSelector\Lookup;
 use OCA\GlobalSiteSelector\Service\AuditLogService;
 use OCA\GlobalSiteSelector\Service\GlobalScaleService;
-use OCA\GlobalSiteSelector\Service\OAuth2Service;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\Http\Client\IResponse;
@@ -60,7 +59,6 @@ class MasterControllerTest extends TestCase {
 			$this->groupManager,
 			$this->gss,
 			$this->globalScaleService,
-			$this->createMock(OAuth2Service::class),
 			$this->config,
 			$this->appConfig,
 			$this->lookup,
@@ -120,6 +118,18 @@ class MasterControllerTest extends TestCase {
 			->with(Operation::ModeratorAccessDenied, 'Global scale moderator access denied for "%s"', [
 				'userId' => 'moderator',
 			]);
+
+		$response = $this->controller->prepAccount('alice', 'node1.example');
+
+		$this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+		$this->assertTrue($response->isThrottled());
+	}
+
+	public function testPrepAccountWithoutSessionAccountWritesNoAuditLog(): void {
+		$this->gss->method('isMaster')->willReturn(true);
+		$this->appConfig->method('getAppValueBool')->willReturn(true);
+		$this->userSession->method('getUser')->willReturn(null);
+		$this->auditLogService->expects($this->never())->method('log');
 
 		$response = $this->controller->prepAccount('alice', 'node1.example');
 

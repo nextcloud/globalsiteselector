@@ -7,6 +7,7 @@
 
 namespace OCA\GlobalSiteSelector\Tests\Unit;
 
+use OCA\GlobalSiteSelector\Exceptions\ConfigurationException;
 use OCA\GlobalSiteSelector\GlobalSiteSelector;
 use OCP\IConfig;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -78,5 +79,20 @@ class GlobalSiteSelectorTest extends TestCase {
 			->with('gss.jwt.key', '')->willReturn('this-key-is-at-least-32-characters-long!');
 
 		$this->assertTrue($this->gss->isJwtKeyValid());
+	}
+
+	public function testGetValidJwtKeyWithShortKey(): void {
+		$this->config->method('getSystemValueString')
+			->with('gss.jwt.key', '')->willReturn('short-key');
+
+		$this->expectException(ConfigurationException::class);
+		$this->gss->getValidJwtKey();
+	}
+
+	public function testGetValidJwtKeyWithValidKey(): void {
+		$this->config->method('getSystemValueString')
+			->with('gss.jwt.key', '')->willReturn('this-key-is-at-least-32-characters-long!');
+
+		$this->assertSame('this-key-is-at-least-32-characters-long!', $this->gss->getValidJwtKey());
 	}
 }
