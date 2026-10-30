@@ -131,7 +131,7 @@ class FederatedShare implements JsonSerializable {
 				->setPermissions($data['permissions'] ?? 0);
 		}
 
-		if (array_key_exists('target', $data)) {
+		if (($data['target'] ?? null) !== null) {
 			$target = new LocalFile();
 			$target->import($data['target']);
 			$this->setTarget($target);

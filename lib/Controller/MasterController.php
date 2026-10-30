@@ -75,7 +75,9 @@ class MasterController extends OCSController {
 			$this->confirmGssModerator(ConfigLexicon::ENABLE_PREP_ACCOUNTS);
 		} catch (GlobalScaleModeratorException $e) {
 			$this->logger->warning('prepAccount failed due to GlobalScaleModeratorException', ['exception' => $e]);
-			return new Response(Http::STATUS_NOT_FOUND);
+			$response = new Response(Http::STATUS_NOT_FOUND);
+			$response->throttle();
+			return $response;
 		}
 
 		// check user is not already on lus
@@ -182,8 +184,15 @@ class MasterController extends OCSController {
 		}
 
 		$user = $this->userSession->getUser();
+		if ($user === null) {
+			throw new GlobalScaleModeratorException('no account in session');
+		}
+
 		$gssModeratorsGroup = $this->config->getSystemValueString('gss.moderators', '');
 		if ($gssModeratorsGroup === '' || !$this->groupManager->isInGroup($user->getUID(), $gssModeratorsGroup)) {
+			$this->auditLogService->log(Operation::ModeratorAccessDenied, 'Global scale moderator access denied for "%s"', [
+				'userId' => $user->getUID(),
+			]);
 			throw new GlobalScaleModeratorException('account is not moderator');
 		}
 	}
