@@ -53,6 +53,8 @@ class GlobalScaleServiceTest extends TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->lookup = $this->getMockBuilder(Lookup::class)
 			->disableOriginalConstructor()->getMock();
+		$this->lookup->method('configureClient')
+			->willReturnCallback(fn (array $options): array => array_merge(['verify' => true], $options));
 		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->request = $this->createMock(IRequest::class);
 		$this->userConfig = $this->createMock(IUserConfig::class);

@@ -169,13 +169,13 @@ trait TGlobalScaleService {
 		try {
 			$response = $client->get(
 				'https://' . $address . parse_url($this->urlGenerator->linkToOCSRouteAbsolute('globalsiteselector.' . $route), PHP_URL_PATH),
-				[
-					'headers' => ['OCS-APIRequest' => 'true'],
-					'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
-					'timeout' => 5,
-					'connect_timeout' => 5,
-					'query' => array_merge($data, ['format' => 'json'])
-				]
+				$this->lookup->configureClient(
+					[
+						'headers' => ['OCS-APIRequest' => 'true'],
+						'query' => array_merge($data, ['format' => 'json']),
+						'timeout' => 5,
+						'connect_timeout' => 5,
+					])
 			);
 		} catch (Exception $e) {
 			$this->logger->warning('could not reach remote gss ocs', ['exception' => $e]);
@@ -340,14 +340,14 @@ trait TGlobalScaleService {
 			'HS256',
 		);
 
-		$options = array_merge([
-			'headers' => ['OCS-APIRequest' => 'true'],
-			'verify' => !$this->config->getSystemValueBool('gss.selfsigned.allow', false),
-			'timeout' => 10,
-			'connect_timeout' => 5,
-			'query' => ['format' => 'json'],
-			'body' => ['jwt' => $jwt],
-		], $options);
+		$options = $this->lookup->configureClient(
+			array_merge([
+				'headers' => ['OCS-APIRequest' => 'true'],
+				'timeout' => 10,
+				'connect_timeout' => 5,
+				'query' => ['format' => 'json'],
+				'body' => ['jwt' => $jwt],
+			], $options));
 
 		$client = $this->clientService->newClient();
 		try {
