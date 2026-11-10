@@ -179,6 +179,35 @@ class MasterTest extends TestCase {
 		$master->handleLoginRequest($user->getUID(), 'password', $user->getBackend(), true);
 	}
 
+	public function testHandleLoginRequestOidcChecksOauth2OnTargetRestoredFromSession(): void {
+		$user = $this->getUser('user');
+		$grantUrl = '/index.php/login/flow/grant?stateToken=st&clientIdentifier=cid';
+
+		$master = $this->getInstance(['redirectUser']);
+
+		$this->request->method('getScriptName')->willReturn('/index.php');
+		$this->request->method('getPathInfo')->willReturn('/apps/user_oidc/code');
+		$this->request->method('getParams')->willReturn([]);
+		$this->request->method('getParam')->willReturnMap([
+			['jwt', '', ''],
+			['redirect_url', '', ''],
+			['state', null, 'abc'],
+		]);
+		$this->session->method('get')->willReturnMap([
+			['oidc.redirect-abc', 'https://master.example' . $grantUrl],
+		]);
+		$this->globalScaleService->method('getSsoUserData')
+			->willReturn(['backend' => 'oidc', 'formatted' => [], 'raw' => []]);
+
+		$this->oauth2Service->expects($this->once())->method('manageOauth2')
+			->with('user', $grantUrl)
+			->willReturn(true);
+		$this->globalScaleService->expects($this->never())->method('getSecondaryRemoteLocation');
+		$master->expects($this->never())->method('redirectUser');
+
+		$master->handleLoginRequest($user->getUID(), '', $user->getBackend());
+	}
+
 	public function testCreateJWT(): void {
 		$uid = 'user1';
 		$plainPassword = 'password';

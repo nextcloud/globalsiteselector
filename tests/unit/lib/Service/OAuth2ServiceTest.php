@@ -180,4 +180,26 @@ class OAuth2ServiceTest extends TestCase {
 			$this->assertSame('feature not available', $e->getMessage());
 		}
 	}
+
+	public function testGrantParamsFromTargetQuery(): void {
+		$this->request->expects($this->never())->method('getParams');
+
+		$this->assertSame(
+			['stateToken' => 'st', 'clientIdentifier' => 'cid', 'providedRedirectUri' => ''],
+			self::invokePrivate($this->service, 'getGrantParams', ['/index.php/login/flow/grant?stateToken=st&clientIdentifier=cid&providedRedirectUri[]=x'])
+		);
+	}
+
+	public function testGrantParamsFromRequestWhenTargetHasNoQuery(): void {
+		$this->request->method('getParams')->willReturn([
+			'stateToken' => 'st',
+			'clientIdentifier' => 'cid',
+			'providedRedirectUri' => 'http://localhost:1234',
+		]);
+
+		$this->assertSame(
+			['stateToken' => 'st', 'clientIdentifier' => 'cid', 'providedRedirectUri' => 'http://localhost:1234'],
+			self::invokePrivate($this->service, 'getGrantParams', ['/index.php/login/flow/grant'])
+		);
+	}
 }

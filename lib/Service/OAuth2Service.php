@@ -72,11 +72,12 @@ class OAuth2Service {
 		// if logged and requesting login flow grant, we redirect to client
 		if ($this->toolsService->isPath(['/login/flow/grant'], $target)
 			&& $this->userSession->isLoggedIn()) {
+			$params = $this->getGrantParams($target);
 			$redirectUri = $this->finalizeOAuth2(
 				$uid,
-				$this->request->getParam('stateToken', ''),
-				$this->request->getParam('clientIdentifier', ''),
-				$this->request->getParam('providedRedirectUri', ''),
+				$params['stateToken'],
+				$params['clientIdentifier'],
+				$params['providedRedirectUri'],
 				$this->request->getHeader('user-agent'),
 			);
 			header('Location: ' . $redirectUri);
@@ -84,6 +85,28 @@ class OAuth2Service {
 		}
 
 		return false;
+	}
+
+	/**
+	 * returns the login flow grant parameters from the query string of the target,
+	 * or from the current request if the target has none.
+	 *
+	 * @return array{stateToken: string, clientIdentifier: string, providedRedirectUri: string}
+	 */
+	private function getGrantParams(string $target): array {
+		$query = (string)parse_url($target, PHP_URL_QUERY);
+		if ($query !== '') {
+			parse_str($query, $params);
+		} else {
+			$params = $this->request->getParams();
+		}
+
+		$grantParams = [];
+		foreach (['stateToken', 'clientIdentifier', 'providedRedirectUri'] as $key) {
+			$grantParams[$key] = is_string($params[$key] ?? null) ? $params[$key] : '';
+		}
+
+		return $grantParams;
 	}
 
 	/**
