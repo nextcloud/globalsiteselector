@@ -107,10 +107,6 @@ class Master {
 			return;
 		}
 
-		if ($this->oauth2Service->manageOauth2($uid, $target)) {
-			return;
-		}
-
 		$redirectUrl = $this->request->getParam('redirect_url', '');
 
 		$ssoUserData = $this->globalScaleService->getSsoUserData($uid, $backend);
@@ -164,6 +160,10 @@ class Master {
 		if ($this->toolsService->isPath(['/login/flow', '/login/v2/flow'], $redirectUrl ?? '')) {
 			$options['target'] = $redirectUrl;
 			$this->logger->debug('handleLoginRequest: overriding target with slave flow path: ' . $options['target']);
+		}
+
+		if ($this->oauth2Service->manageOauth2($uid, $options['target'])) {
+			return;
 		}
 
 		try {
